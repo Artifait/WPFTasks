@@ -48,8 +48,8 @@
 
                     <!-- Start: MenuItem -->
                     <StackPanel Grid.Row="1" Margin="-1 20 0 20">
-                        <Button x:Name="btnHome" Style="{DynamicResource PopupButtonStyle}"  MouseEnter="btnHome_MouseEnter" MouseLeave="HidePopup" Click="btnHome_Click">
-                            <ctls:MenuItem GroupName="MenuItem" IndicatorBrush="{DynamicResource PrimaryBlueColor}" Icon="{DynamicResource home}" IconWidth="24" Text="Home" VerticalAlignment="Center"/>
+                        <Button x:Name="btnExample" Style="{DynamicResource PopupButtonStyle}"  MouseEnter="btnExample_MouseEnter" MouseLeave="HidePopup" Click="btnExample_Click">
+                            <ctls:MenuItem GroupName="MenuItem" IndicatorBrush="{DynamicResource PrimaryBlueColor}" Icon="{DynamicResource home}" IconWidth="24" Text="Examples" VerticalAlignment="Center"/>
                         </Button>
                         <Button x:Name="btnTask1" Style="{DynamicResource PopupButtonStyle}"  MouseEnter="btnTask1_MouseEnter" MouseLeave="HidePopup">
                             <ctls:MenuItem GroupName="MenuItem" IndicatorBrush="{DynamicResource PrimaryBlueColor}" Icon="{DynamicResource products}" IconWidth="24" Text="Task 1" VerticalAlignment="Center"/>
@@ -72,8 +72,7 @@
             <Grid Grid.Column="1">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="60"/>
-                    <RowDefinition Height="422*"/>
-                    <RowDefinition Height="19*"/>
+                    <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
                 <ToggleButton x:Name="Tg_Btn" VerticalAlignment="Center" Style="{DynamicResource iToggleButtonStyle}" HorizontalAlignment="Left" BorderThickness="0" Background="Transparent" Margin="10,0,0,0" Height="30" Width="30">
@@ -96,7 +95,16 @@
                         </EventTrigger>
                     </ToggleButton.Triggers>
                 </ToggleButton>
-
+                <Border 
+                    Background="{DynamicResource SecundaryBackgroundColor}"
+                    CornerRadius="12 12 0 0" Padding="10 6" HorizontalAlignment="Center" Margin="0 5 0 0"
+                    VerticalAlignment="Center" PreviewMouseLeftButtonDown="WindowMove">
+                    <Label Content="WPF-Tasks"
+                       Foreground="{DynamicResource PrimaryTextColor}"
+                       FontWeight="Bold"
+                       FontSize="24"
+                       Background="Transparent"/>
+                </Border>
                 <!-- Start: Button Close | Restore | Minimize -->
                 <StackPanel Grid.Row="0" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,10,0" Height="30" Orientation="Horizontal" FlowDirection="RightToLeft">
                     <Button x:Name="btnClose" Style="{StaticResource IconButtonsStyle}" Content="{DynamicResource close}" Click="btnClose_Click" Tag="IsCloseButton"/>
@@ -117,12 +125,10 @@
                 <!-- End: Button Close | Restore | Minimize -->
 
                 <Frame Grid.Row="1"
-                       Name="fContainer"
-                       Margin="20,20,20,2"
-                       NavigationUIVisibility="Hidden">
-
+                   Name="fContainer"
+                   Margin="10 -2 10 10"
+                   NavigationUIVisibility="Hidden">
                 </Frame>
-
             </Grid>
         </Grid>
     </Border>
