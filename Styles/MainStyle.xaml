@@ -118,5 +118,12 @@
         </Setter>
     </Style>
     <!-- End: Button Close | Restore | Minimize -->
+
+    <Style x:Key="TextBlockDefaultStyle" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontSize" Value="30"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryTextColor}"/>
+        <Setter Property="Background" Value="{DynamicResource SecundaryBackgroundColor}"/>
+    </Style>
     
 </ResourceDictionary>

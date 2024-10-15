@@ -1,6 +1,8 @@
 ﻿using System.Data;
 using System.Data.Common;
 using System.IO;
+using System.Windows;
+using Microsoft.SqlServer.Server;
 using Newtonsoft.Json;
 
 namespace WPFTasks.Models;
@@ -10,15 +12,12 @@ public class DBConfig
     public string Provider { get; set; }
     public string ConnectionString { get; set; }
     public string Alias { get; set; }
-    public override string ToString()
-    {
-        return Alias;
-    }
+    public override string ToString() => Alias;
 }
 
 public class DBManager
 {
-    private List<DBConfig> _databases = new();
+    private List<DBConfig> _databases = [];
     private DbProviderFactory _factory;
     private DbConnection _connection;
     private DbDataAdapter _adapter;
@@ -32,18 +31,15 @@ public class DBManager
             string json = File.ReadAllText(jsonFilePath);
             List<DBConfig> dbConfigs = JsonConvert.DeserializeObject<List<DBConfig>>(json);
             if (dbConfigs != null)
-            {
                 _databases.AddRange(dbConfigs);
-            }
+            
+        }
+        else
+        {
+            MessageBox.Show("Не найден файл с конфигурацие для бд манагера");
         }
     }
 
-    public void AddDB(string provider, string connStr, string alias)
-        => _databases.Add(new DBConfig { Provider = provider, ConnectionString = connStr, Alias = alias });
-    public void AddDB(DBConfig db) => _databases.Add(db);
-    public void AddDB(List<DBConfig> dbList) => _databases.AddRange(dbList);
-    public void ClearDBList() => _databases.Clear();
-    public List<DBConfig> GetDBList() => _databases;
 
     public void CloseConnection() => _connection.Close();
     public void Connect(DBConfig db)
@@ -89,4 +85,9 @@ public class DBManager
             _adapter.Update(dataTable);
         }
     }
+    public void AddDB(string provider, string connStr, string alias)
+        => _databases.Add(new DBConfig { Provider = provider, ConnectionString = connStr, Alias = alias });
+    public void AddDB(DBConfig db) => _databases.Add(db);
+    public void AddDB(List<DBConfig> dbList) => _databases.AddRange(dbList);
+    public List<DBConfig> GetDBList() => _databases;
 }

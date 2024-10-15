@@ -1,4 +1,5 @@
 ﻿
+using System.Collections.Generic;
 using System.Data.Common;
 using System.Windows;
 using System.Windows.Controls.Primitives;
@@ -69,10 +70,16 @@ namespace WPFTasks
         private void btnExample_Click(object sender, RoutedEventArgs e)
             => fContainer.Navigate(new System.Uri("Pages/ExampleTable.xaml", UriKind.RelativeOrAbsolute));
 
+        private void btnTask1_Click(object sender, RoutedEventArgs e)
+            => fContainer.Navigate(new System.Uri("Pages/Task1.xaml", UriKind.RelativeOrAbsolute));
+
         private void WindowMove(object sender, MouseButtonEventArgs e)
         {
             if (e.LeftButton == MouseButtonState.Pressed)
                 this.DragMove();
         }
+
+
     }
 }
+
