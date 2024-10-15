@@ -25,10 +25,11 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
                 <ComboBox x:Name="dbComboBox" Grid.Column="0" Margin="10" 
-                    DisplayMemberPath="Alias" ItemsSource="{Binding Databases}" SelectionChanged="OnChangeDB"/>
+                    DisplayMemberPath="ViewStr" ItemsSource="{Binding Databases}" SelectionChanged="OnChangeDB"/>
 
                 <Button Grid.Column="1" Margin="5" Content="Подключиться" 
                     Foreground="{DynamicResource PrimaryTextColor}"
@@ -47,13 +48,23 @@
                     FontWeight="Bold"
                     FontSize="16" Background="{StaticResource PrimaryBackgroundColor}" 
                     Content="Обновить данные" Command="{Binding UpdateDataCommand}" Height="38"/>
+                <Border Margin="5" Grid.Column="4" >
+                    <Border.Effect>
+                        <DropShadowEffect/>
+                    </Border.Effect>
+                    <CheckBox  Content="Async Mode" VerticalAlignment="Center" HorizontalAlignment="Center"
+                    Foreground="{DynamicResource PrimaryTextColor}"
+                    FontWeight="Bold" IsChecked="{Binding IsAsyncMode}"
+                    FontSize="16" Margin="5"/>
+                </Border>
+
             </Grid>
 
             <TextBox x:Name="queryTextBox" Grid.Row="1" Margin="10" Height="70"
                  Text="{Binding Query}" TextWrapping="Wrap" AcceptsReturn="True"                   
                  Foreground="{DynamicResource PrimaryTextColor}"
-                 FontWeight="Bold"
-                 FontSize="16" Background="{StaticResource PrimaryBackgroundColor}"/>
+                 FontWeight="Bold" FontSize="16" 
+                 Background="{StaticResource PrimaryBackgroundColor}"/>
 
             <DataGrid x:Name="dataGrid" Grid.Row="2" Margin="10" AutoGenerateColumns="True"
                   ItemsSource="{Binding DataTable}" IsReadOnly="False" Background="{StaticResource PrimaryBackgroundColor}"/>

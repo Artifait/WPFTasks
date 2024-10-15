@@ -1,7 +1,12 @@
 ﻿[
   {
     "Provider": "Microsoft.Data.SqlClient",
-    "ConnectionString": "Server=(localdb)\\MSSQLLocalDB;Database=Stationery;Trusted_Connection=True;",
-    "Alias": "Stationery"
+    "ConnectionString": "Server=(localdb)\\MSSQLLocalDB;Database=University;Trusted_Connection=True;",
+    "Alias": "University"
+  },
+  {
+    "Provider": "Npgsql",
+    "ConnectionString": "Server=localhost;Port=5432;User Id=postgres;Password=postgres;Database=University;",
+    "Alias": "University"
   }
 ]

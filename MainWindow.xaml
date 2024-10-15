@@ -6,7 +6,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WPFTasks"
         mc:Ignorable="d"
-        Title="MainWindow" Height="500" Width="800"
+        Title="MainWindow" Height="500" Width="900"
         WindowStartupLocation="CenterScreen" WindowStyle="None"
         Background="Transparent" AllowsTransparency="True"
         ResizeMode="CanResizeWithGrip" FontFamily="Poppins">
@@ -50,9 +50,6 @@
                     <StackPanel Grid.Row="1" Margin="-1 20 0 20">
                         <Button x:Name="btnExample" Style="{DynamicResource PopupButtonStyle}"  MouseEnter="btnExample_MouseEnter" MouseLeave="HidePopup" Click="btnExample_Click">
                             <ctls:MenuItem GroupName="MenuItem" IndicatorBrush="{DynamicResource PrimaryBlueColor}" Icon="{DynamicResource home}" IconWidth="24" Text="Examples" VerticalAlignment="Center"/>
-                        </Button>
-                        <Button x:Name="btnTask1" Style="{DynamicResource PopupButtonStyle}"  MouseEnter="btnTask1_MouseEnter" MouseLeave="HidePopup" Click="btnTask1_Click">
-                            <ctls:MenuItem GroupName="MenuItem" IndicatorBrush="{DynamicResource PrimaryBlueColor}" Icon="{DynamicResource products}" IconWidth="24" Text="Task 1" VerticalAlignment="Center"/>
                         </Button>
                         <Button x:Name="btnSetting" Style="{DynamicResource PopupButtonStyle}"  MouseEnter="btnSetting_MouseEnter" MouseLeave="HidePopup" Click="btnSettings_Click">
                             <ctls:MenuItem GroupName="MenuItem" IndicatorBrush="{DynamicResource PrimaryBlueColor}" Icon="{DynamicResource settings}" IconWidth="24" Text="Setting" VerticalAlignment="Center"/>

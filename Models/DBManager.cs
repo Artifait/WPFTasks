@@ -1,93 +1,150 @@
 ﻿using System.Data;
 using System.Data.Common;
 using System.IO;
-using System.Windows;
-using Microsoft.SqlServer.Server;
 using Newtonsoft.Json;
+using System.Windows;
 
-namespace WPFTasks.Models;
-
-public class DBConfig
+namespace WPFTasks.Models
 {
-    public string Provider { get; set; }
-    public string ConnectionString { get; set; }
-    public string Alias { get; set; }
-    public override string ToString() => Alias;
-}
-
-public class DBManager
-{
-    private List<DBConfig> _databases = [];
-    private DbProviderFactory _factory;
-    private DbConnection _connection;
-    private DbDataAdapter _adapter;
-    private DbCommandBuilder _commandBuilder;
-    private DataSet _dataSet;
-
-    public DBManager(string jsonFilePath)
+    public class DBConfig
     {
-        if (File.Exists(jsonFilePath))
+        public string Provider { get; set; } = null!;
+        public string ConnectionString { get; set; } = null!;
+        public string Alias { get; set; } = null!;
+        public string ViewStr { get => ToString(); }
+        public override string ToString() => Alias + ' ' + Provider;
+    }
+
+    /// <summary> Режим соединения </summary>
+    public abstract class DBConnectionState
+    {
+        protected virtual void OnStartExecute(DBManager manager)
+            { if (!IsOpen(manager)) Connect(manager); }
+
+        protected virtual void OnEndExecute(DBManager manager) { }
+
+        public static bool IsOpen(DBManager manager) 
+            => manager.Connection?.State == ConnectionState.Open;
+
+        public static void CloseConnection(DBManager manager)
         {
-            string json = File.ReadAllText(jsonFilePath);
-            List<DBConfig> dbConfigs = JsonConvert.DeserializeObject<List<DBConfig>>(json);
-            if (dbConfigs != null)
-                _databases.AddRange(dbConfigs);
-            
+            manager.Connection?.Close();
         }
-        else
+
+        public void Connect(DBManager manager)
+            => Connect(manager, manager.CurrentDB);
+
+        public void Connect(DBManager manager, DBConfig db)
         {
-            MessageBox.Show("Не найден файл с конфигурацие для бд манагера");
+            if (!IsOpen(manager)) {
+                manager.Factory = DbProviderFactories.GetFactory(db.Provider);
+                manager.Connection = manager.Factory.CreateConnection();
+                if (manager.Connection == null) throw new InvalidOperationException("Не удалось создать подключение.");
+                manager.Connection.ConnectionString = db.ConnectionString;
+                manager.Connection.Open();
+            }
         }
-    }
 
-
-    public void CloseConnection() => _connection.Close();
-    public void Connect(DBConfig db)
-    {
-        _factory = DbProviderFactories.GetFactory(db.Provider);
-        _connection = _factory.CreateConnection();
-        if (_connection == null) throw new InvalidOperationException("Не удалось создать подключение.");
-        _connection.ConnectionString = db.ConnectionString;
-        _connection.Open();
-    }
-    public bool IsOpen() => _connection.State == ConnectionState.Open;
-
-    public DataTable ExecuteQuery(string query)
-    {
-        _adapter = _factory.CreateDataAdapter();
-        if (_adapter == null) return new DataTable();
-
-        using var command = _connection.CreateCommand();
-        command.CommandText = query;
-        _adapter.SelectCommand = command;
-
-        _dataSet = new DataSet();
-        _adapter.Fill(_dataSet);
-
-        _commandBuilder = _factory.CreateCommandBuilder();
-        _commandBuilder.DataAdapter = _adapter;
-
-        return _dataSet.Tables[0];
-    }
-
-    public void UpdateData()
-    {
-        if (_dataSet != null && _adapter != null)
+        private DataTable _ExecuteQuery(DBManager manager, string query)
         {
-            _adapter.Update(_dataSet.Tables[0]); 
+            OnStartExecute(manager);
+
+            if (!IsOpen(manager))
+                throw new InvalidOperationException("Нет соединения с бд.");
+
+            using var command = manager.Connection.CreateCommand();
+            command.CommandText = query;
+            manager.Adapter = manager.Factory.CreateDataAdapter();
+            manager.Adapter.SelectCommand = command;
+            manager.DataSet = new DataSet();
+            manager.Adapter.Fill(manager.DataSet);
+            manager.CommandBuilder = manager.Factory.CreateCommandBuilder();
+            manager.CommandBuilder.DataAdapter = manager.Adapter;
+            OnEndExecute(manager);
+            return manager.DataSet.Tables[0];
         }
+        public virtual DataTable ExecuteQuery(DBManager manager, string query)
+            => _ExecuteQuery(manager, query);
+
+        public virtual async Task<DataTable> ExecuteQueryAsync(DBManager manager, string query)
+            => await Task.Run(() => _ExecuteQuery(manager, query));
     }
 
-    public void UpdateData(DataTable dataTable)
+    /// <summary> Присоединенный режим </summary>
+    public class ConnectedState : DBConnectionState { }
+
+    /// <summary> Отсоединенный режим </summary>
+    public class DisconnectedState : DBConnectionState
     {
-        if (dataTable != null && _adapter != null)
-        {
-            _adapter.Update(dataTable);
-        }
+        protected override void OnEndExecute(DBManager manager)
+            => CloseConnection(manager);
     }
-    public void AddDB(string provider, string connStr, string alias)
-        => _databases.Add(new DBConfig { Provider = provider, ConnectionString = connStr, Alias = alias });
-    public void AddDB(DBConfig db) => _databases.Add(db);
-    public void AddDB(List<DBConfig> dbList) => _databases.AddRange(dbList);
-    public List<DBConfig> GetDBList() => _databases;
+
+    public class DBManager
+    {
+        private List<DBConfig> _databases = [];
+        private DBConnectionState _connectionState = null!;
+        internal DbCommandBuilder CommandBuilder { get; set; }
+        public DBConfig CurrentDB { get; internal set; } = null!;
+        public DbDataAdapter Adapter { get; internal set; } = null!;
+        public DataSet DataSet { get; internal set; } = null!;
+        public DbProviderFactory Factory { get; internal set; } = null!;
+        public DbConnection Connection { get; internal set; } = null!;
+
+        public DBManager(string jsonFilePath)
+        {
+            //Прочитает из файла и потом с помощью GetDBList() => ComboBox
+            if (File.Exists(jsonFilePath)) {
+                string json = File.ReadAllText(jsonFilePath);
+                List<DBConfig>? dbConfigs = JsonConvert.DeserializeObject<List<DBConfig>>(json);
+                if (dbConfigs != null)
+                   AddDB(dbConfigs);
+            }
+            else {
+                MessageBox.Show("Не найден файл с конфигурацией для бд менеджера");
+            }
+            SetConnectionState(true);
+        }
+
+        public void UpdateData()
+        {
+            if (DataSet != null && Adapter != null)
+                Adapter.Update(DataSet.Tables[0]);
+        }
+
+        public void UpdateData(DataTable dataTable)
+        {
+            if (dataTable != null && Adapter != null)
+                Adapter.Update(dataTable!);
+        }
+
+        /// <summary> Установить режим: Присоединенный or Отсоединенный </summary>
+        public void SetConnectionState(bool connected)
+            => _connectionState = connected ? new ConnectedState() : new DisconnectedState();
+        /// <summary> Установить бд, с которой работаем </summary>
+        public void SetCurrentDB(DBConfig dB)
+        {
+            if (!_databases.Contains(dB)) AddDB(dB);
+            CurrentDB = dB;
+
+            if (_connectionState is ConnectedState)
+                _connectionState.Connect(this);
+        }
+        public void CloseConnection() 
+            => DBConnectionState.CloseConnection(this);
+        public bool IsOpen() 
+            => DBConnectionState.IsOpen(this);
+        public DataTable ExecuteQuery(string query) 
+            => _connectionState.ExecuteQuery(this, query);
+        public async Task<DataTable> ExecuteQueryAsync(string query) 
+            => await _connectionState.ExecuteQueryAsync(this, query);
+        public void AddDB(string provider, string connStr, string alias)
+            => _databases.Add(new DBConfig { Provider = provider, ConnectionString = connStr, Alias = alias });
+        public void AddDB(DBConfig db)
+            => _databases.Add(db);
+        public void AddDB(List<DBConfig> dbList) 
+            => _databases.AddRange(dbList);
+        public List<DBConfig> GetDBList() 
+            => _databases;
+    }
 }
