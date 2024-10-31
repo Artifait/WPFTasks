@@ -16,7 +16,6 @@ namespace WPFTasks
         public MainWindow()
         {
             InitializeComponent();
-            DbProviderFactories.RegisterFactory("Microsoft.Data.SqlClient", Microsoft.Data.SqlClient.SqlClientFactory.Instance);
         }
 
         private void BG_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -40,7 +39,6 @@ namespace WPFTasks
         }
 
         // Start: MenuLeft PopupButton //
-        private void btnExample_MouseEnter(object sender, MouseEventArgs e) => ShowPopup(btnExample, "Examples");
         private void btnTask1_MouseEnter(object sender, MouseEventArgs e) => ShowPopup(btnTask1, "Task 1");
         private void btnSetting_MouseEnter(object sender, MouseEventArgs e) => ShowPopup(btnSetting, "Настройки");
         
@@ -66,9 +64,6 @@ namespace WPFTasks
 
         private void btnSettings_Click(object sender, RoutedEventArgs e)
             => fContainer.Navigate(new System.Uri("Pages/Settings.xaml", UriKind.RelativeOrAbsolute));
-
-        private void btnExample_Click(object sender, RoutedEventArgs e)
-            => fContainer.Navigate(new System.Uri("Pages/ExampleTable.xaml", UriKind.RelativeOrAbsolute));
 
         private void btnTask1_Click(object sender, RoutedEventArgs e)
             => fContainer.Navigate(new System.Uri("Pages/Task1.xaml", UriKind.RelativeOrAbsolute));
