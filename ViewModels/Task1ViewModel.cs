@@ -1,6 +1,9 @@
-﻿
+﻿using System;
 using System.ComponentModel;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Input;
 
 namespace WPFTasks.ViewModels
 {
@@ -10,7 +13,14 @@ namespace WPFTasks.ViewModels
         private bool _isFibonacciGeneratorEnabled;
         private string _primeNumbersOutput;
         private string _fibonacciNumbersOutput;
-        private CancellationTokenSource _cancellationTokenSource;
+        private CancellationTokenSource _primeCancellationTokenSource;
+        private CancellationTokenSource _fibonacciCancellationTokenSource;
+
+        public Task1ViewModel()
+        {
+            ResetPrimeGeneratorCommand = new RelayCommand(ResetPrimeGenerator);
+            ResetFibonacciGeneratorCommand = new RelayCommand(ResetFibonacciGenerator);
+        }
 
         public string PrimeNumbersOutput
         {
@@ -39,7 +49,7 @@ namespace WPFTasks.ViewModels
             {
                 _isPrimeGeneratorEnabled = value;
                 OnPropertyChanged(nameof(IsPrimeGeneratorEnabled));
-                if (value) StartPrimeGenerator();
+                if (value && _primeCancellationTokenSource == null) StartPrimeGenerator();
             }
         }
 
@@ -50,23 +60,47 @@ namespace WPFTasks.ViewModels
             {
                 _isFibonacciGeneratorEnabled = value;
                 OnPropertyChanged(nameof(IsFibonacciGeneratorEnabled));
-                if (value) StartFibonacciGenerator();
+                if (value && _fibonacciCancellationTokenSource == null) StartFibonacciGenerator();
             }
         }
 
-        public Task1ViewModel()
+        public ICommand ResetPrimeGeneratorCommand { get; }
+        public ICommand ResetFibonacciGeneratorCommand { get; }
+
+        private void ResetPrimeGenerator()
         {
-            _cancellationTokenSource = new CancellationTokenSource();
+            _primeCancellationTokenSource?.Cancel();
+            _primeCancellationTokenSource = null;
+            PrimeNumbersOutput = string.Empty;
+            if (IsPrimeGeneratorEnabled) StartPrimeGenerator();
+        }
+
+        private void ResetFibonacciGenerator()
+        {
+            _fibonacciCancellationTokenSource?.Cancel();
+            _fibonacciCancellationTokenSource = null;
+            FibonacciNumbersOutput = string.Empty;
+            if (IsFibonacciGeneratorEnabled) StartFibonacciGenerator();
         }
 
         private async void StartPrimeGenerator()
         {
+            _primeCancellationTokenSource = new CancellationTokenSource();
+            var cancellationToken = _primeCancellationTokenSource.Token;
+
             await Task.Run(() =>
             {
                 int num = 2;
                 var sb = new StringBuilder();
-                while (!_cancellationTokenSource.Token.IsCancellationRequested && IsPrimeGeneratorEnabled)
+
+                while (!cancellationToken.IsCancellationRequested)
                 {
+                    if (!IsPrimeGeneratorEnabled)
+                    {
+                        Thread.Sleep(500);
+                        continue;
+                    }
+
                     if (IsPrime(num))
                     {
                         sb.AppendLine(num.ToString());
@@ -75,26 +109,36 @@ namespace WPFTasks.ViewModels
                     }
                     num++;
                 }
-            });
+            }, cancellationToken).ConfigureAwait(false);
         }
 
         private async void StartFibonacciGenerator()
         {
+            _fibonacciCancellationTokenSource = new CancellationTokenSource();
+            var cancellationToken = _fibonacciCancellationTokenSource.Token;
+
             await Task.Run(() =>
             {
-                int a = 0, b = 1;
+                int a = 1, b = 1;
                 var sb = new StringBuilder();
-                while (!_cancellationTokenSource.Token.IsCancellationRequested && IsFibonacciGeneratorEnabled)
+
+                while (!cancellationToken.IsCancellationRequested)
                 {
-                    int temp = a;
-                    a = b;
-                    b = temp + b;
+                    if (!IsFibonacciGeneratorEnabled)
+                    {
+                        Thread.Sleep(500);
+                        continue;
+                    }
 
                     sb.AppendLine(a.ToString());
                     FibonacciNumbersOutput = sb.ToString();
+
+                    int temp = a;
+                    a = b;
+                    b = temp + b;
                     Thread.Sleep(500);
                 }
-            });
+            }, cancellationToken).ConfigureAwait(false);
         }
 
         private bool IsPrime(int number)
@@ -115,5 +159,23 @@ namespace WPFTasks.ViewModels
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
+    }
+
+    public class RelayCommand : ICommand
+    {
+        private readonly Action _execute;
+        private readonly Func<bool> _canExecute;
+
+        public RelayCommand(Action execute, Func<bool> canExecute = null)
+        {
+            _execute = execute;
+            _canExecute = canExecute;
+        }
+
+        public bool CanExecute(object parameter) => _canExecute == null || _canExecute();
+        public void Execute(object parameter) => _execute();
+        public event EventHandler CanExecuteChanged;
+
+        public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
     }
 }
