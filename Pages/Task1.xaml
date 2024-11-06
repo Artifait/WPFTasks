@@ -28,47 +28,97 @@
                     <ColumnDefinition Width="auto"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- Обводка вокруг элементов для разделения -->
+                <!-- Заголовок -->
                 <Border Grid.Row="0" Grid.ColumnSpan="2" BorderBrush="LightGray" BorderThickness="0,0,0,1">
                     <TextBlock Margin="20" Foreground="{DynamicResource PrimaryTextColor}" 
                                FontWeight="Bold" VerticalAlignment="Center" Text="Генераторы"
                                HorizontalAlignment="Center" FontSize="24"/>
                 </Border>
 
+                <!-- Чекбокс для генератора простых чисел -->
                 <Border Grid.Row="1" BorderBrush="LightGray" BorderThickness="0,0,0,1">
                     <TextBlock Margin="20" Foreground="{DynamicResource PrimaryTextColor}" 
-                               FontWeight="Bold" VerticalAlignment="Center" Text="Генератор Чисел"
+                               FontWeight="Bold" VerticalAlignment="Center" Text="Генератор Простых Чисел"
                                HorizontalAlignment="Left" FontSize="24"/>
                 </Border>
                 <Border Grid.Row="1" Grid.Column="1" BorderBrush="LightGray" BorderThickness="0,0,0,1">
                     <CheckBox x:Name="CheckNumber" VerticalAlignment="Center" HorizontalAlignment="Left"
-                              Margin="0 0 40 0" Foreground="{DynamicResource PrimaryTextColor}" FontSize="32" FontWeight="Bold"/>
+                              Margin="0 0 40 0" Foreground="{DynamicResource PrimaryTextColor}" FontSize="32" FontWeight="Bold"
+                              IsChecked="{Binding IsPrimeGeneratorEnabled}"/>
                 </Border>
 
+                <!-- Чекбокс для генератора Фибоначчи -->
                 <Border Grid.Row="2" BorderBrush="LightGray" BorderThickness="0,0,0,1">
                     <TextBlock Margin="20" Foreground="{DynamicResource PrimaryTextColor}" 
-                               FontWeight="Bold" VerticalAlignment="Center" Text="Генератор Букв"
+                               FontWeight="Bold" VerticalAlignment="Center" Text="Генератор Фибоначчи"
                                HorizontalAlignment="Left" FontSize="24"/>
                 </Border>
                 <Border Grid.Row="2" Grid.Column="1" BorderBrush="LightGray" BorderThickness="0,0,0,1">
-                    <CheckBox x:Name="CheckLetter" VerticalAlignment="Center" HorizontalAlignment="Left"
-                              Margin="0 0 40 0" Foreground="{DynamicResource PrimaryTextColor}" FontSize="32" FontWeight="Bold"/>
-                </Border>
-
-                <Border Grid.Row="3" BorderBrush="LightGray" BorderThickness="0,0,0,1">
-                    <TextBlock Margin="20" Foreground="{DynamicResource PrimaryTextColor}" 
-                               FontWeight="Bold" VerticalAlignment="Center" Text="Генератор Символов"
-                               HorizontalAlignment="Left" FontSize="24"/>
-                </Border>
-                <Border Grid.Row="3" Grid.Column="1" BorderBrush="LightGray" BorderThickness="0,0,0,1">
-                    <CheckBox x:Name="CheckSymbol" VerticalAlignment="Center" HorizontalAlignment="Left"
-                              Margin="0 0 40 0" Foreground="{DynamicResource PrimaryTextColor}" FontSize="32" FontWeight="Bold"/>
+                    <CheckBox x:Name="CheckFibonacci" VerticalAlignment="Center" HorizontalAlignment="Left"
+                              Margin="0 0 40 0" Foreground="{DynamicResource PrimaryTextColor}" FontSize="32" FontWeight="Bold"
+                              IsChecked="{Binding IsFibonacciGeneratorEnabled}"/>
                 </Border>
             </Grid>
-            <Border Padding="5" Grid.Row="1" Margin="0 10 0 0">
-                <TextBox x:Name="Output" AcceptsReturn="True" Background="{DynamicResource PrimaryBackgroundColor}" Foreground="{DynamicResource PrimaryTextColor}" FontSize="32" FontWeight="Bold">
-                </TextBox>
-            </Border>
+
+            <!-- Поля вывода для генераторов -->
+            <Grid Grid.Row="1" Margin="0 10 0 0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="auto"/>
+                </Grid.RowDefinitions>
+                <!-- Вывод для генератора простых чисел -->
+                <TextBlock Text="Результаты генерации простых чисел" 
+                               FontWeight="Bold" FontSize="18" 
+                               Foreground="{DynamicResource PrimaryTextColor}"
+                               HorizontalAlignment="Center"/>
+                <Border Grid.Column="0" Grid.Row="1" Padding="5" Margin="5">
+                    <TextBox Text="{Binding PrimeNumbersOutput, Mode=OneWay}" 
+                             AcceptsReturn="True" 
+                             Background="{DynamicResource PrimaryBackgroundColor}" 
+                             Foreground="{DynamicResource PrimaryTextColor}" 
+                             FontSize="16" 
+                             FontWeight="Bold" 
+                             VerticalScrollBarVisibility="Auto"
+                             HorizontalScrollBarVisibility="Auto"/>
+                </Border>
+                <!-- Кнопка сброса для генератора простых чисел -->
+                <Button Grid.Column="0" Grid.Row="2" Margin="0 0 0 10"
+                        FontWeight="Bold" FontSize="18" Padding="5"
+                        Background="{DynamicResource PrimaryBackgroundColor}" 
+                        Foreground="{DynamicResource PrimaryTextColor}"
+                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Content="Сбросить генератор простых чисел" 
+                        
+                        Command="{Binding ResetPrimeGeneratorCommand}"/>
+                <!-- Вывод для генератора Фибоначчи -->
+                <TextBlock Grid.Column="1" Text="Результаты генерации чисел Фибоначчи" 
+                               FontWeight="Bold" FontSize="18" 
+                               Foreground="{DynamicResource PrimaryTextColor}"
+                               HorizontalAlignment="Center"/>
+                <Border Grid.Column="1" Grid.Row="1" Padding="5" Margin="5">
+                    <TextBox Text="{Binding FibonacciNumbersOutput, Mode=OneWay}" 
+                             AcceptsReturn="True" 
+                             Background="{DynamicResource PrimaryBackgroundColor}" 
+                             Foreground="{DynamicResource PrimaryTextColor}" 
+                             FontSize="16" 
+                             FontWeight="Bold" 
+                             VerticalScrollBarVisibility="Auto"
+                             HorizontalScrollBarVisibility="Auto"/>
+                </Border>
+                <!-- Кнопка сброса для генератора Фибоначчи -->
+                <Button Grid.Column="1" Grid.Row="2" Margin="0 0 0 10"
+                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Content="Сбросить генератор Фибоначчи" 
+                        FontWeight="Bold" FontSize="18" Padding="5"
+                        Background="{DynamicResource PrimaryBackgroundColor}" 
+                        Foreground="{DynamicResource PrimaryTextColor}"
+                        Command="{Binding ResetFibonacciGeneratorCommand}"/>
+            </Grid>
         </Grid>
     </Border>
 </Page>
