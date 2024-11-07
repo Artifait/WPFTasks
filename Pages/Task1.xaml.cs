@@ -9,7 +9,7 @@ namespace WPFTasks.Pages
         public Task1()
         {
             InitializeComponent();
-            DataContext = new Task1ViewModel();
+            DataContext = new NokiaKeyboardViewModel();
         }
     }
 }

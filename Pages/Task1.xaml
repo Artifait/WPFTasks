@@ -31,115 +31,51 @@
 
     <Border CornerRadius="5" Background="{DynamicResource SecundaryBackgroundColor}"
             BorderBrush="Gray" BorderThickness="2">
-        <Grid>
+        <Grid Margin="10">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
 
-            <Grid Grid.Row="0">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="80"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="auto"/>
-                    <ColumnDefinition Width="auto"/>
-                </Grid.ColumnDefinitions>
+            <!-- Output Display -->
+            <TextBox Grid.Row="0" 
+                 Text="{Binding OutputText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                 IsReadOnly="False" 
+                 FontSize="18"
+                 VerticalAlignment="Center"
+                 HorizontalAlignment="Center"
+                 Width="400"
+                 Height="50" />
 
-                <!-- Headers -->
-                <Border Grid.Row="0" BorderBrush="LightGray" BorderThickness="0,0,0,1">
-                    <TextBlock Margin="20" Style="{StaticResource LabelTextStyle}" 
-                               VerticalAlignment="Center" Text="Генераторы"
-                               HorizontalAlignment="Center" FontSize="24"/>
-                </Border>
-                <Border Grid.Row="0" Grid.Column="1" BorderBrush="LightGray" BorderThickness="0,0,0,1">
-                    <TextBlock Margin="20" Style="{StaticResource LabelTextStyle}" 
-                               VerticalAlignment="Center" Text="On/Off"
-                               HorizontalAlignment="Center"/>
-                </Border>
-                <Border Grid.Row="0" Grid.Column="2" BorderBrush="LightGray" BorderThickness="0,0,0,1">
-                    <TextBlock Margin="20" Style="{StaticResource LabelTextStyle}" 
-                               VerticalAlignment="Center" Text="Restart"
-                               HorizontalAlignment="Center"/>
-                </Border>
+            <!-- Keyboard Buttons -->
+            <UniformGrid Grid.Row="1" Rows="4" Columns="3" Margin="10">
+                <!-- Each button is bound to the OnKeyPress command with corresponding button number -->
+                <Button Content="1" Command="{Binding KeyPressCommand}" CommandParameter="1" FontSize="16"/>
+                <Button Content="2 ABC" Command="{Binding KeyPressCommand}" CommandParameter="2" FontSize="16"/>
+                <Button Content="3 DEF" Command="{Binding KeyPressCommand}" CommandParameter="3" FontSize="16"/>
 
-                <!-- Prime Number Generator Row -->
-                <Border Grid.Row="1" BorderBrush="LightGray" BorderThickness="0,0,0,1">
-                    <TextBlock Margin="20" Style="{StaticResource LabelTextStyle}" 
-                               Text="Генератор Простых Чисел"/>
-                </Border>
-                <Border Grid.Row="1" Grid.Column="1" BorderBrush="LightGray" BorderThickness="0,0,0,1">
-                    <CheckBox x:Name="CheckNumber" VerticalAlignment="Center" HorizontalAlignment="Center"
-                              Margin="0" Foreground="{DynamicResource PrimaryTextColor}" FontSize="32" FontWeight="Bold"
-                              IsChecked="{Binding IsPrimeGeneratorEnabled}"/>
-                </Border>
-                <Border Grid.Row="1" Grid.Column="2" BorderBrush="LightGray" BorderThickness="0,0,0,1">
-                    <Button Style="{StaticResource DarkButtonStyle}"
-                            Content="Сбросить" Command="{Binding ResetPrimeGeneratorCommand}"/>
-                </Border>
+                <Button Content="4 GHI" Command="{Binding KeyPressCommand}" CommandParameter="4" FontSize="16"/>
+                <Button Content="5 JKL" Command="{Binding KeyPressCommand}" CommandParameter="5" FontSize="16"/>
+                <Button Content="6 MNO" Command="{Binding KeyPressCommand}" CommandParameter="6" FontSize="16"/>
 
-                <!-- Fibonacci Generator Row -->
-                <Border Grid.Row="2" BorderBrush="LightGray" BorderThickness="0,0,0,1">
-                    <TextBlock Margin="20" Style="{StaticResource LabelTextStyle}" 
-                               Text="Генератор Фибоначчи"/>
-                </Border>
-                <Border Grid.Row="2" Grid.Column="1" BorderBrush="LightGray" BorderThickness="0,0,0,1">
-                    <CheckBox x:Name="CheckFibonacci" VerticalAlignment="Center" HorizontalAlignment="Center"
-                              Margin="0" Foreground="{DynamicResource PrimaryTextColor}" FontSize="32" FontWeight="Bold"
-                              IsChecked="{Binding IsFibonacciGeneratorEnabled}"/>
-                </Border>
-                <Border Grid.Row="2" Grid.Column="2" BorderBrush="LightGray" BorderThickness="0,0,0,1">
-                    <Button Style="{StaticResource DarkButtonStyle}"
-                            Content="Сбросить" Command="{Binding ResetFibonacciGeneratorCommand}"/>
-                </Border>
-            </Grid>
+                <Button Content="7 PQRS" Command="{Binding KeyPressCommand}" CommandParameter="7" FontSize="16"/>
+                <Button Content="8 TUV" Command="{Binding KeyPressCommand}" CommandParameter="8" FontSize="16"/>
+                <Button Content="9 WXYZ" Command="{Binding KeyPressCommand}" CommandParameter="9" FontSize="16"/>
 
-            <!-- Generator Outputs -->
-            <Grid Grid.Row="1" Margin="0 10 0 0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
+                <Button Content="*" Command="{Binding OnSpecialCommand}" CommandParameter="*" FontSize="16"/>
+                <Button Content="0" Command="{Binding KeyPressCommand}" CommandParameter="0" FontSize="16"/>
+                <Button Content="#" Command="{Binding OnSpecialCommand}" CommandParameter="#" FontSize="16"/>
+            </UniformGrid>
 
-                <!-- Prime Number Output -->
-                <TextBlock Text="Результаты генерации простых чисел" 
-                           FontWeight="Bold" FontSize="18" 
-                           Foreground="{DynamicResource PrimaryTextColor}"
-                           HorizontalAlignment="Center"/>
-                <Border Grid.Column="0" Grid.Row="1" Padding="5" Margin="5">
-                    <TextBox Text="{Binding PrimeNumbersOutput, Mode=OneWay}" 
-                             AcceptsReturn="True" 
-                             Background="{DynamicResource PrimaryBackgroundColor}" 
-                             Foreground="{DynamicResource PrimaryTextColor}" 
-                             FontSize="16" 
-                             FontWeight="Bold" 
-                             VerticalScrollBarVisibility="Auto"
-                             HorizontalScrollBarVisibility="Auto"/>
-                </Border>
-
-                <!-- Fibonacci Output -->
-                <TextBlock Grid.Column="1" Text="Результаты генерации чисел Фибоначчи" 
-                           FontWeight="Bold" FontSize="18" 
-                           Foreground="{DynamicResource PrimaryTextColor}"
-                           HorizontalAlignment="Center"/>
-                <Border Grid.Column="1" Grid.Row="1" Padding="5" Margin="5">
-                    <TextBox Text="{Binding FibonacciNumbersOutput, Mode=OneWay}" 
-                             AcceptsReturn="True" 
-                             Background="{DynamicResource PrimaryBackgroundColor}" 
-                             Foreground="{DynamicResource PrimaryTextColor}" 
-                             FontSize="16" 
-                             FontWeight="Bold" 
-                             VerticalScrollBarVisibility="Auto"
-                             HorizontalScrollBarVisibility="Auto"/>
-                </Border>
-            </Grid>
+            <!-- Cursor Navigation -->
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="10">
+                <Button Content="Left" Command="{Binding MoveCursorLeftCommand}" FontSize="14" Margin="5"/>
+                <Button Content="Right" Command="{Binding MoveCursorRightCommand}" FontSize="14" Margin="5"/>
+            </StackPanel>
         </Grid>
     </Border>
 </Page>
