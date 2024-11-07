@@ -64,12 +64,15 @@ namespace WPFTasks.ViewModels
         {
             switch (key)
             {
+                case "1": _currentCharacterGroup = "DEF"; break;
                 case "2": _currentCharacterGroup = "ABC"; break;
                 case "3": _currentCharacterGroup = "DEF"; break;
                 case "4": _currentCharacterGroup = "GHI"; break;
             }
-
-            _currentCharacterIndex = (_currentCharacterIndex + 1) % _currentCharacterGroup.Length;
+            if (_currentCharacterGroup.Length == 0)
+                _currentCharacterIndex = 0;
+            else
+                _currentCharacterIndex = (_currentCharacterIndex + 1) % _currentCharacterGroup.Length;
             var selectedChar = _currentCharacterGroup[_currentCharacterIndex];
 
             InsertCharacter(selectedChar.ToString());
