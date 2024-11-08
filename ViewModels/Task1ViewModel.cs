@@ -1,8 +1,7 @@
-﻿using System;
-using System.ComponentModel;
+﻿using System.ComponentModel;
+using System.IO;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Input;
 
 namespace WPFTasks.ViewModels
@@ -91,6 +90,12 @@ namespace WPFTasks.ViewModels
             await Task.Run(() =>
             {
                 int num = 2;
+                try
+                {
+                    int startValue = int.Parse(File.ReadAllText("../../../StartPrimeValue.txt"));
+                    num = startValue;
+                }
+                catch { }
                 var sb = new StringBuilder();
 
                 while (!cancellationToken.IsCancellationRequested)

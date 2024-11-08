@@ -7,7 +7,6 @@
       mc:Ignorable="d"      
       d:DesignHeight="450" d:DesignWidth="800"
       Title="Task1">
-
     <Page.Resources>
         <!-- TextBlock Style for Labels -->
         <Style x:Key="LabelTextStyle" TargetType="TextBlock">
@@ -84,7 +83,7 @@
                 <!-- Fibonacci Generator Row -->
                 <Border Grid.Row="2" BorderBrush="LightGray" BorderThickness="0,0,0,1">
                     <TextBlock Margin="20" Style="{StaticResource LabelTextStyle}" 
-                               Text="Генератор Фибоначчи"/>
+                               Text="Генератор Чисел Фибоначчи"/>
                 </Border>
                 <Border Grid.Row="2" Grid.Column="1" BorderBrush="LightGray" BorderThickness="0,0,0,1">
                     <CheckBox x:Name="CheckFibonacci" VerticalAlignment="Center" HorizontalAlignment="Center"
