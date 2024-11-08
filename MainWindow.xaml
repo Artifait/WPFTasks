@@ -49,7 +49,19 @@
                     <!-- Start: MenuItem -->
                     <StackPanel Grid.Row="1" Margin="-1 20 0 20">
                         <Button x:Name="btnTask1" Style="{DynamicResource PopupButtonStyle}"  MouseEnter="btnTask1_MouseEnter" MouseLeave="HidePopup" Click="btnTask1_Click">
-                            <ctls:MenuItem GroupName="MenuItem" IndicatorBrush="{DynamicResource PrimaryBlueColor}" Icon="{DynamicResource products}" IconWidth="24" Text="Task 1" VerticalAlignment="Center"/>
+                            <ctls:MenuItem GroupName="MenuItem" IndicatorBrush="{DynamicResource PrimaryBlueColor}" Icon="{DynamicResource eye}" IconWidth="24" Text="Task 1" VerticalAlignment="Center"/>
+                        </Button>
+                        <Button x:Name="btnTask2" Style="{DynamicResource PopupButtonStyle}"  MouseEnter="btnTask2_MouseEnter" MouseLeave="HidePopup" Click="btnTask2_Click">
+                            <ctls:MenuItem GroupName="MenuItem" IndicatorBrush="{DynamicResource PrimaryBlueColor}" Icon="{DynamicResource car}" IconWidth="24" Text="Task 2" VerticalAlignment="Center"/>
+                        </Button>
+                        <Button x:Name="btnTask3" Style="{DynamicResource PopupButtonStyle}"  MouseEnter="btnTask3_MouseEnter" MouseLeave="HidePopup" Click="btnTask3_Click">
+                            <ctls:MenuItem GroupName="MenuItem" IndicatorBrush="{DynamicResource PrimaryBlueColor}" Icon="{DynamicResource calc}" IconWidth="24" Text="Task 3" VerticalAlignment="Center"/>
+                        </Button>
+                        <Button x:Name="btnTask4" Style="{DynamicResource PopupButtonStyle}"  MouseEnter="btnTask4_MouseEnter" MouseLeave="HidePopup" Click="btnTask4_Click">
+                            <ctls:MenuItem GroupName="MenuItem" IndicatorBrush="{DynamicResource PrimaryBlueColor}" Icon="{DynamicResource loupe}" IconWidth="24" Text="Task 4" VerticalAlignment="Center"/>
+                        </Button>
+                        <Button x:Name="btnTask5" Style="{DynamicResource PopupButtonStyle}"  MouseEnter="btnTask5_MouseEnter" MouseLeave="HidePopup" Click="btnTask5_Click">
+                            <ctls:MenuItem GroupName="MenuItem" IndicatorBrush="{DynamicResource PrimaryBlueColor}" Icon="{DynamicResource starLoupe}" IconWidth="24" Text="Task 5" VerticalAlignment="Center"/>
                         </Button>
                         <Button x:Name="btnSetting" Style="{DynamicResource PopupButtonStyle}"  MouseEnter="btnSetting_MouseEnter" MouseLeave="HidePopup" Click="btnSettings_Click">
                             <ctls:MenuItem GroupName="MenuItem" IndicatorBrush="{DynamicResource PrimaryBlueColor}" Icon="{DynamicResource settings}" IconWidth="24" Text="Setting" VerticalAlignment="Center"/>
