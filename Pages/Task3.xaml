@@ -32,54 +32,28 @@
 
     <Border CornerRadius="5" Background="{DynamicResource SecundaryBackgroundColor}"
             BorderBrush="Gray" BorderThickness="2">
-        <Grid Margin="-8,0,8,0">
+        <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
+            
+            <Button Content="Запустить потоки" 
+                    Style="{StaticResource DarkButtonStyle}"
+                    HorizontalAlignment="Center" 
+                    VerticalAlignment="Top" 
+                    Margin="10,10,10,0" 
+                    Click="StartThreads" />
 
-            <!-- Заголовок -->
-            <TextBlock Text="Фибоначчи Калькулятор" 
-                       Style="{StaticResource LabelTextStyle}" 
-                       HorizontalAlignment="Center"
-                       Grid.Row="0" />
-
-            <Grid Grid.Row="1" Margin="10">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <TextBlock Text="Граница:" Grid.Column="0"
-                           Width="Auto" Margin="10 0 0 0"
-                           Style="{StaticResource LabelTextStyle}" 
-                           VerticalAlignment="Center" />
-                <TextBox x:Name="BoundaryTextBox"  Grid.Column="1"
-                         VerticalAlignment="Stretch" 
-                         HorizontalAlignment="Stretch" 
-                         Style="{StaticResource TextBoxStyle}" 
-                         Margin="10,0,0,0" />
-                <Button Content="Вычислить"  Grid.Column="2"
-                        Width="Auto"
-                        Style="{StaticResource DarkButtonStyle}" 
-                        Click="CalculateFibonacciAsync_Click" 
-                        Margin="10,0,0,0" />
-            </Grid>
-
-            <!-- Результат -->
-            <TextBox x:Name="ResultTextBox" 
-                     Style="{StaticResource TextBoxStyle}" 
-                     Grid.Row="2" 
-                     VerticalAlignment="Stretch" 
+            <TextBox Name="OutputTextBox" Grid.Row="1"
+                     Style="{StaticResource TextBoxStyle}"
                      HorizontalAlignment="Stretch" 
-                     IsReadOnly="True" 
+                     VerticalAlignment="Stretch" 
+                     Margin="10" 
                      TextWrapping="Wrap" 
+                     IsReadOnly="True" 
                      VerticalScrollBarVisibility="Auto" 
-                     Margin="25 10 10 15" />
+                     AcceptsReturn="True" />
         </Grid>
     </Border>
 </Page>

@@ -15,7 +15,12 @@
             <Setter Property="Foreground" Value="{DynamicResource PrimaryTextColor}"/>
             <Setter Property="HorizontalAlignment" Value="Left"/>
         </Style>
-
+        <Style x:Key="TextBoxStyle" TargetType="TextBox">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="24"/>
+            <Setter Property="Background" Value="{DynamicResource PrimaryBackgroundColor}"/>
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextColor}"/>
+        </Style>
         <Style x:Key="DarkButtonStyle" TargetType="Button">
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="FontSize" Value="18"/>
@@ -33,59 +38,30 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
-
-            <Grid Grid.Row="0" Margin="10">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-
-                <TextBlock Grid.Column="0" Margin="20 10 10 3"
-                           Style="{StaticResource LabelTextStyle}">
-                    Конные скачки
-                </TextBlock>
-
-                <Button x:Name="StartButton" Grid.Column="1" Margin="0 10 10 3"
-                        Style="{StaticResource DarkButtonStyle}" Command="{Binding StartCommand}">
-                    Старт
-                </Button>
-            </Grid>
-
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="10" Background="{DynamicResource PrimaryBackgroundColor}">
-                <ItemsControl ItemsSource="{Binding ProgressBars}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Grid Margin="5">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-
-                                <ProgressBar Height="30" Grid.Column="0"
-                                             Value="{Binding Progress}" 
-                                             Maximum="100" 
-                                             Background="{Binding BgColor}" 
-                                             Foreground="{Binding FgColor}"
-                                             Margin="0,0,10,0"/>
-
-                                <TextBlock Text="{Binding HorseName}"
-                                           Foreground="{DynamicResource PrimaryTextColor}"
-                                           VerticalAlignment="Center"
-                                           FontWeight="Bold"
-                                           Grid.Column="1"
-                                           Margin="10,0,0,0"/>
-                            </Grid>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
-
-            <Button x:Name="ResetButton" Grid.Row="2" Margin="0 0 0 20" Width="100"
-                    Style="{StaticResource DarkButtonStyle}" Command="{Binding ResetCommand}">
-                Сброс
-            </Button>
+            <Button Style="{StaticResource DarkButtonStyle}" 
+                    Content="Запустить потоки" 
+                    HorizontalAlignment="Center" 
+                    VerticalAlignment="Top" 
+                    Width="170" Margin="0,10,0,0" 
+                    Click="StartThreads" Grid.Row="0"/>
+            <TextBox Style="{StaticResource TextBoxStyle}" 
+                     Name="FirstThreadOutput" 
+                     HorizontalAlignment="Stretch" 
+                     VerticalAlignment="Stretch" 
+                     Margin="10 10 10 0"
+                     TextWrapping="Wrap" 
+                     IsReadOnly="True" Grid.Row="1"
+                     VerticalScrollBarVisibility="Auto" />
+            <TextBox Style="{StaticResource TextBoxStyle}"  
+                     Name="SecondThreadOutput"
+                     HorizontalAlignment="Stretch" 
+                     VerticalAlignment="Stretch" 
+                     Margin="10"
+                     TextWrapping="Wrap" 
+                     IsReadOnly="True" Grid.Row="2"
+                     VerticalScrollBarVisibility="Auto" />
         </Grid>
     </Border>
 </Page>
