@@ -3,64 +3,22 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using WPFTasks.Models.SimulationOfBus;
 
 namespace WPFTasks.Pages
 {
     public partial class Task2 : Page
     {
-        private Mutex _mutex = new(false);
-
+        BusSimulation simulation = new();
         public Task2()
         {
             InitializeComponent();
+            simulation.InitializeSimulation("Config.ini");
         }
 
-        private async void StartThreads(object sender, RoutedEventArgs e)
+        private void DisplayData(object sender, RoutedEventArgs e)
         {
-            FirstThreadOutput.Clear();
-            SecondThreadOutput.Clear();
-
-            var firstThreadTask = Task.Run(DisplayAscending);
-            await firstThreadTask;
-
-            var secondThreadTask = Task.Run(DisplayDescending);
-            await secondThreadTask;
-
-            MessageBox.Show("Все потоки завершены.");
-        }
-
-        private void DisplayAscending()
-        {
-            _mutex.WaitOne();
-            try
-            {
-                for (int i = 0; i <= 20; i++)
-                {
-                    AppendText(FirstThreadOutput, $"Первый поток: {i}");
-                    Thread.Sleep(100);
-                }
-            }
-            finally
-            {
-                _mutex.ReleaseMutex();
-            }
-        }
-
-        private void DisplayDescending()
-        {
-            _mutex.WaitOne();
-            try
-            {
-                for (int i = 10; i >= 0; i--)
-                {
-                    AppendText(SecondThreadOutput, $"Второй поток: {i}");
-                    Thread.Sleep(100);
-                }
-            }
-            finally
-            {
-                _mutex.ReleaseMutex();
-            }
+            AppendText(OutputTextBox, simulation.GetReportOfSimulationState());
         }
 
         private void AppendText(TextBox textBox, string text)
