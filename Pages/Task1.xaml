@@ -34,12 +34,21 @@
     <Border CornerRadius="5" Background="{DynamicResource SecundaryBackgroundColor}"
             BorderBrush="Gray" BorderThickness="2">
         <Grid>
-            <Button Style="{StaticResource DarkButtonStyle}" 
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button Style="{StaticResource DarkButtonStyle}" 
                     Content="Запустить потоки" 
                     HorizontalAlignment="Center" 
                     VerticalAlignment="Top" 
-                    Width="170" Margin="0,20,0,0" 
+                    Width="170" Margin="0,20,20,0" 
                     Click="StartThreads" />
+                <Button Style="{StaticResource DarkButtonStyle}" 
+                    Content="Закрыть блокноты" 
+                    HorizontalAlignment="Center" 
+                    VerticalAlignment="Top" 
+                    Width="180" Margin="0,20,0,0" 
+                    Click="CloseNotepads" />
+            </StackPanel>
+
             <TextBox Style="{StaticResource TextBoxStyle}"
                      Name="OutputTextBox" 
                      HorizontalAlignment="Stretch" 
