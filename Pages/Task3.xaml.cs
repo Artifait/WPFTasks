@@ -3,16 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace WPFTasks.Pages
 {
@@ -21,13 +14,15 @@ namespace WPFTasks.Pages
     /// </summary>
     public partial class Task3 : Page
     {
-        private static readonly Mutex _mutex1 = new Mutex();
-        private static readonly Mutex _mutex2 = new Mutex();
-        private static readonly Mutex _mutex3 = new Mutex();
+        private static readonly AutoResetEvent _event1 = new(true);  
+        private static readonly AutoResetEvent _event2 = new(false); 
+        private static readonly AutoResetEvent _event3 = new(false); 
+        private static readonly AutoResetEvent _event4 = new(false); 
 
         private const string File1 = "RandomNumbers.txt";
         private const string File2 = "PrimeNumbers.txt";
         private const string File3 = "PrimeEndingWith7.txt";
+        private const string ReportFile = "Report.txt";
 
         public Task3()
         {
@@ -41,11 +36,12 @@ namespace WPFTasks.Pages
             new Thread(GenerateRandomNumbers).Start();
             new Thread(FilterPrimes).Start();
             new Thread(FilterPrimesEndingWith7).Start();
+            new Thread(GenerateReport).Start();
         }
 
         private void GenerateRandomNumbers()
         {
-            //_mutex1.WaitOne(); 
+            _event1.WaitOne(); 
 
             try
             {
@@ -53,17 +49,17 @@ namespace WPFTasks.Pages
                 List<int> numbers = Enumerable.Range(0, 100).Select(_ => random.Next(1, 1000)).ToList();
 
                 File.WriteAllLines(File1, numbers.Select(n => n.ToString()));
-                Dispatcher.Invoke(() => OutputTextBox.AppendText($"{DateTime.Now.ToLongDateString()} - Первый поток: Сгенерированы случайные числа и записаны в файл.\n"));
+                Dispatcher.Invoke(() => OutputTextBox.AppendText($"{DateTime.Now.ToString("HH:mm:ss-FFFF")} - Первый поток: Сгенерированы случайные числа и записаны в файл.\n"));
             }
             finally
             {
-                _mutex2.ReleaseMutex(); // Разблокируем мьютекс для второго потока
+                _event2.Set(); 
             }
         }
 
         private void FilterPrimes()
         {
-            _mutex2.WaitOne(); // Ждем разблокировки мьютекса от первого потока
+            _event2.WaitOne(); 
 
             try
             {
@@ -71,17 +67,30 @@ namespace WPFTasks.Pages
                 var primes = numbers.Where(IsPrime).ToList();
 
                 File.WriteAllLines(File2, primes.Select(n => n.ToString()));
-                Dispatcher.Invoke(() => OutputTextBox.AppendText("Второй поток: Простые числа записаны во второй файл.\n"));
+                Dispatcher.Invoke(() => OutputTextBox.AppendText($"{DateTime.Now.ToString("HH:mm:ss-FFFF")} - Второй поток: Простые числа записаны во второй файл.\n"));
             }
             finally
             {
-                _mutex3.ReleaseMutex(); // Разблокируем мьютекс для третьего потока
+                _event3.Set(); 
             }
+        }
+
+        private bool IsPrime(int number)
+        {
+            if (number <= 1) return false;
+            if (number <= 3) return true;
+            if (number % 2 == 0 || number % 3 == 0) return false;
+            for (int i = 5; i * i <= number; i += 6)
+            {
+                if (number % i == 0 || number % (i + 2) == 0)
+                    return false;
+            }
+            return true;
         }
 
         private void FilterPrimesEndingWith7()
         {
-            _mutex3.WaitOne(); // Ждем разблокировки мьютекса от второго потока
+            _event3.WaitOne();
 
             try
             {
@@ -89,13 +98,51 @@ namespace WPFTasks.Pages
                 var primesEndingWith7 = primes.Where(n => n % 10 == 7).ToList();
 
                 File.WriteAllLines(File3, primesEndingWith7.Select(n => n.ToString()));
-                Dispatcher.Invoke(() => OutputTextBox.AppendText("Третий поток: Простые числа, оканчивающиеся на 7, записаны в третий файл.\n"));
+                Dispatcher.Invoke(() => OutputTextBox.AppendText($"{DateTime.Now.ToString("HH:mm:ss-FFFF")} - Третий поток: Простые числа, оканчивающиеся на 7, записаны в третий файл.\n"));
             }
             finally
             {
-                //_mutex1.ReleaseMutex();
+                _event4.Set();
             }
+        }
+
+        private void GenerateReport()
+        {
+            _event4.WaitOne(); 
+
+            try
+            {
+                StringBuilder report = new StringBuilder();
+                report.AppendLine("Отчёт о полученных файлах:");
+
+                GenerateFileReport(File1, "Файл случайных чисел", report);
+                GenerateFileReport(File2, "Файл простых чисел", report);
+                GenerateFileReport(File3, "Файл простых чисел, оканчивающихся на 7", report);
+
+                File.WriteAllText(ReportFile, report.ToString());
+                Dispatcher.Invoke(() => OutputTextBox.AppendText($"{DateTime.Now.ToString("HH:mm:ss-FFFF")} - Четвертый поток: Отчет создан и записан в файл.\n"));
+            }
+            catch (Exception ex)
+            {
+                Dispatcher.Invoke(() => OutputTextBox.AppendText($"Ошибка при создании отчета: {ex.Message}\n"));
+            }
+        }
+
+        private void GenerateFileReport(string filePath, string description, StringBuilder report)
+        {
+            if (!File.Exists(filePath))
+            {
+                report.AppendLine($"{description}: файл не найден.");
+                return;
+            }
+
+            var lines = File.ReadAllLines(filePath);
+            var fileSize = new FileInfo(filePath).Length;
+
+            report.AppendLine($"\n{description}:");
+            report.AppendLine($"- Количество чисел: {lines.Length}");
+            report.AppendLine($"- Размер файла: {fileSize} байт");
+            report.AppendLine($"- Содержимое файла:\n  {string.Join(", ", lines)}");
         }
     }
 }
-
