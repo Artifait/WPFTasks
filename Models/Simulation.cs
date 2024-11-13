@@ -9,6 +9,7 @@ namespace WPFTasks.Models
         {
             //core = new(new SimulationOfBus.Config());
             //core.Initialize();
+
         }
 
         public static T GetRepository<T>() where T : SimulationArchitecture.Repository

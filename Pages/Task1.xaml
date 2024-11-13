@@ -34,33 +34,24 @@
     <Border CornerRadius="5" Background="{DynamicResource SecundaryBackgroundColor}"
             BorderBrush="Gray" BorderThickness="2">
         <Grid>
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                <Button Style="{StaticResource DarkButtonStyle}" 
-                    Content="1 Способ" 
-                    HorizontalAlignment="Center" 
-                    VerticalAlignment="Top" 
-                    Width="170" Margin="0,20,20,0" 
-                    Click="MethodOne" />
-                <Button Style="{StaticResource DarkButtonStyle}" 
-                    Content="2 Способ" 
-                    HorizontalAlignment="Center" 
-                    VerticalAlignment="Top" 
-                    Width="180" Margin="0,20,20,0" 
-                    Click="MethodTwo" />
-                <Button Style="{StaticResource DarkButtonStyle}" 
-                    Content="3 Способ" 
-                    HorizontalAlignment="Center" 
-                    VerticalAlignment="Top" 
-                    Width="180" Margin="0,20,0,0" 
-                    Click="MethodThree" />
-            </StackPanel>
-
-            <TextBox Style="{StaticResource TextBoxStyle}"
-                     Name="OutputTextBox" 
-                     HorizontalAlignment="Stretch" 
-                     VerticalAlignment="Stretch" 
-                     Margin="20,70,20,20" TextWrapping="Wrap"
-                     IsReadOnly="True" />
+            <ProgressBar Minimum="0" Maximum="100" Value="{Binding ScanProgress}" Height="20" />
+            <ListView ItemsSource="{Binding BannedFiles}">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Header="File Path" DisplayMemberBinding="{Binding FilePath}" />
+                        <GridViewColumn Header="Size" DisplayMemberBinding="{Binding FileSize}" />
+                        <GridViewColumn Header="Replacements" DisplayMemberBinding="{Binding ReplacementCount}" />
+                    </GridView>
+                </ListView.View>
+            </ListView>
+            <ListView ItemsSource="{Binding TopBannedWords}">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Header="Word" DisplayMemberBinding="{Binding Word}" />
+                        <GridViewColumn Header="Count" DisplayMemberBinding="{Binding Count}" />
+                    </GridView>
+                </ListView.View>
+            </ListView>
         </Grid>
     </Border>
 </Page>

@@ -10,6 +10,7 @@ namespace WPFTasks.Pages
         public Task1()
         {
             InitializeComponent();
+            DataContext = new ViewModels.MainViewModel();
         }
 
         private void MethodOne(object sender, RoutedEventArgs e)
