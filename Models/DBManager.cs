@@ -32,7 +32,6 @@ public class DBManager
             List<DBConfig> dbConfigs = JsonConvert.DeserializeObject<List<DBConfig>>(json);
             if (dbConfigs != null)
                 _databases.AddRange(dbConfigs);
-            
         }
         else
         {

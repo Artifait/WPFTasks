@@ -1,6 +1,5 @@
 ﻿using IniParser;
 using IniParser.Model;
-using System.Collections.Generic;
 
 namespace WPFTasks.Models
 {
@@ -8,11 +7,12 @@ namespace WPFTasks.Models
     {
         public List<string> BannedWords { get; private set; }
         public List<string> AllowedExtensions { get; private set; }
+        public string ReplacementWord { get; private set; }
 
         public IniFileReader(string iniFilePath)
         {
-            BannedWords = new List<string>();
-            AllowedExtensions = new List<string>();
+            BannedWords = [];
+            AllowedExtensions = [];
             ParseIniFile(iniFilePath);
         }
 
@@ -32,7 +32,15 @@ namespace WPFTasks.Models
                 var extensions = data["Extensions"]["list"];
                 AllowedExtensions.AddRange(extensions.Split(',')); 
             }
+
+            if(data.Sections.ContainsSection("Replacement"))
+            {
+                ReplacementWord = data["Replacement"]["word"];
+            }
+            else
+            {
+                ReplacementWord = "*******";
+            }
         }
     }
-
 }

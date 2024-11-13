@@ -4,7 +4,9 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
 using WPFTasks.Models;
 
 namespace WPFTasks.ViewModels
@@ -16,8 +18,8 @@ namespace WPFTasks.ViewModels
         private bool _isScanning;
         private IniFileReader _iniFileReader;
 
-        public ObservableCollection<ScanResult> BannedFiles { get; } = new ObservableCollection<ScanResult>();
-        public ObservableCollection<BannedWordStatistics> TopBannedWords { get; } = new ObservableCollection<BannedWordStatistics>();
+        public ObservableCollection<ScanResult> BannedFiles { get; } = [];
+        public ObservableCollection<BannedWordStatistics> TopBannedWords { get; } = [];
 
         public int ScanProgress
         {
@@ -37,21 +39,27 @@ namespace WPFTasks.ViewModels
 
         public MainViewModel()
         {
-            _iniFileReader = new IniFileReader("config.ini");
+            _iniFileReader = new IniFileReader("../../../BannedWords.ini");
 
-            _scannerService = new ScannerService(_iniFileReader.BannedWords, _iniFileReader.AllowedExtensions, OnFileFound, OnProgressUpdated);
+            _scannerService = new ScannerService(_iniFileReader.BannedWords, _iniFileReader.AllowedExtensions, _iniFileReader.ReplacementWord, OnFileFound, OnProgressUpdated);
 
             // Инициализация команд
-            StartScanCommand = new RelayCommand(async _ => await StartScan());
+            StartScanCommand = new RelayCommand(_ => Task.Run(StartScan));
             StopScanCommand = new RelayCommand(_ => StopScan());
             GenerateReportCommand = new RelayCommand(_ => GenerateReport());
         }
 
         private async Task StartScan()
         {
+            StopScan();
             IsScanning = true;
-            BannedFiles.Clear();
-            TopBannedWords.Clear();
+
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                BannedFiles.Clear();
+                TopBannedWords.Clear();
+            });
+
             await _scannerService.ScanAsync();
             IsScanning = false;
             UpdateTopBannedWords();
@@ -59,8 +67,13 @@ namespace WPFTasks.ViewModels
 
         private void StopScan()
         {
-            _scannerService.CancelScan();
+            try{ _scannerService.CancelScan(); }
+            catch { }
             IsScanning = false;
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                ScanProgress = 0;
+            });
         }
 
         private void GenerateReport()

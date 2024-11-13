@@ -1,7 +1,9 @@
-﻿
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.IO;
-
+using System.Text.RegularExpressions;
+using System.Text;
+using System.Windows;
+using Newtonsoft.Json.Linq;
 
 namespace WPFTasks.Models
 {
@@ -9,17 +11,19 @@ namespace WPFTasks.Models
     {
         private readonly List<string> _bannedWords;
         private readonly List<string> _allowedExtensions;
+        private readonly string _replacementWord;
         private readonly Action<ScanResult> _onFileFound;
         private readonly Action<int> _onProgressUpdated;
         private CancellationTokenSource _cancellationTokenSource;
-        private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(4); // Количество потоков
+        private readonly SemaphoreSlim _semaphore = new(4); // Количество потоков
 
-        private ConcurrentDictionary<string, int> _wordStatistics = new ConcurrentDictionary<string, int>();
+        private ConcurrentDictionary<string, int> _wordStatistics = new();
 
-        public ScannerService(List<string> bannedWords, List<string> allowedExtensions, Action<ScanResult> onFileFound, Action<int> onProgressUpdated)
+        public ScannerService(List<string> bannedWords, List<string> allowedExtensions, string replacementWord, Action<ScanResult> onFileFound, Action<int> onProgressUpdated)
         {
             _bannedWords = bannedWords;
             _allowedExtensions = allowedExtensions;
+            _replacementWord = replacementWord;
             _onFileFound = onFileFound;
             _onProgressUpdated = onProgressUpdated;
         }
@@ -27,14 +31,23 @@ namespace WPFTasks.Models
         public async Task ScanAsync()
         {
             _cancellationTokenSource = new CancellationTokenSource();
+            var token = _cancellationTokenSource.Token; // Получение токена
             var drives = DriveInfo.GetDrives();
             int fileCount = 0;
 
             foreach (var drive in drives)
             {
-                if (drive.IsReady)
+                try
                 {
-                    await ScanDirectoryAsync(drive.RootDirectory, fileCount);
+                    if (drive.IsReady)
+                    {
+                        await ScanDirectoryAsync(drive.RootDirectory, fileCount, token);
+                    }
+                }
+                catch(OperationCanceledException ex)
+                {
+                    MessageBox.Show("Отмена Сканирования!!!");
+                    return;
                 }
             }
         }
@@ -46,37 +59,190 @@ namespace WPFTasks.Models
 
         public void GenerateReport(IEnumerable<ScanResult> results)
         {
-            // Создание файла отчета с результатами
+            var reportFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ScanReport.txt");
+
+            try
+            {
+                using (var writer = new StreamWriter(reportFilePath, false))
+                {
+                    writer.WriteLine("=== Отчет по сканированию файлов ===\n");
+
+                    writer.WriteLine("Файлы с запрещенными словами:\n");
+                    foreach (var result in results)
+                    {
+                        writer.WriteLine($"Путь к файлу: {result.FilePath}");
+                        writer.WriteLine($"Размер файла: {result.FileSize} байт");
+                        writer.WriteLine($"Количество замен: {result.ReplacementCount}");
+
+                        writer.WriteLine("Найденные запрещенные слова:");
+                        foreach (var wordOccurrence in result.WordOccurrences)
+                        {
+                            writer.WriteLine($"  - {wordOccurrence.Key}: {wordOccurrence.Value} раз");
+                        }
+                        writer.WriteLine();
+                    }
+
+                    writer.WriteLine("=== Топ-10 самых популярных запрещенных слов ===\n");
+
+                    var topBannedWords = _wordStatistics
+                        .OrderByDescending(kv => kv.Value)
+                        .Take(10);
+
+                    int rank = 1;
+                    foreach (var word in topBannedWords)
+                    {
+                        writer.WriteLine($"{rank}. {word.Key}: {word.Value} раз");
+                        rank++;
+                    }
+                }
+
+                MessageBox.Show($"Отчет успешно создан: {reportFilePath}");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при создании отчета: {ex.Message}");
+            }
         }
+
 
         public List<BannedWordStatistics> GetTopBannedWords(int topCount)
         {
             return _wordStatistics.OrderByDescending(kv => kv.Value)
                                   .Take(topCount)
                                   .Select(kv => new BannedWordStatistics { Word = kv.Key, Count = kv.Value })
-                                  .ToList();
+            .ToList();
         }
 
-        private async Task ScanDirectoryAsync(DirectoryInfo directory, int totalFiles)
+        private async Task ScanDirectoryAsync(DirectoryInfo directory, int totalFiles, CancellationToken token)
         {
-            var files = directory.GetFiles();
-            foreach (var file in files)
-            {
-                await _semaphore.WaitAsync();
-                _ = Task.Run(() => ProcessFile(file), _cancellationTokenSource.Token)
-                        .ContinueWith(t => _semaphore.Release());
-                _onProgressUpdated((++totalFiles) * 100 / files.Length); // Прогресс обновляется от общего количества файлов
-            }
+            token.ThrowIfCancellationRequested(); 
 
-            foreach (var subDir in directory.GetDirectories())
+            try
             {
-                await ScanDirectoryAsync(subDir, totalFiles);
+                if (!HasAccess(directory))
+                    return;
+
+                var files = directory.GetFiles();
+                foreach (var file in files)
+                {
+                    token.ThrowIfCancellationRequested(); 
+
+                    if (!HasAccess(file))
+                        continue;
+
+                    await _semaphore.WaitAsync();
+                    _ = Task.Run(() => ProcessFile(file), _cancellationTokenSource.Token)
+                            .ContinueWith(t => _semaphore.Release());
+                    _onProgressUpdated((++totalFiles) * 100 / files.Length);
+                }
+
+                foreach (var subDir in directory.GetDirectories())
+                {
+                    token.ThrowIfCancellationRequested();
+
+                    await ScanDirectoryAsync(subDir, totalFiles, token);
+                }
+            }
+            catch (UnauthorizedAccessException)
+            {
+                MessageBox.Show($"Нет доступа к каталогу: {directory.FullName}");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при сканировании каталога {directory.FullName}: {ex.Message}");
             }
         }
+
+        // Проверка доступа
+        private bool HasAccess(FileSystemInfo fileSystemInfo)
+        {
+            try
+            {
+                if (fileSystemInfo is DirectoryInfo dir)
+                {
+                    dir.GetDirectories();
+                }
+                else if (fileSystemInfo is FileInfo file)
+                {
+                    using var stream = file.OpenRead();
+                }
+                return true;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return false; 
+            }
+            catch
+            {
+                return false; 
+            }
+        }
+
 
         private void ProcessFile(FileInfo file)
         {
-            // Обработка файла, поиск запрещенных слов и замена
+            // Проверка расширения файла
+            if (!_allowedExtensions.Contains(file.Extension.ToLower())) return;
+
+            var scanResult = new ScanResult
+            {
+                FilePath = file.FullName,
+                FileSize = file.Length,
+                ReplacementCount = 0,
+                WordOccurrences = new Dictionary<string, int>()
+            };
+
+            bool hasBannedWord = false;
+            StringBuilder fileContent = new StringBuilder();
+
+            try
+            {
+                using (var reader = new StreamReader(file.FullName))
+                {
+                    while (!reader.EndOfStream)
+                    {
+                        string line = reader.ReadLine();
+                        foreach (var bannedWord in _bannedWords)
+                        {
+                            // Подсчет вхождений и замена запрещенных слов
+                            int count = 0;
+                            string pattern = $@"\b{Regex.Escape(bannedWord)}\b";
+                            line = Regex.Replace(line, pattern, match =>
+                            {
+                                hasBannedWord = true;
+                                scanResult.ReplacementCount++;
+                                count++;
+                                return _replacementWord;
+                            });
+
+                            if (count > 0)
+                            {
+                                scanResult.WordOccurrences[bannedWord] = scanResult.WordOccurrences.ContainsKey(bannedWord)
+                                    ? scanResult.WordOccurrences[bannedWord] + count
+                                    : count;
+                                _wordStatistics.AddOrUpdate(bannedWord, count, (k, v) => v + count);
+                            }
+                        }
+                        fileContent.AppendLine(line);
+                    }
+                }
+
+                // Если были найдены запрещенные слова, сохраняем файл в "BadFiles"
+                if (hasBannedWord)
+                {
+                    var badFilesDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BadFiles");
+                    Directory.CreateDirectory(badFilesDir);
+
+                    string newFilePath = Path.Combine(badFilesDir, file.Name);
+                    File.WriteAllText(newFilePath, fileContent.ToString());
+
+                    _onFileFound(scanResult);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при обработке файла {file.FullName}: {ex.Message}");
+            }
         }
     }
 }
