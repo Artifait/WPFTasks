@@ -17,6 +17,7 @@ namespace WPFTasks.Models.SimulationOfBus
             Stops = stops;
             ForBusOfNumber = bus;
         }
+        public Stop First() => Stops.First();
 
         public Stop GetNextStop(Stop currentStop)
         {
@@ -24,5 +25,4 @@ namespace WPFTasks.Models.SimulationOfBus
             return Stops[(currentIndex + 1) % Stops.Count];
         }
     }
-
 }

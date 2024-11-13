@@ -9,17 +9,18 @@ namespace WPFTasks.Models.SimulationOfBus
         public int CurrentPassengerCount { get; private set; }
         public BusRoute? Route
         {
-            get => .GetRepository<BusRouteRepository>().GetRoute(Number);
+            get => Simulation.GetRepository<BusRouteRepository>().GetRoute(Number);
         }
         public Stop CurrentStop { get; set; }
         public List<Passenger> Passengers { get; set; }
+        public Action<Stop> OnBusCameToStop;
 
-        public Bus(BusNumber number, int maxCapacity, List<Stop> route)
+        public Bus(BusNumber number, int maxCapacity)
         {
             Number = number;
             MaxCapacity = maxCapacity;
             Passengers = [];
-            CurrentStop = route.First(); // Начальная остановка
+            CurrentStop = Route!.First();
         }
 
         public bool BoardPassenger(Passenger passenger)

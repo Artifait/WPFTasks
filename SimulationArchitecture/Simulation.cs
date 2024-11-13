@@ -14,7 +14,7 @@ namespace WPFTasks.SimulationArchitecture
             this.repositoriesBase = new RepositoriesBase(config);
         }
 
-        private void Initialize()
+        public void Initialize()
         {
             repositoriesBase.CreateAllRepositories();
             interactorsBase.CreateAllInteractors();
