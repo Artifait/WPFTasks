@@ -40,7 +40,7 @@ namespace WPFTasks.Pages
                           .Select(g => g.Key)
                           .ToList();
 
-            numbers.Distinct();
+            numbers = numbers.Distinct().ToList();
             AppendText(OutputTextBox, "Были удалены дубликаты следующих чисел: " + string.Join(", ", dupls));
         }
 
