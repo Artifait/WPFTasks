@@ -7,8 +7,8 @@ namespace WPFTasks.Models
         
         static Simulation()
         {
-            core = new(new SimulationOfBus.Config());
-            core.Initialize();
+            //core = new(new SimulationOfBus.Config());
+            //core.Initialize();
         }
 
         public static T GetRepository<T>() where T : SimulationArchitecture.Repository

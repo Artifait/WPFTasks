@@ -36,17 +36,23 @@
         <Grid>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                 <Button Style="{StaticResource DarkButtonStyle}" 
-                    Content="Запустить потоки" 
+                    Content="1 Способ" 
                     HorizontalAlignment="Center" 
                     VerticalAlignment="Top" 
                     Width="170" Margin="0,20,20,0" 
-                    Click="StartThreads" />
+                    Click="MethodOne" />
                 <Button Style="{StaticResource DarkButtonStyle}" 
-                    Content="Закрыть блокноты" 
+                    Content="2 Способ" 
+                    HorizontalAlignment="Center" 
+                    VerticalAlignment="Top" 
+                    Width="180" Margin="0,20,20,0" 
+                    Click="MethodTwo" />
+                <Button Style="{StaticResource DarkButtonStyle}" 
+                    Content="3 Способ" 
                     HorizontalAlignment="Center" 
                     VerticalAlignment="Top" 
                     Width="180" Margin="0,20,0,0" 
-                    Click="CloseNotepads" />
+                    Click="MethodThree" />
             </StackPanel>
 
             <TextBox Style="{StaticResource TextBoxStyle}"

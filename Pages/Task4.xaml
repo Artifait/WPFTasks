@@ -42,7 +42,7 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <Button Content="Запуск Симуляции" 
+            <Button Content="Запуск" 
                     Style="{StaticResource DarkButtonStyle}"
                     HorizontalAlignment="Center" 
                     VerticalAlignment="Top" 

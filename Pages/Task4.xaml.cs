@@ -1,4 +1,5 @@
 ﻿using Microsoft.Win32;
+using System.Buffers;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -13,142 +14,57 @@ namespace WPFTasks.Pages
     /// </summary>
     public partial class Task4 : Page
     {
-        private Semaphore tableSemaphore = new(5, 5); 
-        private List<Player> allPlayers = [];
-        private List<Task> playerTasks = [];
-        private static Random random = new();
-        private int totalPlayers = random.Next(20, 101); 
-        private int winningNumber;
-
-        private void StartSimulation()
-        {
-            allPlayers.Clear();
-
-            Task.Run(() =>
-            {
-                List<Player> activePlayers = new List<Player>();
-                int playersProcessed = 0;
-
-                for (int i = 0; i < 5 && playersProcessed < totalPlayers; i++)
-                {
-                    var player = new Player(playersProcessed + 1, random.Next(50, 201));
-                    activePlayers.Add(player);
-                    allPlayers.Add(player);
-                    playersProcessed++;
-                }
-
-                while (playersProcessed < totalPlayers || activePlayers.Any(p => p.CurrentAmount > 0 && p.GamesPlayed < p.TargetGames))
-                {
-                    winningNumber = random.Next(0, 37);
-
-                    List<Task> roundTasks = activePlayers
-                        .Where(player => player.CurrentAmount > 0 && player.GamesPlayed < player.TargetGames)
-                        .Select(player => Task.Run(() =>
-                        {
-                            tableSemaphore.WaitOne();
-                            try
-                            {
-                                player.PlaceBet(winningNumber);
-                            }
-                            finally
-                            {
-                                tableSemaphore.Release();
-                            }
-                        }))
-                        .ToList();
-
-                    Task.WhenAll(roundTasks).Wait();
-
-                    for (int i = 0; i < activePlayers.Count; i++)
-                    {
-                        if ((activePlayers[i].CurrentAmount == 0 || activePlayers[i].GamesPlayed >= activePlayers[i].TargetGames) && playersProcessed < totalPlayers)
-                        {
-                            var newPlayer = new Player(playersProcessed + 1, random.Next(50, 201));
-                            activePlayers[i] = newPlayer;
-                            allPlayers.Add(newPlayer);
-                            playersProcessed++;
-                        }
-                    }
-                }
-
-                GenerateReport();
-            });
-        }
-
-
-
-        private void GenerateReport()
-        {
-            StringBuilder report = new();
-            StringBuilder winners = new();
-            StringBuilder losers = new();
-
-            winners.AppendLine("Победили:");
-            losers.AppendLine("Проиграли:");
-
-            foreach (var player in allPlayers)
-            {
-                string playerStr = $"Игрок{player.PlayerId} [Начальная сумма: {player.StartingAmount}] [Конечная сумма: {player.CurrentAmount}] [Сыграл: {player.GamesPlayed} раз]";
-                if (player.CurrentAmount - player.StartingAmount >= 0)
-                    winners.AppendLine(playerStr);
-                else
-                    losers.AppendLine(playerStr);
-            }
-            report.AppendLine(winners.ToString());
-            report.AppendLine(losers.ToString());
-
-            File.WriteAllText("CasinoReport.txt", report.ToString());
-
-            Dispatcher.Invoke(() => { OutputTextBox.Text = report.ToString(); });
-        }
-        private void StartThreads(object sender, RoutedEventArgs e)
-        {
-            StartSimulation();
-        }
+        List<int> numbers = null!;
 
         public Task4()
         {
             InitializeComponent();
         }
-    }
-
-    public class Player
-    {
-        private static Random random = new Random();
-        public int PlayerId { get; }
-        public int StartingAmount { get; }
-        public int CurrentAmount { get; private set; }
-        public int GamesPlayed { get; private set; }
-        public int TargetGames { get; } 
-
-        public Player(int playerId, int startingAmount)
+        private void StartThreads(object sender, RoutedEventArgs e)
         {
-            PlayerId = playerId;
-            StartingAmount = startingAmount;
-            CurrentAmount = startingAmount;
-            GamesPlayed = 0;
-            TargetGames = random.Next(1, 13); 
+            GenerateRandomNumbers();
+            OutputTextBox.Clear();
+
+            Task task1 = new(RemoveDuplicate);
+            Task task2 = new(Sort);
+            Task task3 = new(BinSearch);
+            task1.ContinueWith(t => task2.Start());
+            task2.ContinueWith(t => task3.Start());
+            task1.Start();
         }
 
-        public bool PlaceBet(int winningNumber)
+        private void RemoveDuplicate()
         {
-            if (GamesPlayed >= TargetGames || CurrentAmount <= 0)
-                return false;
+            var dupls =  numbers.GroupBy(x => x)
+                          .Where(g => g.Count() > 1)
+                          .Select(g => g.Key)
+                          .ToList();
 
-            int betAmount = random.Next(1, CurrentAmount / 2 + 1);
-            int chosenNumber = random.Next(0, 37);
-            GamesPlayed++;
-
-            if (chosenNumber == winningNumber)
-            {
-                CurrentAmount += betAmount;
-                return true;
-            }
-            else
-            {
-                CurrentAmount -= betAmount;
-                return false;
-            }
+            numbers.Distinct();
+            AppendText(OutputTextBox, "Были удалены дубликаты следующих чисел: " + string.Join(", ", dupls));
         }
+
+        private void Sort()
+        {
+            numbers.Sort();
+            AppendText(OutputTextBox, "Массив отсортирован");
+        }
+        private void BinSearch()
+        {
+            var rnd = new Random();
+            int searchNumber = rnd.Next(1, 1000);
+
+            int index = numbers.BinarySearch(searchNumber);
+
+            AppendText(OutputTextBox, index == -1 ? $"Число: {searchNumber} не найдено" : $"Число: {searchNumber} найдено на {index} индексе");
+        }
+        private void GenerateRandomNumbers()
+        {
+            var random = new Random();
+            numbers = Enumerable.Range(0, 100).Select(_ => random.Next(1, 1000)).ToList();
+        }
+
+        private void AppendText(TextBox textBox, string text) => Dispatcher.Invoke(() => textBox.AppendText(text + Environment.NewLine));
+
     }
 }

@@ -3,7 +3,6 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-      xmlns:local="clr-namespace:WPFTasks.Pages"
       mc:Ignorable="d" 
       d:DesignHeight="450" d:DesignWidth="800"
       Title="Task2">
@@ -34,22 +33,37 @@
 
     <Border CornerRadius="5" Background="{DynamicResource SecundaryBackgroundColor}"
             BorderBrush="Gray" BorderThickness="2">
-        <Grid>
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+        <Grid Margin="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
 
-                <Button Style="{StaticResource DarkButtonStyle}" 
-                    Content="Запуск" 
-                    HorizontalAlignment="Center" 
-                    VerticalAlignment="Top" 
-                    Width="180" Margin="0,20,0,0" 
-                    Click="DisplayData" />
-            </StackPanel>
+            <TextBlock Text="Начальное значение:" Style="{StaticResource LabelTextStyle}" Grid.Row="0" Grid.Column="0" Margin="5"/>
+            <TextBox x:Name="StartRangeTextBox" Style="{StaticResource TextBoxStyle}" Grid.Row="0" Grid.Column="1" Margin="5" />
+
+            <TextBlock Text="Конечное значение:" Style="{StaticResource LabelTextStyle}" Grid.Row="1" Grid.Column="0" Margin="5"/>
+            <TextBox x:Name="EndRangeTextBox" Style="{StaticResource TextBoxStyle}" Grid.Row="1" Grid.Column="1" Margin="5" />
+
+            <Button Style="{StaticResource DarkButtonStyle}" 
+                    Content="Запуск Расчётов" 
+                    Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" 
+                    Width="180" 
+                    Margin="0,10,0,10"
+                    Click="CalculatePrimeNumbers" />
 
             <TextBox Style="{StaticResource TextBoxStyle}"
                      Name="OutputTextBox" 
-                     HorizontalAlignment="Stretch" 
-                     VerticalAlignment="Stretch" 
-                     Margin="20,70,20,20" TextWrapping="Wrap"
+                     Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+                     Margin="0,10,0,0" 
+                     TextWrapping="Wrap"
+                     VerticalScrollBarVisibility="Auto"
                      IsReadOnly="True" />
         </Grid>
     </Border>
