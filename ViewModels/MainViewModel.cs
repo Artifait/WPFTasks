@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -17,9 +18,15 @@ namespace WPFTasks.ViewModels
         private int _scanProgress;
         private bool _isScanning;
         private IniFileReader _iniFileReader;
-
+        private string _currentScanningDir;
         public ObservableCollection<ScanResult> BannedFiles { get; } = [];
         public ObservableCollection<BannedWordStatistics> TopBannedWords { get; } = [];
+
+        public string CurrentScanningDir
+        {
+            get => _currentScanningDir;
+            set { _currentScanningDir = value; OnPropertyChanged(); }
+        }
 
         public int ScanProgress
         {
@@ -39,9 +46,11 @@ namespace WPFTasks.ViewModels
 
         public MainViewModel()
         {
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
             _iniFileReader = new IniFileReader("../../../BannedWords.ini");
 
-            _scannerService = new ScannerService(_iniFileReader.BannedWords, _iniFileReader.AllowedExtensions, _iniFileReader.ReplacementWord, OnFileFound, OnProgressUpdated);
+            _scannerService = new ScannerService(_iniFileReader.BannedWords, _iniFileReader.AllowedExtensions, _iniFileReader.ReplacementWord, OnFileFound, OnProgressUpdated, OnSetScanningDir);
 
             // Инициализация команд
             StartScanCommand = new RelayCommand(_ => Task.Run(StartScan));
@@ -61,17 +70,21 @@ namespace WPFTasks.ViewModels
             });
 
             await _scannerService.ScanAsync();
-            IsScanning = false;
-            UpdateTopBannedWords();
+
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                IsScanning = false;
+                UpdateTopBannedWords();
+            });
         }
 
         private void StopScan()
         {
             try{ _scannerService.CancelScan(); }
             catch { }
-            IsScanning = false;
             Application.Current.Dispatcher.Invoke(() =>
             {
+                IsScanning = false;
                 ScanProgress = 0;
             });
         }
@@ -79,6 +92,7 @@ namespace WPFTasks.ViewModels
         private void GenerateReport()
         {
             _scannerService.GenerateReport(BannedFiles);
+            Process.Start("notepad.exe", "ScanReport.txt");
         }
 
         private void OnFileFound(ScanResult result)
@@ -96,6 +110,11 @@ namespace WPFTasks.ViewModels
             ScanProgress = progress;
         }
 
+        private void OnSetScanningDir(string dir)
+        {
+
+            CurrentScanningDir = dir;
+        }
         private void UpdateTopBannedWords()
         {
             var topWords = _scannerService.GetTopBannedWords(10);

@@ -14,24 +14,26 @@ namespace WPFTasks.Models
         private readonly string _replacementWord;
         private readonly Action<ScanResult> _onFileFound;
         private readonly Action<int> _onProgressUpdated;
+        private readonly Action<string> _onSetDir;
         private CancellationTokenSource _cancellationTokenSource;
         private readonly SemaphoreSlim _semaphore = new(4); // Количество потоков
 
         private ConcurrentDictionary<string, int> _wordStatistics = new();
 
-        public ScannerService(List<string> bannedWords, List<string> allowedExtensions, string replacementWord, Action<ScanResult> onFileFound, Action<int> onProgressUpdated)
+        public ScannerService(List<string> bannedWords, List<string> allowedExtensions, string replacementWord, Action<ScanResult> onFileFound, Action<int> onProgressUpdated, Action<string> onSetDir)
         {
             _bannedWords = bannedWords;
             _allowedExtensions = allowedExtensions;
             _replacementWord = replacementWord;
             _onFileFound = onFileFound;
             _onProgressUpdated = onProgressUpdated;
+            _onSetDir = onSetDir;
         }
 
         public async Task ScanAsync()
         {
             _cancellationTokenSource = new CancellationTokenSource();
-            var token = _cancellationTokenSource.Token; // Получение токена
+            var token = _cancellationTokenSource.Token; 
             var drives = DriveInfo.GetDrives();
             int fileCount = 0;
 
@@ -63,7 +65,7 @@ namespace WPFTasks.Models
 
             try
             {
-                using (var writer = new StreamWriter(reportFilePath, false))
+                using (var writer = new StreamWriter(reportFilePath, false, Encoding.GetEncoding(1251)))
                 {
                     writer.WriteLine("=== Отчет по сканированию файлов ===\n");
 
@@ -121,7 +123,7 @@ namespace WPFTasks.Models
             {
                 if (!HasAccess(directory))
                     return;
-
+                _onSetDir(directory.FullName);
                 var files = directory.GetFiles();
                 foreach (var file in files)
                 {
@@ -142,6 +144,10 @@ namespace WPFTasks.Models
 
                     await ScanDirectoryAsync(subDir, totalFiles, token);
                 }
+            }
+            catch(OperationCanceledException) 
+            {
+                return;
             }
             catch (UnauthorizedAccessException)
             {
@@ -189,15 +195,15 @@ namespace WPFTasks.Models
                 FilePath = file.FullName,
                 FileSize = file.Length,
                 ReplacementCount = 0,
-                WordOccurrences = new Dictionary<string, int>()
+                WordOccurrences = []
             };
 
             bool hasBannedWord = false;
-            StringBuilder fileContent = new StringBuilder();
+            StringBuilder fileContent = new();
 
             try
             {
-                using (var reader = new StreamReader(file.FullName))
+                using (var reader = new StreamReader(file.FullName, Encoding.UTF8))
                 {
                     while (!reader.EndOfStream)
                     {
@@ -234,7 +240,7 @@ namespace WPFTasks.Models
                     Directory.CreateDirectory(badFilesDir);
 
                     string newFilePath = Path.Combine(badFilesDir, file.Name);
-                    File.WriteAllText(newFilePath, fileContent.ToString());
+                    File.WriteAllText(newFilePath, fileContent.ToString(), Encoding.GetEncoding(1251));
 
                     _onFileFound(scanResult);
                 }

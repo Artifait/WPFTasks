@@ -1,5 +1,7 @@
 ﻿using IniParser;
 using IniParser.Model;
+using System.IO;
+using System.Text;
 
 namespace WPFTasks.Models
 {
@@ -19,7 +21,12 @@ namespace WPFTasks.Models
         private void ParseIniFile(string filePath)
         {
             var parser = new FileIniDataParser();
-            IniData data = parser.ReadFile(filePath);
+            IniData data;
+
+            using (var reader = new StreamReader(filePath, Encoding.GetEncoding(1251)))
+            {
+                data = parser.ReadData(reader);
+            }
 
             if (data.Sections.ContainsSection("BannedWords"))
             {

@@ -39,45 +39,74 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
 
-            <!-- Scan Progress -->
-            <TextBlock Grid.Row="0" Grid.Column="0" Text="Scan Progress:" Style="{StaticResource LabelTextStyle}" />
-            <ProgressBar Grid.Row="0" Grid.Column="1" Height="20" Minimum="0" Maximum="100" 
-                         Value="{Binding ScanProgress, UpdateSourceTrigger=PropertyChanged}" />
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
 
-            <!-- Buttons for scanning actions -->
-            <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,10,0,0">
-                <Button Content="Start Scan" Command="{Binding StartScanCommand}" Style="{StaticResource DarkButtonStyle}" Margin="5"/>
-                <Button Content="Stop Scan" Command="{Binding StopScanCommand}" Style="{StaticResource DarkButtonStyle}" Margin="5"/>
-                <Button Content="Generate Report" Command="{Binding GenerateReportCommand}" Style="{StaticResource DarkButtonStyle}" Margin="5"/>
-            </StackPanel>
+                <TextBlock Grid.Column="0" 
+                           Text="Scan Progress:" 
+                           Style="{StaticResource LabelTextStyle}"/>
+                <ProgressBar Grid.Column="1" Height="20"
+                             Minimum="0" Maximum="100" Margin="20 0 0 0"
+                             Value="{Binding ScanProgress, UpdateSourceTrigger=PropertyChanged}"/>
+            </Grid>
+            
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
 
-            <!-- List of Banned Files -->
-            <TextBlock Grid.Row="2" Grid.Column="0" Text="Banned Files:" Style="{StaticResource LabelTextStyle}" Margin="0,10,0,5"/>
-            <ListBox Grid.Row="2" Grid.Column="0" ItemsSource="{Binding BannedFiles, UpdateSourceTrigger=PropertyChanged}" Margin="0,50,10,0">
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding FilePath}" FontSize="16"/>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
+                <Button Content="Start Scan" 
+                        Command="{Binding StartScanCommand}" 
+                        Style="{StaticResource DarkButtonStyle}" 
+                        Margin="5" Grid.Column="0"/>
+                <Button Content="Stop Scan" 
+                        Command="{Binding StopScanCommand}" 
+                        Style="{StaticResource DarkButtonStyle}" 
+                        Margin="5" Grid.Column="1"/>
+                <Button Content="Generate Report" 
+                        Command="{Binding GenerateReportCommand}" 
+                        Style="{StaticResource DarkButtonStyle}" 
+                        Margin="5" Grid.Column="2"/>
+                <TextBox Grid.Column="3" Margin="5" 
+                         Style="{StaticResource TextBoxStyle}"
+                         HorizontalAlignment="Stretch" 
+                         VerticalAlignment="Stretch" IsReadOnly="True"
+                         FontSize="16" Text="{Binding CurrentScanningDir, UpdateSourceTrigger=PropertyChanged}"/>
+            </Grid>
 
-            <!-- List of Top Banned Words -->
-            <TextBlock Grid.Row="2" Grid.Column="1" Text="Top Banned Words:" Style="{StaticResource LabelTextStyle}" Margin="0,10,0,5"/>
-            <ListBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding TopBannedWords, UpdateSourceTrigger=PropertyChanged}" Margin="10,50,0,0">
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding Word}" FontSize="16" Width="100"/>
-                            <TextBlock Text="{Binding Count}" FontSize="16" Margin="10,0,0,0"/>
-                        </StackPanel>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Banned Files:" Style="{StaticResource LabelTextStyle}" Margin="0,10,0,5"/>
+                <ListBox Grid.Column="0" ItemsSource="{Binding BannedFiles, UpdateSourceTrigger=PropertyChanged}" Margin="0,50,10,0" Background="{StaticResource PrimaryBackgroundColor}" Foreground="{StaticResource PrimaryTextColor}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding FilePath}" FontSize="16"/>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <TextBlock Grid.Column="1" Text="Top Banned Words:" Style="{StaticResource LabelTextStyle}" Margin="0,10,0,5"/>
+                <ListBox Grid.Column="1" ItemsSource="{Binding TopBannedWords, UpdateSourceTrigger=PropertyChanged}" Margin="10,50,0,0" Background="{StaticResource PrimaryBackgroundColor}" Foreground="{StaticResource PrimaryTextColor}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding Word}" FontSize="16" Width="100"/>
+                                <TextBlock Text="{Binding Count}" FontSize="16" Margin="10,0,0,0"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
         </Grid>
     </Border>
 </Page>
