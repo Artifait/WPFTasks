@@ -83,7 +83,12 @@ namespace WPFTasks.ViewModels
 
         private void OnFileFound(ScanResult result)
         {
-            BannedFiles.Add(result);
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                BannedFiles.Add(result);
+                UpdateTopBannedWords();
+            });
+            
         }
 
         private void OnProgressUpdated(int progress)
