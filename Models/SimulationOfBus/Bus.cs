@@ -36,8 +36,8 @@ namespace WPFTasks.Models.SimulationOfBus
 
         public void UnloadPassengers()
         {
-            // Выгрузить пассажиров, чей пункт назначения совпадает с текущей остановкой
-            var disembarking = Passengers.Where(p => p.EndStop == CurrentStop.Name).ToList();
+            var disembarking = Passengers.Where(p => p.EndStop == CurrentStop).ToList();
+
             foreach (var passenger in disembarking)
             {
                 Passengers.Remove(passenger);

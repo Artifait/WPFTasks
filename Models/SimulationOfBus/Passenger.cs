@@ -1,23 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿
+using BusNumber = System.UInt32;
 
 namespace WPFTasks.Models.SimulationOfBus
 {
     public class Passenger
     {
-        public string StartStop { get; set; }
-        public string EndStop { get; set; }
-        public Bus SelectedBus { get; set; }
+        public Stop StartStop { get; set; }
+        public Stop EndStop { get; set; }
+        public BusNumber SelectedBus { get; set; }
 
-        public Passenger(string startStop, string endStop, Bus selectedBus)
+        public Passenger(Stop startStop, Stop endStop, BusNumber selectedBus)
         {
             StartStop = startStop;
             EndStop = endStop;
             SelectedBus = selectedBus;
         }
+        
     }
 
 }

@@ -4,10 +4,10 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       xmlns:local="clr-namespace:WPFTasks.Pages"
+      xmlns:vm="clr-namespace:WPFTasks.ViewModels"
       mc:Ignorable="d" 
       d:DesignHeight="450" d:DesignWidth="800"
       Title="Task2">
-
     <Page.Resources>
         <Style x:Key="LabelTextStyle" TargetType="TextBlock">
             <Setter Property="FontWeight" Value="Bold"/>
@@ -30,27 +30,70 @@
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
+        <vm:PointConverter x:Key="PointConverter" />
     </Page.Resources>
-
+    <Page.DataContext>
+        <vm:MainViewModel />
+    </Page.DataContext>
+        
     <Border CornerRadius="5" Background="{DynamicResource SecundaryBackgroundColor}"
             BorderBrush="Gray" BorderThickness="2">
-        <Grid>
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+            <Canvas>
+                <!-- Привязка к маршрутам и остановкам -->
+                <ItemsControl ItemsSource="{Binding Routes}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Canvas>
+                                <!-- Отображение дорог между остановками -->
+                                <ItemsControl ItemsSource="{Binding StopDisplays}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Path Stroke="Gray" StrokeThickness="2">
+                                                <Path.Data>
+                                                    <GeometryGroup>
+                                                        <LineGeometry>
+                                                            <LineGeometry.StartPoint>
+                                                                <MultiBinding Converter="{StaticResource PointConverter}">
+                                                                    <Binding Path="X" />
+                                                                    <Binding Path="Y" />
+                                                                </MultiBinding>
+                                                            </LineGeometry.StartPoint>
+                                                            <LineGeometry.EndPoint>
+                                                                <MultiBinding Converter="{StaticResource PointConverter}">
+                                                                    <!-- Привязка к следующей остановке -->
+                                                                    <Binding Path="X" />
+                                                                    <Binding Path="Y" />
+                                                                </MultiBinding>
+                                                            </LineGeometry.EndPoint>
+                                                        </LineGeometry>
+                                                    </GeometryGroup>
+                                                </Path.Data>
+                                            </Path>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
 
-                <Button Style="{StaticResource DarkButtonStyle}" 
-                    Content="Запуск" 
-                    HorizontalAlignment="Center" 
-                    VerticalAlignment="Top" 
-                    Width="180" Margin="0,20,0,0" 
-                    Click="DisplayData" />
-            </StackPanel>
-
-            <TextBox Style="{StaticResource TextBoxStyle}"
-                     Name="OutputTextBox" 
-                     HorizontalAlignment="Stretch" 
-                     VerticalAlignment="Stretch" 
-                     Margin="20,70,20,20" TextWrapping="Wrap"
-                     IsReadOnly="True" />
-        </Grid>
+                                <!-- Отображение остановок -->
+                                <ItemsControl ItemsSource="{Binding StopDisplays}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel>
+                                                <Ellipse Width="20" Height="20" Fill="LightBlue" 
+                                                     Canvas.Left="{Binding X}" 
+                                                     Canvas.Top="{Binding Y}" />
+                                                <TextBlock Text="{Binding BaseStop.Name}" 
+                                                       Canvas.Left="{Binding X}" 
+                                                       Canvas.Top="{Binding Y}" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Canvas>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Canvas>
+        </ScrollViewer>
     </Border>
 </Page>

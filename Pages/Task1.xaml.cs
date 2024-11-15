@@ -114,13 +114,11 @@ namespace WPFTasks.Pages
         {
             if (process == null) return;
 
-            // Получаем дескриптор окна блокнота
             IntPtr hWnd = FindWindow(null, process.MainWindowTitle);
             if (hWnd == IntPtr.Zero) return;
 
-            ShowWindow(hWnd, SW_RESTORE); // Восстанавливаем окно, если оно свернуто
+            ShowWindow(hWnd, SW_RESTORE); 
 
-            // Устанавливаем размер и позицию окна
             int width = 260;
             int height = (int)SystemParameters.PrimaryScreenHeight - 100;
             SetWindowPos(hWnd, HWND_TOP, xOffset, 0, width, height, SWP_NOZORDER | SWP_NOACTIVATE);
@@ -143,7 +141,6 @@ namespace WPFTasks.Pages
             SetForegroundWindow(hWnd);
             PostMessage(hWnd, 0x50, 1, ret);
 
-            // Пауза, чтобы Notepad успел отобразить меню
             Thread.Sleep(200);
 
             _inputSimulator.Keyboard.KeyPress(VirtualKeyCode.MENU);  // Alt
@@ -184,7 +181,6 @@ namespace WPFTasks.Pages
                 var random = new Random();
                 _numberPairs = new List<(int, int)>();
 
-                // Генерация пар чисел и запись в файл
                 using (StreamWriter writer = new(PairsFile))
                 {
                     for (int i = 0; i < 50; i++)
@@ -200,14 +196,14 @@ namespace WPFTasks.Pages
             }
             finally
             {
-                _generationCompletedEvent.Set(); // Уведомляем другие потоки, что генерация завершена
-                _countdownEvent.Signal(); // Уменьшаем счетчик на 1
+                _generationCompletedEvent.Set();
+                _countdownEvent.Signal(); 
             }
         }
 
         private async Task CalculateSums()
         {
-            _generationCompletedEvent.WaitOne(); // Ждем завершения первого потока
+            _generationCompletedEvent.WaitOne(); 
 
             try
             {
@@ -218,13 +214,13 @@ namespace WPFTasks.Pages
             }
             finally
             {
-                _countdownEvent.Signal(); // Уменьшаем счетчик на 1 после завершения работы
+                _countdownEvent.Signal(); 
             }
         }
 
         private async Task CalculateProducts()
         {
-            _generationCompletedEvent.WaitOne(); // Ждем завершения первого потока
+            _generationCompletedEvent.WaitOne();
 
             try
             {
@@ -235,7 +231,7 @@ namespace WPFTasks.Pages
             }
             finally
             {
-                _countdownEvent.Signal(); // Уменьшаем счетчик на 1 после завершения работы
+                _countdownEvent.Signal();
             }
         }
     }

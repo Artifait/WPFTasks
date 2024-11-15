@@ -41,10 +41,6 @@ namespace WPFTasks
         // Start: MenuLeft PopupButton //
         private void btnTask1_MouseEnter(object sender, MouseEventArgs e) => ShowPopup(btnTask1, "Task 1");
         private void btnTask2_MouseEnter(object sender, MouseEventArgs e) => ShowPopup(btnTask2, "Task 2");
-        private void btnTask3_MouseEnter(object sender, MouseEventArgs e) => ShowPopup(btnTask3, "Task 3");
-        private void btnTask4_MouseEnter(object sender, MouseEventArgs e) => ShowPopup(btnTask4, "Task 4");
-        private void btnTask5_MouseEnter(object sender, MouseEventArgs e) => ShowPopup(btnTask5, "Task 5");
-        private void btnSetting_MouseEnter(object sender, MouseEventArgs e) => ShowPopup(btnSetting, "Настройки");
         
 
         // End: MenuLeft PopupButton //

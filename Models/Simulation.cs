@@ -1,14 +1,18 @@
 ﻿
+using System.Windows.Media;
+
 namespace WPFTasks.Models
 {
     public static class Simulation
     {
-        private static SimulationArchitecture.Simulation core;
-        
+        public static SimulationOfBus.BusSimulation core;
         static Simulation()
         {
-            core = new(new SimulationOfBus.Config());
-            core.Initialize();
+            core = new();
+        }
+        public static void Init()
+        {
+            core.InitializeSimulation("../../../SimulationConfig.ini");
         }
 
         public static T GetRepository<T>() where T : SimulationArchitecture.Repository

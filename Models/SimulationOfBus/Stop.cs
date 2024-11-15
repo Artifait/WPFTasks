@@ -14,13 +14,35 @@ namespace WPFTasks.Models.SimulationOfBus
         public Stop(string name)
         {
             Name = name;
-            WaitingPassengers = new List<Passenger>();
+            WaitingPassengers = [];
         }
 
         public void AddPassenger(Passenger passenger)
         {
             WaitingPassengers.Add(passenger);
         }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is Stop otherStop)
+            {
+                return Name == otherStop.Name;
+            }
+            return false;
+        }
+
+        public override int GetHashCode()
+            => Name != null ? Name.GetHashCode() : 0;
+
+        public static bool operator ==(Stop left, Stop right)
+        {
+            if (ReferenceEquals(left, null))
+                return ReferenceEquals(right, null);
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(Stop left, Stop right)
+            => !(left == right);
     }
 
 }
