@@ -1,6 +1,8 @@
-﻿using System;
+﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,20 +10,18 @@ using System.Windows.Data;
 
 namespace WPFTasks.ViewModels
 {
-    public class PointConverter : IMultiValueConverter
+    public class PointConverter : IValueConverter
     {
-        public object Convert(object[] values, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
         {
-            if (values.Length == 2 &&
-                values[0] is int x &&
-                values[1] is int y)
+            if (value is Point point)
             {
-                return new Point(x, y);
+                return $"{point.X},{point.Y}";
             }
-            return new Point(0, 0);
+            return "0, 0";
         }
 
-        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, System.Globalization.CultureInfo culture)
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             throw new NotImplementedException();
         }

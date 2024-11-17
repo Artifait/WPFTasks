@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using WPFTasks.Models.SimulationOfBus.Repositories;
 
 namespace WPFTasks.Models.SimulationOfBus
 {
@@ -9,11 +10,13 @@ namespace WPFTasks.Models.SimulationOfBus
         public BusSimulation()
         {
             core = new(new Config());
-            core.Initialize();
         }
 
         public void InitializeSimulation(string iniFilePath)
-            => SimulationIniReader.Parse(core, iniFilePath);
+        {
+            core.Initialize();
+            SimulationIniReader.Parse(core, iniFilePath);
+        }
 
         public string GetReportOfSimulationState()
         {

@@ -1,6 +1,7 @@
-﻿using WPFTasks.SimulationArchitecture;
+﻿using WPFTasks.Models.SimulationOfBus.Data;
+using WPFTasks.SimulationArchitecture;
 
-namespace WPFTasks.Models.SimulationOfBus
+namespace WPFTasks.Models.SimulationOfBus.Repositories
 {
     public class StopRepository : Repository
     {

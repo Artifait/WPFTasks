@@ -1,5 +1,7 @@
 ﻿using IniParser;
 using IniParser.Model;
+using WPFTasks.Models.SimulationOfBus.Data;
+using WPFTasks.Models.SimulationOfBus.Repositories;
 using BusNumber = System.UInt32;
 
 namespace WPFTasks.Models.SimulationOfBus

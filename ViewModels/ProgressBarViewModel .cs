@@ -30,6 +30,15 @@ namespace WPFTasks.ViewModels
 
             return [primaryColor, complementaryColor];
         }
+        public static Color GenerateColor()
+        {
+            return Color.FromArgb(
+                255,
+                (byte)rnd.Next(256),
+                (byte)rnd.Next(256),
+                (byte)rnd.Next(256)
+            );
+        }
     }
 
     public class ProgressBarViewModel : INotifyPropertyChanged

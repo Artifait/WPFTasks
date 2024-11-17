@@ -1,8 +1,8 @@
-﻿
+﻿using WPFTasks.Models.SimulationOfBus.Data;
 using WPFTasks.SimulationArchitecture;
 using BusNumber = System.UInt32;
 
-namespace WPFTasks.Models.SimulationOfBus
+namespace WPFTasks.Models.SimulationOfBus.Repositories
 {
     public class BusRepository : Repository
     {
@@ -10,35 +10,42 @@ namespace WPFTasks.Models.SimulationOfBus
         public List<Bus> ParkingBuses { get; private set; } = [];
         public Dictionary<BusNumber, uint> BusOfNumberCount { get; private set; } = [];
 
-        public override void OnCreate() { }
-        public override void Initialize() { }
-        public override void OnStart() { }
+        public void AllParkGoWork()
+        {
+            WorkBuses.AddRange(ParkingBuses);
+            ParkingBuses.Clear();
+        }
 
         public void Add(Bus bus)
         {
             ParkingBuses.Add(bus);
 
-            if(BusOfNumberCount.ContainsKey(bus.Number)) {
+            if (BusOfNumberCount.ContainsKey(bus.Number))
+            {
                 BusOfNumberCount[bus.Number]++;
-            } else { 
+            }
+            else
+            {
                 BusOfNumberCount[bus.Number] = 1;
             }
-            
-        }
 
+        }
+        object locker = new();
         public Bus? SwapParkToWork(BusNumber num)
         {
             var bus = GetParkingBus(num);
 
-            if(bus != null)
+            lock (locker)
             {
-                ParkingBuses.Remove(bus);
-                WorkBuses.Add(bus);
+                if (bus != null)
+                {
+                    ParkingBuses.Remove(bus);
+                    WorkBuses.Add(bus);
+                }
             }
-
+            
             return bus;
         }
-
         public void SwapWorkToPark(Bus bus)
         {
             WorkBuses.Remove(bus);
@@ -48,5 +55,8 @@ namespace WPFTasks.Models.SimulationOfBus
         public Bus? GetParkingBus(BusNumber num)
             => ParkingBuses.Where(b => b.Number == num).FirstOrDefault();
 
+        public override void OnCreate() { }
+        public override void Initialize() { }
+        public override void OnStart() { }
     }
 }

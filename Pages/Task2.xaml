@@ -1,11 +1,11 @@
 ﻿<Page x:Class="WPFTasks.Pages.Task2"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
       xmlns:local="clr-namespace:WPFTasks.Pages"
       xmlns:vm="clr-namespace:WPFTasks.ViewModels"
-      mc:Ignorable="d" 
+      mc:Ignorable="d"
       d:DesignHeight="450" d:DesignWidth="800"
       Title="Task2">
     <Page.Resources>
@@ -30,54 +30,98 @@
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
+        <vm:AddOffsetConverter x:Key="AddOffsetConverter"/>
         <vm:PointConverter x:Key="PointConverter" />
     </Page.Resources>
-    <Page.DataContext>
-        <vm:MainViewModel />
-    </Page.DataContext>
-
-    <Border CornerRadius="5" Background="{DynamicResource SecundaryBackgroundColor}"
+    <Border CornerRadius="5" Background="White"
             BorderBrush="Gray" BorderThickness="2">
         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-            <Canvas>
+            <Canvas Background="{DynamicResource PrimaryBackgroundColor}">
                 <!-- Отображение дорог между остановками -->
                 <ItemsControl ItemsSource="{Binding DisplayRoute.Links}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Path Stroke="Gray" StrokeThickness="2">
-                                <Path.Data>
-                                    <LineGeometry>
-                                        <LineGeometry.StartPoint>
-                                            <MultiBinding Converter="{StaticResource PointConverter}">
-                                                <Binding Path="Start.X" />
-                                                <Binding Path="Start.Y" />
-                                            </MultiBinding>
-                                        </LineGeometry.StartPoint>
-                                        <LineGeometry.EndPoint>
-                                            <MultiBinding Converter="{StaticResource PointConverter}">
-                                                <Binding Path="End.X" />
-                                                <Binding Path="End.Y" />
-                                            </MultiBinding>
-                                        </LineGeometry.EndPoint>
-                                    </LineGeometry>
-                                </Path.Data>
-                            </Path>
+                            <Canvas>
+                                <Line Stroke="Gray" StrokeThickness="2"
+                                      X1="{Binding Start.X}"
+                                      Y1="{Binding Start.Y}"
+                                      X2="{Binding End.X}"
+                                      Y2="{Binding End.Y}" />
+                            </Canvas>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
                 <!-- Отображение остановок -->
                 <ItemsControl ItemsSource="{Binding DisplayRoute.Stops}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel>
-                                <Ellipse Width="20" Height="20" Fill="LightBlue" 
-                                         Canvas.Left="{Binding X}" 
-                                         Canvas.Top="{Binding Y}" />
-                                <TextBlock Text="{Binding BaseStop.Name}" 
-                                           Canvas.Left="{Binding X}" 
-                                           Canvas.Top="{Binding Y}" />
-                            </StackPanel>
+                            <Canvas>
+                                <!-- Пассажиры -->
+                                <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                                              VerticalScrollBarVisibility="Disabled" 
+                                              Width="80"
+                                              Height="80"
+                                              Background="{DynamicResource PrimaryBackgroundColor}"
+                                              Canvas.Left="{Binding Pos.X, Converter={StaticResource AddOffsetConverter}, ConverterParameter=0}" 
+                                              Canvas.Top="{Binding Pos.Y, Converter={StaticResource AddOffsetConverter}, ConverterParameter=20}">        
+                                    <ItemsControl ItemsSource="{Binding Passes}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <UniformGrid Columns="8" Rows="8"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Ellipse Width="10" Height="10" Fill="{Binding Filler}" Margin="0" ToolTip="{Binding BasePassenger.EndStop.Name}"/>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                                <!-- Остановка -->
+                                <Ellipse Width="20" Height="20" Fill="LightBlue"
+                                         Canvas.Left="{Binding Pos.X}"
+                                         Canvas.Top="{Binding Pos.Y}" />
+                                <TextBlock Text="{Binding BaseStop.Name}"
+                                           Style="{StaticResource LabelTextStyle}"
+                                           Canvas.Left="{Binding Pos.X, Converter={StaticResource AddOffsetConverter}, ConverterParameter=15}"
+                                           Canvas.Top="{Binding Pos.Y, Converter={StaticResource AddOffsetConverter}, ConverterParameter=-25}" />
+
+                                <!-- Прогресс-бар времени до следующего пассажира -->
+                                <ProgressBar Width="50" Height="10"
+                                             Maximum="{Binding BaseStop.NextPassengerInterval}" 
+                                             Value="{Binding BaseStop.TimeUntilNextPassenger}" 
+                                             Canvas.Left="{Binding Pos.X, Converter={StaticResource AddOffsetConverter}, ConverterParameter=30}" 
+                                             Canvas.Top="{Binding Pos.Y, Converter={StaticResource AddOffsetConverter}, ConverterParameter=10}" />
+                            </Canvas>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Отображение автобусов -->
+                <ItemsControl ItemsSource="{Binding Buss}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Canvas>
+                                <Rectangle Width="30" Height="15" Fill="{Binding Filler}"
+                                           Canvas.Left="{Binding Pos.X}"
+                                           Canvas.Top="{Binding Pos.Y}" ToolTip="{Binding Statistic}"/>
+                            </Canvas>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>

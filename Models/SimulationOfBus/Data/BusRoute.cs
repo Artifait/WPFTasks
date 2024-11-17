@@ -1,7 +1,6 @@
-﻿
-using BusNumber = System.UInt32;
+﻿using BusNumber = System.UInt32;
 
-namespace WPFTasks.Models.SimulationOfBus
+namespace WPFTasks.Models.SimulationOfBus.Data
 {
     public class BusRoute
     {

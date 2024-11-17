@@ -1,4 +1,6 @@
-﻿
+﻿using WPFTasks.Models.SimulationOfBus.Intreractors;
+using WPFTasks.Models.SimulationOfBus.Repositories;
+
 namespace WPFTasks.Models.SimulationOfBus
 {
     public class Config : SimulationArchitecture.SimulationConfig
@@ -7,7 +9,7 @@ namespace WPFTasks.Models.SimulationOfBus
         {
             var interactorsMap = new Dictionary<Type, SimulationArchitecture.Interactor>();
 
-            //CreateInteractor<CoinInteractor>(interactorsMap);
+            CreateInteractor<BusInteractor>(interactorsMap);
             return interactorsMap;
         }
 
@@ -18,6 +20,7 @@ namespace WPFTasks.Models.SimulationOfBus
             CreateRepository<BusRepository>(repositoriesMap);
             CreateRepository<BusRouteRepository>(repositoriesMap);
             CreateRepository<StopRepository>(repositoriesMap);
+            CreateRepository<StopDisplayRepository>(repositoriesMap);
 
             return repositoriesMap;
         }

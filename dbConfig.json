@@ -1,7 +1,0 @@
-﻿[
-  {
-    "Provider": "Microsoft.Data.SqlClient",
-    "ConnectionString": "Server=(localdb)\\MSSQLLocalDB;Database=Stationery;Trusted_Connection=True;",
-    "Alias": "Stationery"
-  }
-]

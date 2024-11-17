@@ -1,7 +1,8 @@
-﻿using WPFTasks.SimulationArchitecture;
+﻿using WPFTasks.Models.SimulationOfBus.Data;
+using WPFTasks.SimulationArchitecture;
 using BusNumber = System.UInt32;
 
-namespace WPFTasks.Models.SimulationOfBus
+namespace WPFTasks.Models.SimulationOfBus.Repositories
 {
     public class BusRouteRepository : Repository
     {
