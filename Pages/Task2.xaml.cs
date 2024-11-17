@@ -10,7 +10,6 @@ namespace WPFTasks.Pages
         public Task2()
         {
             InitializeComponent();
-            Models.Simulation.Init();
             DataContext = new MainViewModel();
         }
 

@@ -35,61 +35,49 @@
     <Page.DataContext>
         <vm:MainViewModel />
     </Page.DataContext>
-        
+
     <Border CornerRadius="5" Background="{DynamicResource SecundaryBackgroundColor}"
             BorderBrush="Gray" BorderThickness="2">
         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
             <Canvas>
-                <!-- Привязка к маршрутам и остановкам -->
-                <ItemsControl ItemsSource="{Binding Routes}">
+                <!-- Отображение дорог между остановками -->
+                <ItemsControl ItemsSource="{Binding DisplayRoute.Links}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Canvas>
-                                <!-- Отображение дорог между остановками -->
-                                <ItemsControl ItemsSource="{Binding StopDisplays}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Path Stroke="Gray" StrokeThickness="2">
-                                                <Path.Data>
-                                                    <GeometryGroup>
-                                                        <LineGeometry>
-                                                            <LineGeometry.StartPoint>
-                                                                <MultiBinding Converter="{StaticResource PointConverter}">
-                                                                    <Binding Path="X" />
-                                                                    <Binding Path="Y" />
-                                                                </MultiBinding>
-                                                            </LineGeometry.StartPoint>
-                                                            <LineGeometry.EndPoint>
-                                                                <MultiBinding Converter="{StaticResource PointConverter}">
-                                                                    <!-- Привязка к следующей остановке -->
-                                                                    <Binding Path="X" />
-                                                                    <Binding Path="Y" />
-                                                                </MultiBinding>
-                                                            </LineGeometry.EndPoint>
-                                                        </LineGeometry>
-                                                    </GeometryGroup>
-                                                </Path.Data>
-                                            </Path>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
+                            <Path Stroke="Gray" StrokeThickness="2">
+                                <Path.Data>
+                                    <LineGeometry>
+                                        <LineGeometry.StartPoint>
+                                            <MultiBinding Converter="{StaticResource PointConverter}">
+                                                <Binding Path="Start.X" />
+                                                <Binding Path="Start.Y" />
+                                            </MultiBinding>
+                                        </LineGeometry.StartPoint>
+                                        <LineGeometry.EndPoint>
+                                            <MultiBinding Converter="{StaticResource PointConverter}">
+                                                <Binding Path="End.X" />
+                                                <Binding Path="End.Y" />
+                                            </MultiBinding>
+                                        </LineGeometry.EndPoint>
+                                    </LineGeometry>
+                                </Path.Data>
+                            </Path>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
 
-                                <!-- Отображение остановок -->
-                                <ItemsControl ItemsSource="{Binding StopDisplays}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <StackPanel>
-                                                <Ellipse Width="20" Height="20" Fill="LightBlue" 
-                                                     Canvas.Left="{Binding X}" 
-                                                     Canvas.Top="{Binding Y}" />
-                                                <TextBlock Text="{Binding BaseStop.Name}" 
-                                                       Canvas.Left="{Binding X}" 
-                                                       Canvas.Top="{Binding Y}" />
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </Canvas>
+                <!-- Отображение остановок -->
+                <ItemsControl ItemsSource="{Binding DisplayRoute.Stops}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel>
+                                <Ellipse Width="20" Height="20" Fill="LightBlue" 
+                                         Canvas.Left="{Binding X}" 
+                                         Canvas.Top="{Binding Y}" />
+                                <TextBlock Text="{Binding BaseStop.Name}" 
+                                           Canvas.Left="{Binding X}" 
+                                           Canvas.Top="{Binding Y}" />
+                            </StackPanel>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>

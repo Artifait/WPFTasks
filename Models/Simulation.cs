@@ -5,14 +5,11 @@ namespace WPFTasks.Models
 {
     public static class Simulation
     {
-        public static SimulationOfBus.BusSimulation core;
-        static Simulation()
-        {
-            core = new();
-        }
+        public static SimulationOfBus.BusSimulation core = new();
+
         public static void Init()
         {
-            core.InitializeSimulation("../../../SimulationConfig.ini");
+            core.InitializeSimulation("M:\\JournalTop\\ADO.NET\\WPFTasks\\SimulationConfig.ini");
         }
 
         public static T GetRepository<T>() where T : SimulationArchitecture.Repository
