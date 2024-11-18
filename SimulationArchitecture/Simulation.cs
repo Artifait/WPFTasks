@@ -29,6 +29,12 @@ namespace WPFTasks.SimulationArchitecture
             interactorsBase.SendOnStartToAllInteractors();
         }
 
+        public void Dispose()
+        {
+            simulationConfig = null!;
+            interactorsBase = null!;
+            repositoriesBase = null!;
+        }
         public T GetRepository<T>() where T : Repository
         {
             return this.repositoriesBase.GetRepository<T>();

@@ -75,7 +75,7 @@
                                               Background="{DynamicResource PrimaryBackgroundColor}"
                                               Canvas.Left="{Binding Pos.X, Converter={StaticResource AddOffsetConverter}, ConverterParameter=0}" 
                                               Canvas.Top="{Binding Pos.Y, Converter={StaticResource AddOffsetConverter}, ConverterParameter=20}">        
-                                    <ItemsControl ItemsSource="{Binding Passes}">
+                                    <ItemsControl ItemsSource="{Binding Passes, UpdateSourceTrigger=PropertyChanged}">
                                         <ItemsControl.ItemsPanel>
                                             <ItemsPanelTemplate>
                                                 <UniformGrid Columns="8" Rows="8"/>
@@ -91,7 +91,7 @@
                                 <!-- Остановка -->
                                 <Ellipse Width="20" Height="20" Fill="LightBlue"
                                          Canvas.Left="{Binding Pos.X}"
-                                         Canvas.Top="{Binding Pos.Y}" />
+                                         Canvas.Top="{Binding Pos.Y}" ToolTip="{Binding Statistic, UpdateSourceTrigger=PropertyChanged}"/>
                                 <TextBlock Text="{Binding BaseStop.Name}"
                                            Style="{StaticResource LabelTextStyle}"
                                            Canvas.Left="{Binding Pos.X, Converter={StaticResource AddOffsetConverter}, ConverterParameter=15}"

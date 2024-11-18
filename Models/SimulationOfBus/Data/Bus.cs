@@ -1,63 +1,107 @@
-﻿using WPFTasks.Models.SimulationOfBus.Repositories;
+﻿using System.Collections.Concurrent;
+using WPFTasks.Models.SimulationOfBus.Repositories;
 using BusNumber = System.UInt32;
 
 namespace WPFTasks.Models.SimulationOfBus.Data
 {
     public class Bus
     {
-        public BusNumber Number { get; set; }
-        public int MaxCapacity { get; set; }
-        public int CurrentPassengerCount { get; private set; }
-        public BusRoute? Route
+        private readonly object locker = new();
+        private readonly ConcurrentBag<Passenger> passengers = new(); // Потокобезопасная коллекция
+
+        public BusNumber Number { get; }
+        public int MaxCapacity { get; }
+        public int CurrentPassengerCount
         {
-            get => Simulation.GetRepository<BusRouteRepository>().GetRoute(Number);
+            get
+            {
+                lock (locker)
+                {
+                    return passengers.Count;
+                }
+            }
         }
-        public Stop CurrentStop { get; set; }
-        public Stop NextStop => Route!.GetNextStop(CurrentStop);
-        public List<Passenger> Passengers { get; set; }
-        public Action<Stop> OnBusCameToStop;
-        public Action<double> OnUpdateToNextStopProgress;
-        private double ToNextStopProgress;
+
+        public BusRoute? Route
+            => Simulation.GetRepository<BusRouteRepository>().GetRoute(Number);
+
+        public Stop CurrentStop { get; private set; }
+
+        public Stop NextStop
+        {
+            get
+            {
+                lock (locker)
+                {
+                    return Route!.GetNextStop(CurrentStop);
+                }
+            }
+        }
+
+        public event Action<Stop>? OnBusCameToStop;
+        public event Action<double>? OnUpdateToNextStopProgress;
+
+        private double toNextStopProgress;
 
         public Bus(BusNumber number, int maxCapacity)
         {
             Number = number;
             MaxCapacity = maxCapacity;
-            Passengers = [];
-            CurrentStop = Route!.First();
 
+            if (Route == null)
+                throw new InvalidOperationException($"Route for bus number {number} is not found!");
+
+            CurrentStop = Route.First();
             OnBusCameToStop += UnloadPassengers;
+            OnBusCameToStop += BoardPassengersOnStop;
         }
 
-        public bool BoardPassenger(Passenger passenger)
+        public bool BoardPassenger(Passenger passenger, Stop stop)
         {
-            if (CurrentPassengerCount < MaxCapacity)
+            lock (locker)
             {
-                Passengers.Add(passenger);
-                CurrentPassengerCount++;
+                if (CurrentPassengerCount >= MaxCapacity) return false;
+
+                passengers.Add(passenger);
+
+                // Потокобезопасное удаление пассажира с остановки
+                lock (stop)
+                {
+                    stop.RemovePassenger(passenger);
+                }
+
                 return true;
             }
-            return false;
         }
+
         private void BoardPassengersOnStop(Stop stop)
         {
-            foreach (var p in stop.WaitingPassengers)
+            lock (stop)
             {
-                if(p.SelectedBus == Number)
+                var passengersToBoard = stop.WaitingPassengers
+                                            .Where(p => p.SelectedBus == Number)
+                                            .ToList();
+
+                foreach (var passenger in passengersToBoard)
                 {
-                    if(!BoardPassenger(p))
-                        return;
+                    if (!BoardPassenger(passenger, stop))
+                        break;
                 }
             }
         }
+
         private void UnloadPassengers(Stop stop)
         {
-            var disembarking = Passengers.Where(p => p.EndStop == stop).ToList();
-
-            foreach (var passenger in disembarking)
+            lock (locker)
             {
-                Passengers.Remove(passenger);
-                CurrentPassengerCount--;
+                var disembarking = passengers
+                    .Where(p => p.EndStop == stop)
+                    .ToList();
+
+                foreach (var passenger in disembarking)
+                {
+                    passengers.TryTake(out _);
+                }
             }
         }
 
@@ -69,26 +113,36 @@ namespace WPFTasks.Models.SimulationOfBus.Data
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                ToNextStopProgress = 0;
+                lock (locker)
+                {
+                    toNextStopProgress = 0;
+                }
 
-                while (ToNextStopProgress < 1)
+                while (true)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    await Task.Delay(30, cancellationToken); // Уменьшена задержка
+                    await Task.Delay(30, cancellationToken); // Плавный прогресс
 
-                    ToNextStopProgress += 0.01; // Меньший шаг для плавного движения
-                    OnUpdateToNextStopProgress?.Invoke(ToNextStopProgress);
+                    lock (locker)
+                    {
+                        toNextStopProgress += 0.01;
+                        OnUpdateToNextStopProgress?.Invoke(toNextStopProgress);
+
+                        if (toNextStopProgress >= 1)
+                            break;
+                    }
                 }
 
-                CurrentStop = NextStop;
-                OnBusCameToStop?.Invoke(CurrentStop);
-                UnloadPassengers(CurrentStop);
-                BoardPassengersOnStop(CurrentStop);
+                lock (locker)
+                {
+                    CurrentStop = NextStop;
+                }
 
-                await Task.Delay(2000, cancellationToken); // Переход к следующей остановке с небольшой задержкой
+                OnBusCameToStop?.Invoke(CurrentStop);
+
+                await Task.Delay(2000, cancellationToken); // Небольшая задержка на остановке
             }
         }
-
     }
 }

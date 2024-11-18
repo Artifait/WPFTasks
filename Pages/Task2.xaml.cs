@@ -1,6 +1,7 @@
 ﻿
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Navigation;
 using WPFTasks.ViewModels;
 
 namespace WPFTasks.Pages

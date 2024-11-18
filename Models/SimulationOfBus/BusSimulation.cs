@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using MvvmCross.Base;
+using System.Text;
 using WPFTasks.Models.SimulationOfBus.Repositories;
 
 namespace WPFTasks.Models.SimulationOfBus
@@ -45,6 +46,10 @@ namespace WPFTasks.Models.SimulationOfBus
             return sb.ToString();
         }
 
+        public void Dispose()
+        {
+            core.Dispose();
+        }
         public T GetRepository<T>() where T : SimulationArchitecture.Repository
         {
             return core.GetRepository<T>();

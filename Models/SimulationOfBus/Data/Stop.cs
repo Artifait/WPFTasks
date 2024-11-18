@@ -1,4 +1,4 @@
-﻿
+﻿using System.Collections.Concurrent;
 using System.ComponentModel;
 using Timer = System.Timers.Timer;
 
@@ -6,9 +6,12 @@ namespace WPFTasks.Models.SimulationOfBus.Data
 {
     public class Stop : INotifyPropertyChanged
     {
-        private static Random rnd = new();
-        private Timer timer;
-        private Timer countdownTimer;
+        private static readonly Random rnd = new();
+        private readonly Timer timer;
+        private readonly Timer countdownTimer;
+        public static int MaxWaitingPasses = 50;
+
+        private readonly object locker = new();
 
         private double _timeUntilNextPassenger;
         public double TimeUntilNextPassenger
@@ -25,98 +28,115 @@ namespace WPFTasks.Models.SimulationOfBus.Data
         }
 
         public double NextPassengerInterval { get; private set; } = 10.0; // Время между пассажирами в секундах
-
-        public string Name { get; set; }
-        public List<Passenger> WaitingPassengers { get; set; }
-        public Action<Passenger> OnAddPassenger;
+        public string Name { get; }
+        public ConcurrentBag<Passenger> WaitingPassengers { get; } = new();
+        public Action<Passenger>? OnAddPassenger;
+        public Action<Passenger>? OnDelPassenger;
+        public static readonly int MaxWaitingPassengers = 50;
 
         public Stop(string name)
         {
             Name = name;
-            WaitingPassengers = new List<Passenger>();
-            StartPassengerGeneration();
-        }
 
-        public void AddPassenger(Passenger passenger)
-        {
-            WaitingPassengers.Add(passenger);
-            OnAddPassenger?.Invoke(passenger);
-        }
-
-        private void StartPassengerGeneration()
-        {
+            // Настройка таймера для генерации пассажиров
             timer = new Timer();
-            timer.Elapsed += (s, e) => GeneratePassenger();
+            timer.Elapsed += (_, _) => GeneratePassenger();
             ScheduleNextPassenger();
 
             // Таймер для обновления прогресс-бара каждую секунду
             countdownTimer = new Timer(1000);
-            countdownTimer.Elapsed += (s, e) => UpdateCountdown();
+            countdownTimer.Elapsed += (_, _) => UpdateCountdown();
+            countdownTimer.Start();
+        }
+
+        public void AddPassenger(Passenger passenger)
+        {
+            lock (locker)
+            {
+                if (WaitingPassengers.Count >= MaxWaitingPassengers) return;
+                WaitingPassengers.Add(passenger);
+                OnAddPassenger?.Invoke(passenger);
+            }
+        }
+
+        public void RemovePassenger(Passenger passenger)
+        {
+            lock (locker)
+            {
+                if (WaitingPassengers.TryTake(out passenger))
+                {
+                    OnDelPassenger?.Invoke(passenger);
+                }
+            }
+        }
+
+        private void StartPassengerGeneration()
+        {
+            timer.Start();
             countdownTimer.Start();
         }
 
         private void GeneratePassenger()
         {
-            timer.Stop();
+            lock (locker)
+            {
+                if (WaitingPassengers.Count >= MaxWaitingPassengers) return;
 
-            var passenger = Passenger.GenerateRnd(this);
-            AddPassenger(passenger);
+                var passenger = Passenger.GenerateRnd(this);
+                AddPassenger(passenger);
 
-            ScheduleNextPassenger();
+                ScheduleNextPassenger();
+            }
         }
 
         private void ScheduleNextPassenger()
         {
-            NextPassengerInterval = rnd.Next(1, 2); // Интервал в секундах (1-2 секунд)
-            TimeUntilNextPassenger = NextPassengerInterval;
+            lock (locker)
+            {
+                NextPassengerInterval = rnd.Next(2, 10); // Интервал в секундах (2-10 секунд)
+                TimeUntilNextPassenger = NextPassengerInterval;
 
-            timer.Interval = NextPassengerInterval * 1000;
-            timer.Start();
+                timer.Interval = NextPassengerInterval * 1000;
+                timer.Start();
+            }
         }
 
         private void UpdateCountdown()
         {
-            if (TimeUntilNextPassenger > 0)
+            lock (locker)
             {
-                TimeUntilNextPassenger -= 1;
-            }
-            else
-            {
-                TimeUntilNextPassenger = 0;
+                if (TimeUntilNextPassenger > 0)
+                {
+                    TimeUntilNextPassenger -= 1;
+                }
+                else
+                {
+                    TimeUntilNextPassenger = 0;
+                }
             }
         }
 
         public void StopPassengerGeneration()
         {
             timer?.Stop();
-            timer?.Dispose();
             countdownTimer?.Stop();
+            timer?.Dispose();
             countdownTimer?.Dispose();
         }
 
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         protected void OnPropertyChanged(string propertyName)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
         public override bool Equals(object obj)
-        {
-            if (obj is Stop otherStop)
-            {
-                return Name == otherStop.Name;
-            }
-            return false;
-        }
+            => obj is Stop otherStop && Name == otherStop.Name;
 
         public override int GetHashCode()
-            => Name != null ? Name.GetHashCode() : 0;
+            => Name.GetHashCode();
 
         public static bool operator ==(Stop left, Stop right)
-        {
-            if (ReferenceEquals(left, null))
-                return ReferenceEquals(right, null);
-            return left.Equals(right);
-        }
+            => ReferenceEquals(left, null) ? ReferenceEquals(right, null) : left.Equals(right);
 
         public static bool operator !=(Stop left, Stop right)
             => !(left == right);

@@ -21,7 +21,12 @@ namespace WPFTasks.Models
                 Brushes[num] = new SolidColorBrush(ColorGenerator.GenerateColor());
             }
         }
+        public static void Dispose()
+        {
+            if(core == null) return;
 
+            
+        }
         public static T GetRepository<T>() where T : SimulationArchitecture.Repository
         {
             return core.GetRepository<T>();
