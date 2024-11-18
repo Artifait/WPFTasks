@@ -9,7 +9,7 @@ namespace WPFTasks.Models.SimulationOfBus.View
     public class BusView : BaseViewModel
     {
         private static readonly object locker = new();
-        private static StopDisplayRepository rep = Simulation.GetRepository<StopDisplayRepository>();
+        private static StopDisplayRepository rep;
 
         private Point _pos;
         private SolidColorBrush _filler;
@@ -67,6 +67,7 @@ namespace WPFTasks.Models.SimulationOfBus.View
 
         public BusView(Bus core)
         {
+            rep = Simulation.GetRepository<StopDisplayRepository>();
             BaseBus = core ?? throw new ArgumentNullException(nameof(core));
             Filler = Simulation.Brushes[BaseBus.Number];
             BaseBus.OnUpdateToNextStopProgress += OnUpdateProgress;

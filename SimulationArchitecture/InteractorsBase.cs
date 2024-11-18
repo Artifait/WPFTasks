@@ -57,5 +57,15 @@ namespace WPFTasks.SimulationArchitecture
                 interactor.OnStart();
             }
         }
+
+        public void SendOnDisposeToAllInteractors()
+        {
+            var allInteractors = interactorsMap.Values;
+
+            foreach (var interactor in allInteractors)
+            {
+                interactor.OnDispose();
+            }
+        }
     }
 }

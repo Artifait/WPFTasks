@@ -17,10 +17,16 @@ namespace WPFTasks.Models.SimulationOfBus.Data
             SelectedBus = selectedBus;
         }
 
+        private static BusRouteRepository repOfRoute;
+        private static BusRepository repOfBus;
+        private static Random rnd;
+        public static void Init()
+        {
+            repOfRoute = Simulation.GetRepository<BusRouteRepository>();
+            repOfBus = Simulation.GetRepository<BusRepository>();
+            rnd = new();
+        }
 
-        private static BusRouteRepository repOfRoute = Simulation.GetRepository<BusRouteRepository>();
-        private static BusRepository repOfBus = Simulation.GetRepository<BusRepository>();
-        private static Random rnd = new();
 
         public static Passenger GenerateRnd(Stop start)
         {

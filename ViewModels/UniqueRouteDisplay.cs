@@ -26,7 +26,7 @@ namespace WPFTasks.ViewModels
     public class UniqueRouteDisplay
     {
         private static readonly Random Random = new Random();
-        private static StopDisplayRepository rep = Models.Simulation.GetRepository<StopDisplayRepository>();
+        private static StopDisplayRepository rep;
 
         public ObservableCollection<StopView> Stops { get; set; }
         public ObservableCollection<Link> Links { get; set; }
@@ -35,6 +35,7 @@ namespace WPFTasks.ViewModels
         {
             Stops = [];
             Links = [];
+            rep = Models.Simulation.GetRepository<StopDisplayRepository>();
 
             // Собираем уникальные остановки
             var uniqueStops = busRoutes

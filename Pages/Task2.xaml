@@ -37,6 +37,30 @@
             BorderBrush="Gray" BorderThickness="2">
         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
             <Canvas Background="{DynamicResource PrimaryBackgroundColor}">
+                <!-- Отображение InfoOfBuses -->
+                <ItemsControl ItemsSource="{Binding InfoOfBuses}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Vertical"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" Margin="5">
+                                <!-- Прямоугольник с цветом автобуса -->
+                                <Rectangle Width="20" Height="20" Fill="{Binding Filler}" Margin="0,0,10,0" />
+
+                                <!-- Текст с информацией -->
+                                <TextBlock Text="{Binding Number, StringFormat='Автобус №{0}'}" Style="{StaticResource LabelTextStyle}" Margin="0,0,10,0"/>
+                                <TextBlock Text="{Binding Count, StringFormat='Количество: {0}'}" Style="{StaticResource LabelTextStyle}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                    <ItemsControl.RenderTransform>
+                        <!-- Отображение справа -->
+                        <TranslateTransform X="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=ScrollViewer}, Converter={StaticResource AddOffsetConverter}, ConverterParameter=-500}" Y="10" />
+                    </ItemsControl.RenderTransform>
+                </ItemsControl>
                 <!-- Отображение дорог между остановками -->
                 <ItemsControl ItemsSource="{Binding DisplayRoute.Links}">
                     <ItemsControl.ItemsPanel>

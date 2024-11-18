@@ -7,8 +7,8 @@ namespace WPFTasks.Models.SimulationOfBus.Data
     public class Stop : INotifyPropertyChanged
     {
         private static readonly Random rnd = new();
-        private readonly Timer timer;
-        private readonly Timer countdownTimer;
+        private Timer timer;
+        private Timer countdownTimer;
         public static int MaxWaitingPasses = 50;
 
         private readonly object locker = new();
@@ -38,15 +38,7 @@ namespace WPFTasks.Models.SimulationOfBus.Data
         {
             Name = name;
 
-            // Настройка таймера для генерации пассажиров
-            timer = new Timer();
-            timer.Elapsed += (_, _) => GeneratePassenger();
-            ScheduleNextPassenger();
-
-            // Таймер для обновления прогресс-бара каждую секунду
-            countdownTimer = new Timer(1000);
-            countdownTimer.Elapsed += (_, _) => UpdateCountdown();
-            countdownTimer.Start();
+            StartPassengerGeneration();
         }
 
         public void AddPassenger(Passenger passenger)
@@ -72,6 +64,15 @@ namespace WPFTasks.Models.SimulationOfBus.Data
 
         private void StartPassengerGeneration()
         {
+            StopPassengerGeneration();
+
+            timer = new Timer();
+            timer.Elapsed += (_, _) => GeneratePassenger();
+            ScheduleNextPassenger();
+
+            countdownTimer = new Timer(1000);
+            countdownTimer.Elapsed += (_, _) => UpdateCountdown();
+            countdownTimer.Start();
             timer.Start();
             countdownTimer.Start();
         }
@@ -93,7 +94,7 @@ namespace WPFTasks.Models.SimulationOfBus.Data
         {
             lock (locker)
             {
-                NextPassengerInterval = rnd.Next(2, 10); // Интервал в секундах (2-10 секунд)
+                NextPassengerInterval = rnd.Next(2, 5); // Интервал в секундах (2-10 секунд)
                 TimeUntilNextPassenger = NextPassengerInterval;
 
                 timer.Interval = NextPassengerInterval * 1000;

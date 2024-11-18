@@ -8,7 +8,7 @@ namespace WPFTasks.Models.SimulationOfBus.Repositories
 {
     internal class StopDisplayRepository : Repository
     {
-        private List<StopView> _stopList = [];
+        private List<StopView> _stopList;
         public List<StopView> StopList
         {
             get => _stopList;
@@ -37,8 +37,12 @@ namespace WPFTasks.Models.SimulationOfBus.Repositories
         public StopView? GetStop(string name) => _stopList.Find(x => x.BaseStop.Name == name);
         public void RemoveStop(StopView stop) => RemoveStop(stop.BaseStop.Name);
 
-        public override void OnCreate() { }
+        public override void OnCreate() { _stopList = []; }
         public override void Initialize() { }
         public override void OnStart() { }
+        public override void OnDispose()
+        {
+            _stopList = null!;
+        }
     }
 }

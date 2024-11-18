@@ -38,6 +38,11 @@ namespace WPFTasks.Models.SimulationOfBus.Repositories
         public override void OnCreate() { }
         public override void Initialize() { }
         public override void OnStart() { }
+
+        public override void OnDispose()
+        {
+            BusRoutes = null!;
+        }
     }
 }
 

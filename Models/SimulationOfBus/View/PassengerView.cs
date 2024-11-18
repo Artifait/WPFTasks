@@ -11,7 +11,6 @@ namespace WPFTasks.Models.SimulationOfBus.View
 {
     public class PassengerView
     {
-        static StopRepository rep = Simulation.GetRepository<StopRepository>();
         public Passenger BasePassenger { get; set; }
         public SolidColorBrush Filler => Simulation.Brushes[BasePassenger.SelectedBus];
 

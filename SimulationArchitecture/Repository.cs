@@ -11,6 +11,8 @@ namespace WPFTasks.SimulationArchitecture
         public abstract void OnCreate();
         public abstract void Initialize();
         public abstract void OnStart();
+
+        public virtual void OnDispose() { }
     }
 }
 

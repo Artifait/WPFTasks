@@ -1,4 +1,6 @@
 ﻿
+using System.Windows;
+
 namespace WPFTasks.SimulationArchitecture
 {
     public class Simulation
@@ -31,9 +33,8 @@ namespace WPFTasks.SimulationArchitecture
 
         public void Dispose()
         {
-            simulationConfig = null!;
-            interactorsBase = null!;
-            repositoriesBase = null!;
+            interactorsBase.SendOnDisposeToAllInteractors();
+            repositoriesBase.SendOnDisposeToAllRepositories();
         }
         public T GetRepository<T>() where T : Repository
         {

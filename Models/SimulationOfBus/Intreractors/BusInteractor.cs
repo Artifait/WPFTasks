@@ -1,6 +1,7 @@
 ﻿
 using Microsoft.Identity.Client;
 using System.Collections.Concurrent;
+using System.Runtime.ConstrainedExecution;
 using WPFTasks.Models.SimulationOfBus.Data;
 using WPFTasks.Models.SimulationOfBus.Repositories;
 using WPFTasks.SimulationArchitecture;
@@ -11,7 +12,7 @@ namespace WPFTasks.Models.SimulationOfBus.Intreractors
     public class BusInteractor : Interactor
     {
         private BusRepository rep = null!;
-        private CancellationTokenRegistration ctg = new();
+        private CancellationTokenSource cts = new();
 
         public Action<Bus>? OnStartBus;
 
@@ -80,12 +81,18 @@ namespace WPFTasks.Models.SimulationOfBus.Intreractors
             // Ждем завершения работы автобуса с поддержкой отмены
             try
             {
-                await bus.StartWorking(ctg.Token);
+                await bus.StartWorking(cts.Token);
             }
             catch (OperationCanceledException)
             {
                 // Обрабатываем отмену операции
             }
+        }
+
+        public override void OnDispose()
+        {
+            cts.Cancel(); 
+            cts.Dispose();
         }
     }
 }

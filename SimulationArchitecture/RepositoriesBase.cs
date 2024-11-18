@@ -57,5 +57,15 @@ namespace WPFTasks.SimulationArchitecture
                 repository.OnStart();
             }
         }
+
+        public void SendOnDisposeToAllRepositories()
+        {
+            var allRepositories = repositoriesMap.Values;
+
+            foreach (var repository in allRepositories)
+            {
+                repository.OnDispose();
+            }
+        }
     }
 }

@@ -1,4 +1,4 @@
-﻿using MvvmCross.Base;
+﻿
 using System.Text;
 using WPFTasks.Models.SimulationOfBus.Repositories;
 
@@ -16,6 +16,7 @@ namespace WPFTasks.Models.SimulationOfBus
         public void InitializeSimulation(string iniFilePath)
         {
             core.Initialize();
+            Data.Passenger.Init();
             SimulationIniReader.Parse(core, iniFilePath);
         }
 

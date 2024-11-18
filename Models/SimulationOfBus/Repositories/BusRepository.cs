@@ -10,27 +10,33 @@ namespace WPFTasks.Models.SimulationOfBus.Repositories
         public List<Bus> ParkingBuses { get; private set; } = [];
         public Dictionary<BusNumber, uint> BusOfNumberCount { get; private set; } = [];
 
+        object locker = new();
+
         public void AllParkGoWork()
         {
-            WorkBuses.AddRange(ParkingBuses);
-            ParkingBuses.Clear();
+            lock(locker)
+            {
+                WorkBuses.AddRange(ParkingBuses);
+                ParkingBuses.Clear();
+            }
         }
 
         public void Add(Bus bus)
         {
-            ParkingBuses.Add(bus);
-
-            if (BusOfNumberCount.ContainsKey(bus.Number))
+            lock(locker)
             {
-                BusOfNumberCount[bus.Number]++;
-            }
-            else
-            {
-                BusOfNumberCount[bus.Number] = 1;
-            }
+                ParkingBuses.Add(bus);
 
+                if (BusOfNumberCount.ContainsKey(bus.Number))
+                {
+                    BusOfNumberCount[bus.Number]++;
+                }
+                else
+                {
+                    BusOfNumberCount[bus.Number] = 1;
+                }
+            }
         }
-        object locker = new();
         public Bus? SwapParkToWork(BusNumber num)
         {
             var bus = GetParkingBus(num);
@@ -48,15 +54,34 @@ namespace WPFTasks.Models.SimulationOfBus.Repositories
         }
         public void SwapWorkToPark(Bus bus)
         {
-            WorkBuses.Remove(bus);
-            ParkingBuses.Add(bus);
+            lock (locker)
+            {
+                WorkBuses.Remove(bus);
+                ParkingBuses.Add(bus);
+            }
         }
 
         public Bus? GetParkingBus(BusNumber num)
-            => ParkingBuses.Where(b => b.Number == num).FirstOrDefault();
+        {
+            lock (locker)
+            {
+                return ParkingBuses.Where(b => b.Number == num).FirstOrDefault();
+            }
+        }
+       
 
         public override void OnCreate() { }
         public override void Initialize() { }
         public override void OnStart() { }
+
+        public override void OnDispose()
+        {
+            lock (locker)
+            {
+                WorkBuses = null!;
+                ParkingBuses = null!;
+                BusOfNumberCount = null!;
+            }
+        }
     }
 }

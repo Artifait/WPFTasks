@@ -9,23 +9,26 @@ namespace WPFTasks.Models
 {
     public static class Simulation
     {
-        public static SimulationOfBus.BusSimulation core;
-        public static Dictionary<BusNumber, SolidColorBrush> Brushes { get; set; } = [];
+        public static SimulationOfBus.BusSimulation core = null!;
+        public static Dictionary<BusNumber, SolidColorBrush> Brushes { get; set; } = null!;
         public static void Init()
         {
+            Dispose();
             core = new();
             core.InitializeSimulation("../../../SimulationConfig.ini");
-
-            foreach(var num in GetRepository<BusRepository>().BusOfNumberCount.Keys)
+            Brushes = [];
+            foreach (var num in GetRepository<BusRepository>().BusOfNumberCount.Keys)
             {
                 Brushes[num] = new SolidColorBrush(ColorGenerator.GenerateColor());
             }
         }
         public static void Dispose()
         {
-            if(core == null) return;
+            if(core != null)
+            {
+                core.Dispose();
+            }
 
-            
         }
         public static T GetRepository<T>() where T : SimulationArchitecture.Repository
         {

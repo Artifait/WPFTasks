@@ -5,7 +5,7 @@ namespace WPFTasks.Models.SimulationOfBus.Repositories
 {
     public class StopRepository : Repository
     {
-        private List<Stop> _stopList = [];
+        private List<Stop> _stopList;
         public List<Stop> StopList
         {
             get => _stopList;
@@ -34,8 +34,14 @@ namespace WPFTasks.Models.SimulationOfBus.Repositories
         public Stop? GetStop(string name) => _stopList.Find(x => x.Name == name);
         public void RemoveStop(Stop stop) => RemoveStop(stop.Name);
 
-        public override void OnCreate() { }
+        public override void OnCreate() { _stopList = []; }
         public override void Initialize() { }
         public override void OnStart() { }
+
+        public override void OnDispose()
+        {
+            StopList.ForEach(g => { g.StopPassengerGeneration(); g.OnDelPassenger = null!; g.OnAddPassenger = null!; });
+            _stopList = null!;
+        }
     }
 }
