@@ -29,23 +29,87 @@
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
+        <Style x:Key="CheckBoxStyle" TargetType="CheckBox">
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextColor}"/>
+            <Setter Property="Margin" Value="0,5,0,5"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="NotificationTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,10,0,0"/>
+        </Style>
     </Page.Resources>
 
     <Border CornerRadius="5" Background="{DynamicResource SecundaryBackgroundColor}"
             BorderBrush="Gray" BorderThickness="2">
-        <Grid>
-            <Button Style="{StaticResource DarkButtonStyle}" 
-                    Content="Запустить потоки" 
-                    HorizontalAlignment="Center" 
-                    VerticalAlignment="Top" 
-                    Width="170" Margin="0,20,0,0" 
-                    Click="StartThreads" />
-            <TextBox Style="{StaticResource TextBoxStyle}"
-                     Name="OutputTextBox" 
-                     HorizontalAlignment="Stretch" 
-                     VerticalAlignment="Stretch" 
-                     Margin="20,70,20,20" TextWrapping="Wrap"
-                     IsReadOnly="True" />
+        <Grid Margin="10">
+            <!-- Основное разбиение на строки и колонки -->
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="3*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Ввод текста -->
+            <TextBlock Text="Введите текст:" 
+                   Style="{StaticResource LabelTextStyle}" 
+                   Grid.Row="0" Grid.Column="0" 
+                   Margin="0,0,0,5"/>
+            <TextBox x:Name="InputTextBox" 
+                 Style="{StaticResource TextBoxStyle}" 
+                 Grid.Row="1" Grid.Column="0" 
+                 Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}" 
+                 AcceptsReturn="True" 
+                 TextWrapping="Wrap" 
+                 VerticalScrollBarVisibility="Visible" />
+
+            <StackPanel Grid.Row="1" Grid.Column="1" Margin="5">
+                <!-- Панель выбора опций -->
+                <CheckBox Content="Количество предложений" 
+                      Style="{StaticResource CheckBoxStyle}" 
+                      IsChecked="{Binding IsSentenceCountChecked}" />
+                <CheckBox Content="Количество символов" 
+                      Style="{StaticResource CheckBoxStyle}" 
+                      IsChecked="{Binding IsCharCountChecked}" />
+                <CheckBox Content="Количество слов" 
+                      Style="{StaticResource CheckBoxStyle}" 
+                      IsChecked="{Binding IsWordCountChecked}" />
+                <CheckBox Content="Вопросительные предложения" 
+                      Style="{StaticResource CheckBoxStyle}" 
+                      IsChecked="{Binding IsQuestionCountChecked}" />
+                <CheckBox Content="Восклицательные предложения" 
+                      Style="{StaticResource CheckBoxStyle}" 
+                      IsChecked="{Binding IsExclamationCountChecked}" />
+
+                <!-- Кнопки управления -->
+                <Button Content="Анализировать" 
+                    Style="{StaticResource DarkButtonStyle}" 
+                    Command="{Binding AnalyzeCommand}"
+                    HorizontalAlignment="Left" Margin="20,10,0,0" />
+                <Button Content="Остановить" 
+                    Style="{StaticResource DarkButtonStyle}" 
+                    Command="{Binding StopCommand}"
+                    HorizontalAlignment="Left" Margin="20, 10, 0, 10"/>
+                <Button Content="Сохранить отчёт"
+                    Style="{StaticResource DarkButtonStyle}" 
+                    HorizontalAlignment="Left" Margin="20, 0, 0, 0" 
+                    Command="{Binding SaveReportCommand}" />
+            </StackPanel>
+
+            <!-- Уведомления об операциях -->
+            <TextBlock x:Name="NotificationTextBlock" 
+                   Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" 
+                   Style="{StaticResource NotificationTextStyle}" 
+                   Text="{Binding NotificationMessage}" />
         </Grid>
     </Border>
 </Page>

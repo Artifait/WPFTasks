@@ -4,23 +4,28 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       xmlns:local="clr-namespace:WPFTasks.Pages"
+      xmlns:cvr="clr-namespace:WPFTasks.Converters"
       mc:Ignorable="d" 
       d:DesignHeight="450" d:DesignWidth="800"
       Title="Task2">
 
     <Page.Resources>
+        <cvr:InverseBooleanConverter x:Key="InverseBooleanConverter" />
+
         <Style x:Key="LabelTextStyle" TargetType="TextBlock">
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="FontSize" Value="24"/>
             <Setter Property="Foreground" Value="{DynamicResource PrimaryTextColor}"/>
             <Setter Property="HorizontalAlignment" Value="Left"/>
         </Style>
+        
         <Style x:Key="TextBoxStyle" TargetType="TextBox">
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="FontSize" Value="24"/>
             <Setter Property="Background" Value="{DynamicResource PrimaryBackgroundColor}"/>
             <Setter Property="Foreground" Value="{DynamicResource PrimaryTextColor}"/>
         </Style>
+        
         <Style x:Key="DarkButtonStyle" TargetType="Button">
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="FontSize" Value="18"/>
@@ -30,38 +35,55 @@
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
+        
+        <Style x:Key="NotificationTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource PrimaryBackgroundColor}"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="VerticalAlignment" Value="Stretch"/>
+            <Setter Property="Margin" Value="0,10,0,0"/>
+        </Style>
+        
     </Page.Resources>
 
-    <Border CornerRadius="5" Background="{DynamicResource SecundaryBackgroundColor}"
-            BorderBrush="Gray" BorderThickness="2">
-        <Grid>
+    <Border CornerRadius="5" Background="{DynamicResource SecundaryBackgroundColor}" BorderBrush="Gray" BorderThickness="2">
+        <Grid Margin="10">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
-            <Button Style="{StaticResource DarkButtonStyle}" 
-                    Content="Запустить потоки" 
-                    HorizontalAlignment="Center" 
-                    VerticalAlignment="Top" 
-                    Width="170" Margin="0,10,0,0" 
-                    Click="StartThreads" Grid.Row="0"/>
-            <TextBox Style="{StaticResource TextBoxStyle}" 
-                     Name="FirstThreadOutput" 
-                     HorizontalAlignment="Stretch" 
-                     VerticalAlignment="Stretch" 
-                     Margin="10 10 10 0"
-                     TextWrapping="Wrap" 
-                     IsReadOnly="True" Grid.Row="1"
-                     VerticalScrollBarVisibility="Auto" />
-            <TextBox Style="{StaticResource TextBoxStyle}"  
-                     Name="SecondThreadOutput"
-                     HorizontalAlignment="Stretch" 
-                     VerticalAlignment="Stretch" 
-                     Margin="10"
-                     TextWrapping="Wrap" 
-                     IsReadOnly="True" Grid.Row="2"
-                     VerticalScrollBarVisibility="Auto" />
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Путь к директориям -->
+            <StackPanel Grid.Row="0" Grid.Column="0" Margin="5">
+                <TextBlock Text="Директория источника:" Style="{StaticResource LabelTextStyle}" />
+                <TextBox Text="{Binding SourceDirectory}" IsReadOnly="True" Style="{StaticResource TextBoxStyle}" Margin="0, 0, 50, 0"/>
+            </StackPanel>
+            <Button Grid.Row="0" Grid.Column="1" Content="Выбрать источник" Command="{Binding SetSourceDirectoryCommand}" Style="{StaticResource DarkButtonStyle}" Margin="0,5,0,0" />
+
+            <StackPanel Grid.Row="1" Grid.Column="0" Margin="5">
+                <TextBlock Text="Директория приёмника:" Style="{StaticResource LabelTextStyle}" Margin="0,10,0,0" />
+                <TextBox Text="{Binding DestinationDirectory}" IsReadOnly="True" Style="{StaticResource TextBoxStyle}" Margin="0, 0, 50, 0"/>
+            </StackPanel>
+            <Button Grid.Row="1" Grid.Column="1" Content="Выбрать приёмник" Command="{Binding SetDestinationDirectoryCommand}" Style="{StaticResource DarkButtonStyle}" Margin="0,5,0,0" />
+
+            <!-- Кнопки управления -->
+            <StackPanel Grid.Row="2" Grid.Column="0" Orientation="Horizontal" Margin="5">
+                <Button Content="Начать" Command="{Binding StartDuplicateCheckCommand}" Style="{StaticResource DarkButtonStyle}" Margin="5" />
+                <Button Content="Остановить" Command="{Binding StopDuplicateCheckCommand}" Style="{StaticResource DarkButtonStyle}" Margin="5" />
+                <Button Content="Сохранить отчёт" Command="{Binding GenerateReportCommand}" Style="{StaticResource DarkButtonStyle}" Margin="5" />
+            </StackPanel>
+
+            <!-- Уведомления -->
+            <TextBlock Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding NotificationMessage}" 
+                       Style="{StaticResource NotificationTextStyle}" />
         </Grid>
     </Border>
 </Page>

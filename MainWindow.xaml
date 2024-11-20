@@ -60,9 +60,6 @@
                         <Button x:Name="btnTask4" Style="{DynamicResource PopupButtonStyle}"  MouseEnter="btnTask4_MouseEnter" MouseLeave="HidePopup" Click="btnTask4_Click">
                             <ctls:MenuItem GroupName="MenuItem" IndicatorBrush="{DynamicResource PrimaryBlueColor}" Icon="{DynamicResource loupe}" IconWidth="24" Text="Task 4" VerticalAlignment="Center"/>
                         </Button>
-                        <Button x:Name="btnTask5" Style="{DynamicResource PopupButtonStyle}"  MouseEnter="btnTask5_MouseEnter" MouseLeave="HidePopup" Click="btnTask5_Click">
-                            <ctls:MenuItem GroupName="MenuItem" IndicatorBrush="{DynamicResource PrimaryBlueColor}" Icon="{DynamicResource starLoupe}" IconWidth="24" Text="Task 5" VerticalAlignment="Center"/>
-                        </Button>
                         <Button x:Name="btnSetting" Style="{DynamicResource PopupButtonStyle}"  MouseEnter="btnSetting_MouseEnter" MouseLeave="HidePopup" Click="btnSettings_Click">
                             <ctls:MenuItem GroupName="MenuItem" IndicatorBrush="{DynamicResource PrimaryBlueColor}" Icon="{DynamicResource settings}" IconWidth="24" Text="Setting" VerticalAlignment="Center"/>
                         </Button>

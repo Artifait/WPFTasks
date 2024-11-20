@@ -31,9 +31,6 @@
             <Setter Property="HorizontalAlignment" Value="Center"/>
         </Style>
     </Page.Resources>
-    <Page.DataContext>
-        <model:Task5ViewModel/>
-    </Page.DataContext>
     <Border CornerRadius="5" Background="{DynamicResource SecundaryBackgroundColor}"
             BorderBrush="Gray" BorderThickness="2">
     <Grid Margin="10">
