@@ -26,7 +26,7 @@ namespace WPFTasks.Models
             return StructuralComparisons.StructuralEqualityComparer.Equals(hash1, hash2);
         }
 
-        private static byte[] GetFileHash(HashAlgorithm hashAlgorithm, string filePath)
+        public static byte[] GetFileHash(HashAlgorithm hashAlgorithm, string filePath)
         {
             using var stream = File.OpenRead(filePath);
             return hashAlgorithm.ComputeHash(stream);

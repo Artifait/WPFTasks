@@ -1,8 +1,11 @@
 ﻿using Microsoft.Win32;
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -16,7 +19,7 @@ namespace WPFTasks.ViewModels
         private string _destinationDirectory;
         private string _notificationMessage;
         private CancellationTokenSource _cancellationTokenSource;
-        private CancellationTokenSource _notificationCancellationTokenSource;
+        private List<OperationReport> _operationReports;
 
         public string SourceDirectory
         {
@@ -33,11 +36,7 @@ namespace WPFTasks.ViewModels
         public string NotificationMessage
         {
             get => _notificationMessage;
-            set
-            {
-                _notificationMessage = value;
-                OnPropertyChanged();
-            }
+            set => SetProperty(ref _notificationMessage, value);
         }
 
         public ICommand SetSourceDirectoryCommand { get; }
@@ -53,38 +52,8 @@ namespace WPFTasks.ViewModels
             StartDuplicateCheckCommand = new RelayCommand(async _ => await StartDuplicateCheckAsync());
             StopDuplicateCheckCommand = new RelayCommand(_ => StopDuplicateCheck());
             GenerateReportCommand = new RelayCommand(async _ => await GenerateReportAsync());
-        }
 
-        private void ShowNotification(string message, int durationMs = 3000)
-        {
-            _notificationCancellationTokenSource?.Cancel();
-            _notificationCancellationTokenSource = new CancellationTokenSource();
-
-            var token = _notificationCancellationTokenSource.Token;
-
-            App.Current.Dispatcher.Invoke(() =>
-            {
-                NotificationMessage = message;
-            });
-
-            Task.Run(async () =>
-            {
-                try
-                {
-                    await Task.Delay(durationMs, token);
-                    if (!token.IsCancellationRequested)
-                    {
-                        App.Current.Dispatcher.Invoke(() =>
-                        {
-                            NotificationMessage = string.Empty;
-                        });
-                    }
-                }
-                catch (TaskCanceledException)
-                {
-                    // Игнорируем отмену
-                }
-            });
+            _operationReports = new List<OperationReport>();
         }
 
         private void SetSourceDirectory()
@@ -121,6 +90,7 @@ namespace WPFTasks.ViewModels
 
             _cancellationTokenSource = new CancellationTokenSource();
             var token = _cancellationTokenSource.Token;
+            _operationReports.Clear();
 
             try
             {
@@ -144,42 +114,76 @@ namespace WPFTasks.ViewModels
 
         private async Task GenerateReportAsync()
         {
-            var reportPath = "DuplicatesReport.txt";
+            var reportPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DuplicatesReport.txt");
+
             try
             {
-                await File.WriteAllTextAsync(reportPath, "Отчёт будет здесь.\n"); // Логика генерации отчёта
-                ShowNotification($"Отчёт сохранён в файл: {reportPath}");
+                using (var writer = new StreamWriter(reportPath))
+                {
+                    foreach (var report in _operationReports)
+                    {
+                        await writer.WriteLineAsync(report.ToString());
+                    }
+                }
+
+                ShowNotification($"Отчёт сохранён: {reportPath}");
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "notepad.exe",
+                    Arguments = reportPath,
+                    UseShellExecute = true
+                });
             }
             catch (Exception ex)
             {
-                ShowNotification($"Ошибка при сохранении отчёта: {ex.Message}");
+                ShowNotification($"Ошибка при создании отчёта: {ex.Message}");
             }
         }
 
         private void ProcessDuplicates(string sourceDir, string destDir, CancellationToken token)
         {
             var files = Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories);
+            var processedHashes = new Dictionary<string, string>();
 
-            var fileHashes = new Dictionary<string, string>();
             foreach (var file in files)
             {
                 token.ThrowIfCancellationRequested();
-                var hash = CalculateFileHash(file);
+                var fileHash = FileDuplicateChecker.GetFileHash(SHA256.Create(), file);
 
-                if (!fileHashes.ContainsKey(hash))
+                if (processedHashes.Values.Any(hash => StructuralComparisons.StructuralEqualityComparer.Equals(hash, fileHash)))
                 {
-                    fileHashes[hash] = file;
-                    var destinationPath = Path.Combine(destDir, Path.GetFileName(file));
-                    File.Move(file, destinationPath);
+                    _operationReports.Add(new OperationReport
+                    {
+                        FileName = Path.GetFileName(file),
+                        SourcePath = file,
+                        WasDuplicate = true
+                    });
+                    continue;
                 }
+
+                var destinationPath = Path.Combine(destDir, Path.GetFileName(file));
+                File.Move(file, destinationPath);
+                processedHashes[file] = Convert.ToBase64String(fileHash);
+
+                _operationReports.Add(new OperationReport
+                {
+                    FileName = Path.GetFileName(file),
+                    SourcePath = file,
+                    DestinationPath = destinationPath,
+                    WasDuplicate = false
+                });
             }
         }
 
-        private string CalculateFileHash(string filePath)
+        private void ShowNotification(string message, int durationMs = 3000)
         {
-            using var stream = File.OpenRead(filePath);
-            using var sha256 = System.Security.Cryptography.SHA256.Create();
-            return Convert.ToBase64String(sha256.ComputeHash(stream));
+            NotificationMessage = message;
+            Task.Run(async () =>
+            {
+                await Task.Delay(durationMs);
+                NotificationMessage = string.Empty;
+            });
         }
     }
 }
