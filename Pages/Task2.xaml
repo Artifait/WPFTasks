@@ -82,8 +82,8 @@
             </StackPanel>
 
             <!-- Уведомления -->
-            <TextBlock Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding NotificationMessage}" 
-                       Style="{StaticResource NotificationTextStyle}" />
+            <TextBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding NotificationMessage}" 
+                       Style="{StaticResource TextBoxStyle}" IsReadOnly="True"/>
         </Grid>
     </Border>
 </Page>

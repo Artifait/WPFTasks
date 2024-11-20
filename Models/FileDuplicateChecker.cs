@@ -28,8 +28,8 @@ namespace WPFTasks.Models
 
         public static byte[] GetFileHash(HashAlgorithm hashAlgorithm, string filePath)
         {
-            using var stream = File.OpenRead(filePath);
-            return hashAlgorithm.ComputeHash(stream);
+            var bytes = File.ReadAllBytes(filePath);
+            return hashAlgorithm.ComputeHash(bytes);
         }
     }
 
@@ -39,12 +39,28 @@ namespace WPFTasks.Models
         public string SourcePath { get; set; }
         public string DestinationPath { get; set; }
         public bool WasDuplicate { get; set; }
+        public bool AlreadyExists { get; set; }
+        public string OriginalFileName { get; set; } // Имя оригинала
+        public string OriginalFilePath { get; set; } // Путь оригинала
 
         public override string ToString()
         {
-            return WasDuplicate
-                ? $"Файл {FileName} (из {SourcePath}) - дубликат, пропущен."
-                : $"Файл {FileName} перенесён из {SourcePath} в {DestinationPath}.";
+            if (WasDuplicate)
+            {
+                return $"Дубликат файла: \"{OriginalFileName}\" в исходной директории: {SourcePath}";
+            }
+            else
+            {
+                return $"Файл \"{FileName}\" перемещён в: {DestinationPath}";
+            }
         }
+    }
+
+    public class InfoOfFile
+    {
+        public string Extension { get; set; }
+        public byte[] Hash { get; set; }
+        public string SourcePath { get; set; }
+        public string FileName { get; set; }
     }
 }
