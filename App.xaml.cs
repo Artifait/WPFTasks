@@ -16,7 +16,7 @@ namespace WPFTasks
             const string semaphoreName = "LimitedInstancesWPFTasks";
             bool isNewInstance = false;
 
-            _semaphore = new Semaphore(1, 1, semaphoreName, out isNewInstance);
+            _semaphore = new Semaphore(5, 5, semaphoreName, out isNewInstance);
 
             if (!_semaphore.WaitOne(TimeSpan.Zero))
             {
