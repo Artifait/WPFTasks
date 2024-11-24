@@ -15,7 +15,6 @@ namespace WPFTasks.ViewModels
         private string _newMessage;
         private bool _isConnected;
 
-        // Новые свойства
         private string _ipAddress = "127.0.0.1";
         private int _port = 8888;
         private string _login = "User";
