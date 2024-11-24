@@ -44,11 +44,11 @@ namespace WPFTasks.ViewModels
         public ICommand StopScanCommand { get; }
         public ICommand GenerateReportCommand { get; }
 
-        public MainViewModel()
+        public MainViewModel(string pathToIni = "")
         {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-
-            _iniFileReader = new IniFileReader("../../../BannedWords.ini");
+            
+            _iniFileReader = new IniFileReader(pathToIni == "" ? "../../../BannedWords.ini" : pathToIni); // для запуска из консоли: ..\..\..\BannedWords.ini
 
             _scannerService = new ScannerService(_iniFileReader.BannedWords, _iniFileReader.AllowedExtensions, _iniFileReader.ReplacementWord, OnFileFound, OnProgressUpdated, OnSetScanningDir);
 
