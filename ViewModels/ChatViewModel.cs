@@ -16,7 +16,7 @@ namespace WPFTasks.ViewModels
         private bool _isConnected;
 
         private string _ipAddress = "127.0.0.1";
-        private int _port = 8888;
+        private int _port = 58888;
         private string _login = "User";
 
         public string IpAddress
