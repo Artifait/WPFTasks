@@ -3,7 +3,6 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-      xmlns:local="clr-namespace:WPFTasks.Pages"
       mc:Ignorable="d"      
       d:DesignHeight="450" d:DesignWidth="800"
       Title="Task1">
@@ -44,7 +43,8 @@
             <StackPanel Orientation="Horizontal" Margin="10">
                 <TextBox Width="150" Text="{Binding IpAddress}" ToolTip="IP Address" Style="{StaticResource TextBoxStyle}" Margin="0,0,10,0"/>
                 <TextBox Width="100" Text="{Binding Port}" ToolTip="Port" Style="{StaticResource TextBoxStyle}" Margin="0,0,10,0"/>
-                <TextBox Width="150" Text="{Binding Login}" ToolTip="Login" Style="{StaticResource TextBoxStyle}" Margin="0,0,10,0"/>
+                <TextBox Width="150" Text="{Binding Username}" ToolTip="Username" Style="{StaticResource TextBoxStyle}" Margin="0,0,10,0"/>
+                <TextBox Width="150" Text="{Binding Password, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Username" Style="{StaticResource TextBoxStyle}" Margin="0,0,10,0"/>
                 <Button Content="Connect" Command="{Binding ConnectCommand}" Style="{StaticResource DarkButtonStyle}"/>
             </StackPanel>
 
@@ -60,10 +60,10 @@
                 </ListBox.ItemTemplate>
             </ListBox>
 
-            <!-- Отправка сообщения -->
-            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="10">
-                <TextBox Text="{Binding NewMessage, UpdateSourceTrigger=PropertyChanged}" Width="400" Style="{StaticResource TextBoxStyle}" Margin="0,0,10,0"/>
-                <Button Content="Send" Command="{Binding SendMessageCommand}" Style="{StaticResource DarkButtonStyle}"/>
+            <!-- Кнопки управления -->
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="10">
+                <Button Content="Get Quote" Command="{Binding GetQuoteCommand}" Style="{StaticResource DarkButtonStyle}" Margin="10,0"/>
+                <Button Content="Disconnect" Command="{Binding DisconnectCommand}" Style="{StaticResource DarkButtonStyle}" Margin="10,0"/>
             </StackPanel>
         </Grid>
     </Border>

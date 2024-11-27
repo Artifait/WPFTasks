@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace WPFTasks.Models
@@ -17,18 +16,14 @@ namespace WPFTasks.Models
         private CancellationTokenSource _cts;
 
         public event Action<string> MessageReceived;
-
         public bool IsConnected => _client?.Connected ?? false;
 
-        private string _login;
-
-        public async Task ConnectAsync(string serverAddress, int port, string login)
+        public async Task ConnectAsync(string serverAddress, int port, string username, string password)
         {
             if (IsConnected) return;
 
             try
             {
-                _login = login;
                 _client = new TcpClient();
                 await _client.ConnectAsync(serverAddress, port);
 
@@ -37,23 +32,33 @@ namespace WPFTasks.Models
                 _writer = new StreamWriter(_stream, Encoding.UTF8) { AutoFlush = true };
                 _cts = new CancellationTokenSource();
 
-                // Отправляем логин на сервер
-                await _writer.WriteLineAsync($"Join [LOGIN]:{_login}");
+                // Аутентификация
+                var a = await _reader.ReadLineAsync();
+                await _writer.WriteLineAsync(username);
+                var b = await _reader.ReadLineAsync();
+                await _writer.WriteLineAsync(password);
 
+                var authResponse = await _reader.ReadLineAsync();
+                if (authResponse != "AUTH_SUCCESS")
+                {
+                    throw new InvalidOperationException("Authentication failed: " + authResponse);
+                }
+
+                // Запускаем получение сообщений
                 _ = Task.Run(() => ReceiveMessagesAsync(_cts.Token));
             }
             catch (Exception ex)
             {
+                Disconnect();
                 throw new InvalidOperationException("Failed to connect to server.", ex);
             }
         }
 
-        public async Task SendMessageAsync(string message)
+        public async Task RequestQuoteAsync()
         {
             if (!IsConnected) throw new InvalidOperationException("Not connected to the server.");
 
-            var formattedMessage = $"{_login}: {message}";
-            await _writer.WriteLineAsync(formattedMessage);
+            await _writer.WriteLineAsync("QUOTE");
         }
 
         private async Task ReceiveMessagesAsync(CancellationToken cancellationToken)
@@ -74,7 +79,7 @@ namespace WPFTasks.Models
                     }
                 }
             }
-            catch (Exception)
+            catch
             {
                 Disconnect();
             }

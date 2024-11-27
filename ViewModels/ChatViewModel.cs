@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using WPFTasks.Models;
@@ -17,7 +14,8 @@ namespace WPFTasks.ViewModels
 
         private string _ipAddress = "127.0.0.1";
         private int _port = 58888;
-        private string _login = "User";
+        private string _username = "User";
+        private string _password = "Password";
 
         public string IpAddress
         {
@@ -31,18 +29,19 @@ namespace WPFTasks.ViewModels
             set => SetProperty(ref _port, value);
         }
 
-        public string Login
+        public string Username
         {
-            get => _login;
-            set => SetProperty(ref _login, value);
+            get => _username;
+            set => SetProperty(ref _username, value);
+        }
+
+        public string Password
+        {
+            get => _password;
+            set => SetProperty(ref _password, value);
         }
 
         public ObservableCollection<ChatMessage> Messages { get; set; } = new ObservableCollection<ChatMessage>();
-        public string NewMessage
-        {
-            get => _newMessage;
-            set => SetProperty(ref _newMessage, value);
-        }
 
         public bool IsConnected
         {
@@ -51,7 +50,7 @@ namespace WPFTasks.ViewModels
         }
 
         public ICommand ConnectCommand { get; }
-        public ICommand SendMessageCommand { get; }
+        public ICommand RequestQuoteCommand { get; }
 
         public ChatViewModel()
         {
@@ -59,14 +58,14 @@ namespace WPFTasks.ViewModels
             _serverModel.MessageReceived += OnMessageReceived;
 
             ConnectCommand = new RelayCommand(ConnectToServer, () => !IsConnected);
-            SendMessageCommand = new RelayCommand(async () => await SendMessage(), () => IsConnected && !string.IsNullOrWhiteSpace(NewMessage));
+            RequestQuoteCommand = new RelayCommand(async () => await RequestQuote(), () => IsConnected);
         }
 
         private async void ConnectToServer()
         {
             try
             {
-                await _serverModel.ConnectAsync(IpAddress, Port, Login);
+                await _serverModel.ConnectAsync(IpAddress, Port, Username, Password);
                 IsConnected = true;
                 Messages.Add(new ChatMessage { Sender = "System", Content = "Connected to server." });
             }
@@ -75,18 +74,31 @@ namespace WPFTasks.ViewModels
                 Messages.Add(new ChatMessage { Sender = "System", Content = $"Connection failed: {ex.Message}" });
             }
         }
-
-        private async Task SendMessage()
+        private async Task GetQuoteAsync()
         {
             try
             {
-                await _serverModel.SendMessageAsync(NewMessage);
-                Messages.Add(new ChatMessage { Sender = Login, Content = NewMessage });
-                NewMessage = string.Empty;
+                if (_client?.Connected == true)
+                {
+                    await _writer.WriteLineAsync("next");
+                    var quote = await _reader.ReadLineAsync();
+                    LogMessages.Add($"Quote: {quote}");
+                }
             }
             catch (Exception ex)
             {
-                Messages.Add(new ChatMessage { Sender = "System", Content = $"Send failed: {ex.Message}" });
+                LogMessages.Add($"Error: {ex.Message}");
+            }
+        }
+        private async Task RequestQuote()
+        {
+            try
+            {
+                await _serverModel.RequestQuoteAsync();
+            }
+            catch (Exception ex)
+            {
+                Messages.Add(new ChatMessage { Sender = "System", Content = $"Request failed: {ex.Message}" });
             }
         }
 
@@ -98,5 +110,4 @@ namespace WPFTasks.ViewModels
             });
         }
     }
-
 }
