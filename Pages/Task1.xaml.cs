@@ -7,7 +7,7 @@ namespace WPFTasks.Pages
         public Task1()
         {
             InitializeComponent();
-            DataContext = new ViewModels.ChatViewModel();
+            DataContext = new ViewModels.TicTacToeViewModel();
         }
     }
 }

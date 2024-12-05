@@ -58,8 +58,8 @@ namespace WPFTasks.ViewModels
             _serverModel = new ChatServerModel();
             _serverModel.MessageReceived += OnMessageReceived;
 
-            ConnectCommand = new RelayCommand(ConnectToServer, () => !IsConnected);
-            SendMessageCommand = new RelayCommand(async () => await SendMessage(), () => IsConnected && !string.IsNullOrWhiteSpace(NewMessage));
+            ConnectCommand = new RelayCommand(ConnectToServer, (object a) => !IsConnected);
+            SendMessageCommand = new RelayCommand(async () => await SendMessage(), (object a) => IsConnected && !string.IsNullOrWhiteSpace(NewMessage));
         }
 
         private async void ConnectToServer()

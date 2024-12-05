@@ -29,6 +29,10 @@
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
+        <Style x:Key="GameButtonStyle" TargetType="Button" BasedOn="{StaticResource DarkButtonStyle}">
+            <Setter Property="Margin" Value="20"/>
+        </Style>
+
     </Page.Resources>
 
     <Border CornerRadius="5" Background="{DynamicResource SecundaryBackgroundColor}"
@@ -41,30 +45,42 @@
             </Grid.RowDefinitions>
 
             <!-- Настройки подключения -->
-            <StackPanel Orientation="Horizontal" Margin="10">
+            <StackPanel Orientation="Horizontal" Margin="10" Grid.Row="0">
                 <TextBox Width="150" Text="{Binding IpAddress}" ToolTip="IP Address" Style="{StaticResource TextBoxStyle}" Margin="0,0,10,0"/>
                 <TextBox Width="100" Text="{Binding Port}" ToolTip="Port" Style="{StaticResource TextBoxStyle}" Margin="0,0,10,0"/>
-                <TextBox Width="150" Text="{Binding Login}" ToolTip="Login" Style="{StaticResource TextBoxStyle}" Margin="0,0,10,0"/>
+
                 <Button Content="Connect" Command="{Binding ConnectCommand}" Style="{StaticResource DarkButtonStyle}"/>
             </StackPanel>
 
-            <!-- Чат -->
-            <ListBox Grid.Row="1" ScrollViewer.VerticalScrollBarVisibility="Auto" ItemsSource="{Binding Messages}" Background="{DynamicResource PrimaryBackgroundColor}">
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <StackPanel>
-                            <TextBlock Text="{Binding Sender}" Style="{StaticResource LabelTextStyle}"/>
-                            <TextBox Text="{Binding Content}" Style="{StaticResource TextBoxStyle}" TextWrapping="Wrap" IsReadOnly="True"/>
-                        </StackPanel>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
+            <!-- Статус подключения -->
+            <TextBlock Grid.Row="2" Text="{Binding StatusMessage}" Style="{StaticResource LabelTextStyle}" HorizontalAlignment="Center" Margin="10"/>
 
-            <!-- Отправка сообщения -->
-            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="10">
-                <TextBox Text="{Binding NewMessage, UpdateSourceTrigger=PropertyChanged}" Width="400" Style="{StaticResource TextBoxStyle}" Margin="0,0,10,0"/>
-                <Button Content="Send" Command="{Binding SendMessageCommand}" Style="{StaticResource DarkButtonStyle}"/>
-            </StackPanel>
+            <!-- Игровое поле -->
+            <Grid Grid.Row="1" Margin="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Кнопки для игрового поля -->
+                <Button Grid.Row="0" Grid.Column="0" Content="{Binding GameBoard[0]}" Command="{Binding PlayCommand}" CommandParameter="0" Style="{StaticResource GameButtonStyle}" Width="50" Height="50"/>
+                <Button Grid.Row="0" Grid.Column="1" Content="{Binding GameBoard[1]}" Command="{Binding PlayCommand}" CommandParameter="1" Style="{StaticResource GameButtonStyle}" Width="50" Height="50"/>
+                <Button Grid.Row="0" Grid.Column="2" Content="{Binding GameBoard[2]}" Command="{Binding PlayCommand}" CommandParameter="2" Style="{StaticResource GameButtonStyle}" Width="50" Height="50"/>
+
+                <Button Grid.Row="1" Grid.Column="0" Content="{Binding GameBoard[3]}" Command="{Binding PlayCommand}" CommandParameter="3" Style="{StaticResource GameButtonStyle}" Width="50" Height="50"/>
+                <Button Grid.Row="1" Grid.Column="1" Content="{Binding GameBoard[4]}" Command="{Binding PlayCommand}" CommandParameter="4" Style="{StaticResource GameButtonStyle}" Width="50" Height="50"/>
+                <Button Grid.Row="1" Grid.Column="2" Content="{Binding GameBoard[5]}" Command="{Binding PlayCommand}" CommandParameter="5" Style="{StaticResource GameButtonStyle}" Width="50" Height="50"/>
+
+                <Button Grid.Row="2" Grid.Column="0" Content="{Binding GameBoard[6]}" Command="{Binding PlayCommand}" CommandParameter="6" Style="{StaticResource GameButtonStyle}" Width="50" Height="50"/>
+                <Button Grid.Row="2" Grid.Column="1" Content="{Binding GameBoard[7]}" Command="{Binding PlayCommand}" CommandParameter="7" Style="{StaticResource GameButtonStyle}" Width="50" Height="50"/>
+                <Button Grid.Row="2" Grid.Column="2" Content="{Binding GameBoard[8]}" Command="{Binding PlayCommand}" CommandParameter="8" Style="{StaticResource GameButtonStyle}" Width="50" Height="50"/>
+            </Grid>
         </Grid>
     </Border>
 </Page>
