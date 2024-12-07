@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WPFTasks", "WPFTasks.csproj
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TopNetwork.Core", "NetworkCore\TopNetwork.Core.csproj", "{59DD6E79-D59D-4902-A4F9-F21403437A06}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WPFTasks.Core", "WPFTasks.Core\WPFTasks.Core.csproj", "{B240161F-2C40-4518-8EA8-166EA72B8D7B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{59DD6E79-D59D-4902-A4F9-F21403437A06}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{59DD6E79-D59D-4902-A4F9-F21403437A06}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{59DD6E79-D59D-4902-A4F9-F21403437A06}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B240161F-2C40-4518-8EA8-166EA72B8D7B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B240161F-2C40-4518-8EA8-166EA72B8D7B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B240161F-2C40-4518-8EA8-166EA72B8D7B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B240161F-2C40-4518-8EA8-166EA72B8D7B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

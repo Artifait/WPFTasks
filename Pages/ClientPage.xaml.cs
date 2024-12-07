@@ -2,9 +2,9 @@
 
 namespace WPFTasks.Pages
 {
-    public partial class Task1 : Page
+    public partial class ClientPage : Page
     {
-        public Task1()
+        public ClientPage()
         {
             InitializeComponent();
             DataContext = new ViewModels.ChatViewModel();

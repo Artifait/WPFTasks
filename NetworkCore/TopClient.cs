@@ -5,7 +5,7 @@ using System.Net.Sockets;
 
 namespace TopNetwork.Core
 {
-    public class TopClient
+    public class TopClient : IEquatable<TopClient>
     {
         private TcpClient _client;
         private NetworkStream _stream;
@@ -32,7 +32,7 @@ namespace TopNetwork.Core
                     // Если подписка появилась, обрабатываем сообщения из очереди
                     if (_onAcceptedMessage != null)
                     {
-                        _ = ProcessQueuedMessages();
+                         ProcessQueuedMessages();
                     }
                 }
             }
@@ -133,5 +133,21 @@ namespace TopNetwork.Core
                 await Task.Run(() => _onAcceptedMessage?.Invoke(msg));
             }
         }
+        #region EqualsZone
+        public override int GetHashCode() => _client.Client.RemoteEndPoint?.ToString().GetHashCode() ?? 0;
+        public static bool operator !=(TopClient? left, TopClient? right) => !(left == right);
+        public override bool Equals(object? obj) => Equals(obj as TopClient);
+        public bool Equals(TopClient? other)
+        {
+            if (other == null) return false;
+
+            return _client.Client.RemoteEndPoint?.ToString() == other._client.Client.RemoteEndPoint?.ToString();
+        }
+        public static bool operator ==(TopClient? left, TopClient? right)
+        {
+            if (left is null) return right is null;
+            return left.Equals(right);
+        }
+        #endregion
     }
 }

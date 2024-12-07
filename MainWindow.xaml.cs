@@ -39,8 +39,8 @@ namespace WPFTasks
         }
 
         // Start: MenuLeft PopupButton //
-        private void btnTask1_MouseEnter(object sender, MouseEventArgs e) => ShowPopup(btnTask1, "Task 1");
-        //private void btnTask2_MouseEnter(object sender, MouseEventArgs e) => ShowPopup(btnTask2, "Task 2");
+        private void btnTask1_MouseEnter(object sender, MouseEventArgs e) => ShowPopup(btnTask1, "Client");
+        private void btnTask2_MouseEnter(object sender, MouseEventArgs e) => ShowPopup(btnTask2, "Server");
         //private void btnTask3_MouseEnter(object sender, MouseEventArgs e) => ShowPopup(btnTask3, "Task 3");
         //private void btnTask4_MouseEnter(object sender, MouseEventArgs e) => ShowPopup(btnTask4, "Task 4");
         //private void btnTask5_MouseEnter(object sender, MouseEventArgs e) => ShowPopup(btnTask5, "Task 5");
@@ -70,10 +70,10 @@ namespace WPFTasks
             => fContainer.Navigate(new System.Uri("Pages/Settings.xaml", UriKind.RelativeOrAbsolute));
 
         private void btnTask1_Click(object sender, RoutedEventArgs e)
-            => fContainer.Navigate(new System.Uri("Pages/Task1.xaml", UriKind.RelativeOrAbsolute));
+            => fContainer.Navigate(new System.Uri("Pages/ClientPage.xaml", UriKind.RelativeOrAbsolute));
 
         private void btnTask2_Click(object sender, RoutedEventArgs e)
-            => fContainer.Navigate(new System.Uri("Pages/Task2.xaml", UriKind.RelativeOrAbsolute));
+            => fContainer.Navigate(new System.Uri("Pages/ServerPage.xaml", UriKind.RelativeOrAbsolute));
 
         private void btnTask3_Click(object sender, RoutedEventArgs e)
             => fContainer.Navigate(new System.Uri("Pages/Task3.xaml", UriKind.RelativeOrAbsolute));
@@ -89,8 +89,6 @@ namespace WPFTasks
             if (e.LeftButton == MouseButtonState.Pressed)
                 this.DragMove();
         }
-
-
     }
 }
 

@@ -1,0 +1,50 @@
+﻿<Page x:Class="WPFTasks.Pages.ServerPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:local="clr-namespace:WPFTasks.Pages"
+      mc:Ignorable="d" 
+      d:DesignHeight="450" d:DesignWidth="800"
+      Title="ServerPage">
+
+    <Border CornerRadius="5" Background="{DynamicResource SecundaryBackgroundColor}"
+        BorderBrush="Gray" BorderThickness="2" Padding="10">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Настройки подключения -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="3*"/>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Button Grid.Column="0" Margin="0 0 10 10" FontSize="14" Content="Clear" Command="{Binding ConnectCommand}" Style="{StaticResource DarkButtonStyle}"/>
+                <TextBox Grid.Column="1" Margin="0 0 10 10" Text="{Binding IpAddress}" ToolTip="IP Address" Style="{StaticResource TextBoxStyle}"/>
+                <TextBox Grid.Column="2" Margin="0 0 10 10" Text="{Binding Port}" ToolTip="Port" Style="{StaticResource TextBoxStyle}"/>
+                <Button Grid.Column="3" Margin="0 0 10 10" Content="Connect" Command="{Binding ConnectCommand}" Style="{StaticResource DarkButtonStyle}"/>
+                <TextBlock Grid.Column="4" Margin="0 0 0 10" Text="Server" Style="{DynamicResource LabelTextStyle}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Grid>
+
+            <TextBlock Grid.Row="1" VerticalAlignment="Bottom" Text="Консоль" Style="{DynamicResource LabelTextStyle}"/>
+            <!-- Консоль -->
+            <ListBox Grid.Row="2" ScrollViewer.VerticalScrollBarVisibility="Auto" ItemsSource="{Binding Messages}" Background="{DynamicResource PrimaryBackgroundColor}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel>
+                            <TextBlock Text="{Binding Sender}" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBox Text="{Binding Content}" Style="{StaticResource TextBoxStyle}" TextWrapping="Wrap" IsReadOnly="True"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Grid>
+    </Border>
+</Page>

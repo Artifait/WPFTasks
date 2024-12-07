@@ -9,6 +9,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="NetworkCore\**" />
+    <Compile Remove="WPFTasks.Core\**" />
+    <EmbeddedResource Remove="NetworkCore\**" />
+    <EmbeddedResource Remove="WPFTasks.Core\**" />
+    <None Remove="NetworkCore\**" />
+    <None Remove="WPFTasks.Core\**" />
+    <Page Remove="NetworkCore\**" />
+    <Page Remove="WPFTasks.Core\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="logo.png" />
   </ItemGroup>
 
@@ -24,7 +35,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Utilities\" />
+    <ProjectReference Include="NetworkCore\TopNetwork.Core.csproj" />
+    <ProjectReference Include="WPFTasks.Core\WPFTasks.Core.csproj" />
   </ItemGroup>
 
 </Project>

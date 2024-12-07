@@ -14,9 +14,9 @@ namespace WPFTasks.ViewModels
             _canExecute = canExecute;
         }
 
-        public bool CanExecute(object parameter) => _canExecute?.Invoke() ?? true;
+        public bool CanExecute(object? parameter) => _canExecute?.Invoke() ?? true;
 
-        public void Execute(object parameter) => _execute();
+        public void Execute(object? parameter) => _execute();
 
         public event EventHandler CanExecuteChanged
         {
@@ -29,6 +29,11 @@ namespace WPFTasks.ViewModels
     {
         private readonly Func<Task> _execute;
         private readonly Func<bool> _canExecute;
+        public event EventHandler CanExecuteChanged
+        {
+            add => CommandManager.RequerySuggested += value;
+            remove => CommandManager.RequerySuggested -= value;
+        }
 
         public AsyncRelayCommand(Func<Task> execute, Func<bool> canExecute = null)
         {
@@ -36,9 +41,7 @@ namespace WPFTasks.ViewModels
             _canExecute = canExecute;
         }
 
-        public bool CanExecute(object parameter) => _canExecute == null || _canExecute();
-        public async void Execute(object parameter) => await _execute();
-        public event EventHandler CanExecuteChanged;
-        public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+        public bool CanExecute(object? parameter) => _canExecute?.Invoke() ?? true;
+        public async void Execute(object? parameter) => await _execute();
     }
 }

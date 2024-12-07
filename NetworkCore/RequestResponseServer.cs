@@ -4,6 +4,7 @@ using TopNetwork.Core.Defaults;
 
 namespace TopNetwork.Core
 {
+    public delegate void LogString(string str);
     public class RequestResponseServer : DefaultServer
     {
         // События
@@ -14,19 +15,20 @@ namespace TopNetwork.Core
         // Обработчики
         public Func<TopClient?, Task<bool>>? ShouldAcceptClient;
         public Func<TopClient, Task<Message?>>? BuilderDisconnectMessage;
+        public LogString? Logger { get; set; }
 
         protected override async Task OnStartAsync(CancellationToken cancellationToken)
         {
             if (ServerHandlers == null)
                 throw new NullReferenceException($"Plz init server");
 
-            Console.WriteLine("Server started.");
+            Logger?.Invoke("Server started.");
             _ = AcceptClientsAsync(cancellationToken); // Запуск цикла приёма клиентов
         }
 
         protected override Task OnStopAsync()
         {
-            Console.WriteLine("Server stopped.");
+            Logger?.Invoke("Server stopped.");
             return Task.CompletedTask;
         }
 
@@ -41,6 +43,7 @@ namespace TopNetwork.Core
                     {
                         ClientConnected?.Invoke(client);
                         _ = HandleClientAsync(client, cancellationToken); // Обработка клиента в отдельной задаче
+                        
                     }
                     else
                     {
@@ -49,12 +52,12 @@ namespace TopNetwork.Core
                 }
                 catch (Exception ex) when (ex is ObjectDisposedException or OperationCanceledException)
                 {
-                    Console.WriteLine("Stopped accepting clients.");
+                    Logger?.Invoke("Stopped accepting clients.");
                     break;
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error accepting client: {ex.Message}");
+                    Logger?.Invoke($"Error accepting client: {ex.Message}");
                 }
             }
         }
@@ -91,11 +94,11 @@ namespace TopNetwork.Core
 
                 if (completedTask == disconnectCompletionSource.Task)
                 {
-                    Console.WriteLine("Client disconnected by event.");
+                    Logger?.Invoke("Client disconnected by event.");
                 }
                 else if (cancellationToken.IsCancellationRequested)
                 {
-                    Console.WriteLine("Client disconnected by cancellation.");
+                    Logger?.Invoke("Client disconnected by cancellation.");
                 }
 
                 // Отправка сообщения об отключении
@@ -108,11 +111,11 @@ namespace TopNetwork.Core
             }
             catch (Exception ex) when (ex is ObjectDisposedException or OperationCanceledException)
             {
-                Console.WriteLine("Client handling stopped.");
+                Logger?.Invoke("Client handling stopped.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error handling client: {ex.Message}");
+                Logger?.Invoke($"Error handling client: {ex.Message}");
             }
             finally
             {
@@ -134,7 +137,6 @@ namespace TopNetwork.Core
             if (ClientRejected != null)
                 await ClientRejected.Invoke(client);
 
-            Console.WriteLine("Client rejected.");
             client.Close();
         }
     }
