@@ -8,5 +8,7 @@ namespace TopNetwork.Core
         int ActiveConnections { get; set; }
         long TotalRequestsHandled { get; set; }
         string GetStatusSummary();
+
+        Task SetDefaultState();
     }
 }

@@ -3,12 +3,12 @@ using System.Collections.Concurrent;
 
 namespace TopNetwork.Core
 {
-    public class ServerHandlerBase
+    public class HandlerBase
     {
         public ConcurrentDictionary<string, Func<TopClient, Message, Task<Message?>>> HandlerOfMessageType { get; private set; }
         public Func<TopClient, Message, Task<Message?>> DefaultHandler { get; private set; }
 
-        public ServerHandlerBase()
+        public HandlerBase()
         {
             DefaultHandler = DefaultHandlerRealization;
             HandlerOfMessageType = [];

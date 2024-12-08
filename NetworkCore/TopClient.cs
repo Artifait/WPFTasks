@@ -16,6 +16,7 @@ namespace TopNetwork.Core
 
         public event Action? OnDisconnected;
         public TcpClient Client => _client;
+        public bool? IsConnected => _client?.Connected;
         public NetworkStream Stream => _stream;
 
         public EndPoint? RemoteEndPoint => _client.Client.RemoteEndPoint;
@@ -94,17 +95,19 @@ namespace TopNetwork.Core
             {
                 try
                 {
-                    _stream.Close();
-                    _client.Close();
+                    _stream?.Close();
+                    _client?.Close();
+                    _stream?.Dispose();
+                    _client?.Dispose();
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Ошибка при закрытии клиента: {ex.Message}");
                 }
+                _streamSemaphore?.Dispose(); // Уничтожение семафора при отключении клиента
+                // Вызываем событие OnDisconnected
+                OnDisconnected?.Invoke();
             }
-            _streamSemaphore.Dispose(); // Уничтожение семафора при отключении клиента
-            // Вызываем событие OnDisconnected
-            OnDisconnected?.Invoke();
         }
 
         private void EnqueueOrInvoke(Message msg)

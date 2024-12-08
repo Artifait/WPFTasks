@@ -42,8 +42,9 @@ namespace TopNetwork.Core
                     if (await ShouldAccept(client))
                     {
                         ClientConnected?.Invoke(client);
-                        _ = HandleClientAsync(client, cancellationToken); // Обработка клиента в отдельной задаче
-                        
+                        Logger?.Invoke($"Client connected: {client.RemoteEndPoint}");
+
+                        _ = HandleClientAsync(client, cancellationToken); // Обработка клиента в отдельной задаче    
                     }
                     else
                     {
@@ -137,6 +138,7 @@ namespace TopNetwork.Core
             if (ClientRejected != null)
                 await ClientRejected.Invoke(client);
 
+            Logger?.Invoke($"Client rejected: {client.RemoteEndPoint}");
             client.Close();
         }
     }
