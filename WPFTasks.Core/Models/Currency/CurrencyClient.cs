@@ -1,10 +1,18 @@
 ﻿
 using TopNetwork.Core;
 
+using MsgT = WPFTasks.Core.Models.Currency.CurrencyMsgBuilder.Types;
+using MsgH = WPFTasks.Core.Models.Currency.CurrencyMsgBuilder.Headers;
+using MsgBuilder = WPFTasks.Core.Models.Currency.CurrencyMsgBuilder;
+
 namespace WPFTasks.Core.Models.Currency
 {
     public class CurrencyClient
     {
+        private static readonly Func<MsgT, string> GetMsgTStr = MsgBuilder.GetMessageTypeStr;
+        private static readonly Func<MsgH, string> GetMsgHStr = MsgBuilder.GetHeaderStr;
+
+
         public bool _authenticated = false;
         public bool Authenticated
         {
@@ -28,6 +36,56 @@ namespace WPFTasks.Core.Models.Currency
         public event Action<bool>? OnAuthenticated;
         public event Action<string>? OnGetErrorMsg;
 
+        private void InitClientHandlers()
+        {
+            _handlers = new();
+
+            _handlers.AddHandlerForMessageType(
+                GetMsgTStr(MsgT.CurrencyRateResult),
+                msg =>
+                {
+                    try
+                    {
+                        OnGetCurrencyRateMsg?.Invoke(
+                            msg.Headers["FromCurrency"],
+                            msg.Headers["ToCurrency"],
+                            double.Parse(msg.Payload)
+                        );
+                    }
+                    catch (Exception ex) { OnGetErrorMsg?.Invoke($"Не смогли распарсить ответ от сервера.\nОшибка: {ex.Message}."); }
+                }
+            );
+
+            _handlers.AddHandlerForMessageType(
+                GetMsgTStr(MsgT.AuthenticationResult),
+                msg =>
+                {
+                    try
+                    {
+                        if (bool.Parse(msg.Headers[GetMsgHStr(MsgH.IsAuthed)]))
+                        {
+                            Authenticated = true;
+                        }
+                        else
+                        {
+                            OnGetErrorMsg?.Invoke($"Ошибка аутентификации: {msg.Payload}");
+                        }
+                    }
+                    catch(Exception ex)
+                    {
+                        OnGetErrorMsg?.Invoke(ex.Message);
+                    }
+                }
+            );
+
+            _handlers.AddHandlerForMessageType(
+                GetMsgTStr(MsgT.Error),
+                msg =>
+                {
+                    OnGetErrorMsg?.Invoke(msg.Payload);
+                }
+            );
+        }
         public CurrencyClient(string serverIp, int port, string login, string password)
         {
             _ = Init(serverIp, port, login, password);
@@ -63,53 +121,11 @@ namespace WPFTasks.Core.Models.Currency
             await _client.SendMessageAsync(CurrencyMsgBuilder.CreateCurrencyRateRequest(fromCurrency, toCurrency));
         }
 
-        private void OnMessageFromServer(Message msg)
-        {
-            if (msg.MessageType == CurrencyServer.GetMessageTypeStr(MsgT.Authentication))
-            {
-                if (msg.Headers.TryGetValue("Authenticated", out string value))
-                {
-                    if (bool.TryParse(value, out bool res))
-                    {
-                        Authenticated = res;
-                    }
-                    else
-                    {
-                        OnGetErrorMsg?.Invoke($"Почему то не смогли распарсить в bool строку: {value}.");
-                    }
-                }
-                else
-                {
-                    OnGetErrorMsg?.Invoke($"Почему то не смогли распарсить в bool строку: {value}.");
-                }
-            }
-            else if (msg.MessageType == CurrencyServer.GetMessageTypeStr(MsgT.CurrencyRate))
-            {
-                try
-                {
-                    OnGetCurrencyRateMsg?.Invoke(msg.Headers["FromCurrency"], msg.Headers["ToCurrency"], double.Parse(msg.Payload));
-                }
-                catch (Exception ex) { OnGetErrorMsg?.Invoke($"Не смогли распарсить ответ от сервера.\nОшибка: {ex.Message}."); }
-            }
-            else if (msg.MessageType == CurrencyServer.GetMessageTypeStr(MsgT.Error))
-            {
-                OnGetErrorMsg?.Invoke($"Ошибка: {msg.Payload}.");
-            }
-            else
-            {
-                OnGetErrorMsg?.Invoke("Неизвестный тип сообщения.");
-            }
-        }
         public async Task TryDisconnect()
         {
             if(_client?.IsConnected ?? false)
             {
-                Message request = new()
-                {
-                    MessageType = CurrencyServer.GetMessageTypeStr(MsgT.CloseConnection),
-                };
-
-                await _client.SendMessageAsync(request);
+                await _client.SendMessageAsync(MsgBuilder.CreateCloseSessionRequest());
 
                 _cts?.Cancel();
                 _cts?.Dispose();

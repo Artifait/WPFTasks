@@ -1,4 +1,6 @@
-﻿using System.Windows.Controls;
+﻿
+using System.Windows.Controls;
+using WPFTasks.Core.ViewModels;
 
 namespace WPFTasks.Pages
 {
@@ -7,7 +9,7 @@ namespace WPFTasks.Pages
         public ClientPage()
         {
             InitializeComponent();
-            DataContext = new ViewModels.ChatViewModel();
+            DataContext = new ClientPageViewModel();
         }
     }
 }

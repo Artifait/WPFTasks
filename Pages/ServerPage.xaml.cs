@@ -12,6 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using WPFTasks.Core.ViewModels;
 
 namespace WPFTasks.Pages
 {
@@ -23,6 +24,7 @@ namespace WPFTasks.Pages
         public ServerPage()
         {
             InitializeComponent();
+            DataContext = new ServerPageViewModel();
         }
     }
 }

@@ -11,7 +11,6 @@ namespace WPFTasks.Core.Models.Currency
     public class CurrencyServer
     {
         private static readonly Func<MsgT, string> GetMsgTStr = MsgBuilder.GetMessageTypeStr; 
-
         public RequestResponseServer Server { get; set; }
         public CurrencyStatus Status
         {
@@ -60,7 +59,11 @@ namespace WPFTasks.Core.Models.Currency
                 => MsgBuilder.CreateErroreMsg(payload: "Мы не смогли обработать ваш запрос..."));
         }
 
-        public void Start() => _ = Server.Start();
+        public void Start()
+        {
+            _ = Server.Start();
+            Logger.Log("Server started!");
+        }
         #region MainHandler
         private async Task<Message?> CurrencyConversionHandler(TopClient client, Message message)
         {

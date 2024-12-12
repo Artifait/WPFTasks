@@ -92,7 +92,7 @@ namespace WPFTasks.Core.Models
         /// 2) Если есть, но время сесии кончилось: отправка сообщения об необходимости повторить аутентификацию + отключение соединения + False <br/>
         /// 3) Иначе: False <br/>
         /// </summary>
-        public async Task<bool> VerifyAuthenticatedConnection(TopClient client  )
+        public async Task<bool> VerifyAuthenticatedConnection(TopClient client)
         {
             if(AuthenticatedConnection.TryGetValue(client, out var res))
             {
@@ -111,7 +111,7 @@ namespace WPFTasks.Core.Models
         {
             AuthenticatedConnection.Remove(client);
             client.Close();
-            Logger?.Invoke($"{client.RemoteEndPoint}: Request - CloseSession");
+            Logger?.Invoke($"{client.RemoteEndPoint}: запрос на закрытие сессии обработан.");
             return null;
         }
         public async Task<Message?> HandleAuthenticationRequest(TopClient client, Message message)

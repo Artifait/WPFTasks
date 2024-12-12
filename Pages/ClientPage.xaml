@@ -7,7 +7,7 @@
       mc:Ignorable="d"      
       d:DesignHeight="450" d:DesignWidth="800"
       Title="Task1">
-
+    
     <Border CornerRadius="5" Background="{DynamicResource SecundaryBackgroundColor}"
             BorderBrush="Gray" BorderThickness="2" Padding="10">
         <Grid>
@@ -23,14 +23,16 @@
                     <ColumnDefinition Width="150"/>
                     <ColumnDefinition Width="100"/>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBox Grid.Column="0" Margin="0 0 10 10" Text="{Binding IpAddress}" ToolTip="IP Address" Style="{StaticResource TextBoxStyle}"/>
                 <TextBox Grid.Column="1" Margin="0 0 10 10" Text="{Binding Port}" ToolTip="Port" Style="{StaticResource TextBoxStyle}"/>
                 <TextBox Grid.Column="2" Margin="0 0 10 10" Text="{Binding Login}" ToolTip="Login" Style="{StaticResource TextBoxStyle}"/>
-                <Button Grid.Column="3" Margin="0 0 10 10" Content="Connect" Command="{Binding ConnectCommand}" Style="{StaticResource DarkButtonStyle}"/>
-                <TextBlock Grid.Column="4" Margin="0 0 0 10" Text="Client" Style="{DynamicResource LabelTextStyle}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <TextBox Grid.Column="3" Margin="0 0 10 10" Text="{Binding Password}" ToolTip="Password" Style="{StaticResource TextBoxStyle}"/>
+                <Button Grid.Column="4" Margin="0 0 10 10" Content="Connect" Command="{Binding ConnectCommand}" Style="{StaticResource DarkButtonStyle}"/>
+                <TextBlock Grid.Column="5" Margin="0 0 0 10" Text="Client" Style="{DynamicResource LabelTextStyle}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Grid>
 
             <!-- Чат -->

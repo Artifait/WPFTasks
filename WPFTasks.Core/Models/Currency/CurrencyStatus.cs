@@ -13,5 +13,4 @@ namespace WPFTasks.Core.Models.Currency
                 $"\nЗанято {ActiveConnections}/{MaxActiveConnection} соединений.";
         }
     }
-
 }
