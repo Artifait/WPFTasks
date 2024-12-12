@@ -120,7 +120,7 @@ namespace WPFTasks.Core.ViewModels
                     return;
                 }
 
-                await _currencyClient.RequestExchangeRate(parts[0], parts[1]);
+                await _currencyClient.RequestCurrencyRate(parts[0], parts[1]);
                 AddMessage("Client", $"Запрос на конвертацию отправлен: {ConversionInput}");
             }
             catch (Exception ex)

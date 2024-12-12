@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿
+using Newtonsoft.Json.Linq;
 using System.Net.Http;
 using TopNetwork.Core;
 
@@ -17,6 +18,7 @@ namespace WPFTasks.Core.Models.Currency
 
         public async Task<double?> GetExchangeRate(CurrencyType fromCurrency, CurrencyType toCurrency)
             => await GetExchangeRate(GetCurrencyTypeStr(fromCurrency), GetCurrencyTypeStr(toCurrency));
+
         public async Task<double?> GetExchangeRate(string fromCurrency, string toCurrency)
         {
             using var httpClient = new HttpClient();

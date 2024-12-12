@@ -4,7 +4,6 @@ namespace TopNetwork.Core
 {
     public class Message
     {
-        //к примеру Information, Error...
         public string MessageType { get; set; } = string.Empty; 
         public Dictionary<string, string> Headers { get; set; } = [];
         public string Payload { get; set; } = string.Empty;
@@ -86,7 +85,6 @@ namespace TopNetwork.Core
         public override string ToString()
         {
             StringBuilder sb = new();
-            sb.Clear();
 
             if(!string.IsNullOrWhiteSpace(MessageType))
                 sb.AppendLine($"MessageType: {MessageType}");

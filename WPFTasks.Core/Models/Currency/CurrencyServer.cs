@@ -2,12 +2,17 @@
 using System.Net;
 using TopNetwork.Core;
 
+using MsgT = WPFTasks.Core.Models.Currency.CurrencyMsgBuilder.Types;
+using MsgH = WPFTasks.Core.Models.Currency.CurrencyMsgBuilder.Headers;
+using MsgBuilder = WPFTasks.Core.Models.Currency.CurrencyMsgBuilder;
+
 namespace WPFTasks.Core.Models.Currency
 {
     public class CurrencyServer
     {
-        public RequestResponseServer Server { get; set; }
+        private static readonly Func<MsgT, string> GetMsgTStr = MsgBuilder.GetMessageTypeStr; 
 
+        public RequestResponseServer Server { get; set; }
         public CurrencyStatus Status
         {
             get => (CurrencyStatus)Server.Status;
@@ -36,68 +41,44 @@ namespace WPFTasks.Core.Models.Currency
 
             Server.Init(ip, port);
 
-            Server.ServerHandlers.AddHandlerForMessageType(GetMessageTypeStr(MessageType.Authentication), async (client, message) =>
-                await UserManager.HandleAuthentication(client, message));
+            Server.ServerHandlers.AddHandlerForMessageType(
+                GetMsgTStr(MsgT.AuthenticationRequest),
+                UserManager.HandleAuthenticationRequest
+            );
 
-            Server.ServerHandlers.AddHandlerForMessageType(GetMessageTypeStr(MessageType.CloseConnection), async (client, message) =>
-                await UserManager.HandleDisconnection(client, message));
+            Server.ServerHandlers.AddHandlerForMessageType(
+                GetMsgTStr(MsgT.CloseSessionRequest),
+                UserManager.HandleCloseSessionRequest
+            );
 
-            Server.ServerHandlers.AddHandlerForMessageType(GetMessageTypeStr(MessageType.CurrencyConversion), CurrencyConversionHandler);
+            Server.ServerHandlers.AddHandlerForMessageType(
+                GetMsgTStr(MsgT.CurrencyRateRequest),
+                CurrencyConversionHandler
+            );
 
-            Server.ServerHandlers.SetDefaultHandler(async (client, message) => new Message
-            {
-                MessageType = GetMessageTypeStr(MessageType.Error),
-                Payload = "Мы не смогли обработать ваш запрос..."
-            });
+            Server.ServerHandlers.SetDefaultHandler(async (client, message)
+                => MsgBuilder.CreateErroreMsg(payload: "Мы не смогли обработать ваш запрос..."));
         }
 
+        public void Start() => _ = Server.Start();
         #region MainHandler
-
         private async Task<Message?> CurrencyConversionHandler(TopClient client, Message message)
         {
-            if (!UserManager.CheckAuthenticatedConnection(client, message.Headers["Login"]))
+            if (!await UserManager.VerifyAuthenticatedConnection(client))
+                return null;
+
+            try
             {
-                return new Message
-                {
-                    MessageType = GetMessageTypeStr(MessageType.Error),
-                    Payload = "Пройдите аутентификацию, перед началом использования."
-                };
+                string fromCurrency = message.Headers[MsgBuilder.GetHeaderStr(MsgH.FromCurrency)];
+                string toCurrency = message.Headers[MsgBuilder.GetHeaderStr(MsgH.ToCurrency)];
+                double? exchangeRate = await Converter.GetExchangeRate(fromCurrency, toCurrency);
+
+                return MsgBuilder.CreateCurrencyRateResult(fromCurrency, toCurrency, exchangeRate);
             }
-
-            string[] currencies = message.Payload.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (currencies.Length != 2)
+            catch (Exception ex)
             {
-                return new Message
-                {
-                    MessageType = "Error",
-                    Payload = "Неверный формат Payload нагрузки. Ожидаемый формат: '<FROM_CURRENCY> <TO_CURRENCY>'"
-                };
+                return MsgBuilder.CreateErroreMsg(payload: ex.Message);
             }
-
-            string fromCurrency = currencies[0];
-            string toCurrency = currencies[1];
-
-            double? exchangeRate = await Converter.GetExchangeRate(fromCurrency, toCurrency);
-
-            if (exchangeRate == null)
-            {
-                return new Message
-                {
-                    MessageType = "Error",
-                    Payload = $"Неподдерживаемое преобразование валют: {fromCurrency} to {toCurrency}"
-                };
-            }
-
-            return new Message
-            {
-                MessageType = GetMessageTypeStr(MessageType.CurrencyRate),
-                Headers = new Dictionary<string, string>
-                {
-                    { "FromCurrency", fromCurrency },
-                    { "ToCurrency", toCurrency }
-                },
-                Payload = exchangeRate.ToString()!
-            };
         }
         #endregion
     }

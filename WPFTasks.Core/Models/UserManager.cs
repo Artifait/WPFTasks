@@ -9,7 +9,6 @@ namespace WPFTasks.Core.Models
     public class UserManager
     {
         #region Properties
-        /// <summary> Гарант потокобезопасности </summary>
         public object _locker = new();
         /// <summary> Название Файла с сохранениями </summary>
         private string CredentialsFile;
@@ -19,17 +18,20 @@ namespace WPFTasks.Core.Models
         public LogString? Logger { get; set; }
         /// <summary> 
         /// Это хранилище проверенных соединений, если с момента начала пройдет больше, чем <see cref="MaxSessionDuration"/><br/>
-        /// при следующей проверке через метод <see cref="CheckAuthenticatedConnection"/> будет отправленно сообщение <br/>
+        /// при следующей проверке через метод <see cref="VerifyAuthenticatedConnection"/> будет отправленно сообщение <br/>
         /// о необходимости пройти аутентификацию.
         /// </summary>
         public Dictionary<TopClient, (string login, DateTime timestamp)> AuthenticatedConnection { get; private set; } = [];
         
         public TimeSpan MaxSessionDuration { get; private set; } = TimeSpan.FromSeconds(30);
         #endregion
+
         public UserManager(string credentialsFile) 
         {
             CredentialsFile = credentialsFile;
         }
+
+        #region DataBase Logic
         public void AddUser(string login, string password)
         {
             lock (_locker)
@@ -63,7 +65,7 @@ namespace WPFTasks.Core.Models
                 if (File.Exists(CredentialsFile))
                 {
                     string json = File.ReadAllText(CredentialsFile);
-                    RegisteredUsers = JsonSerializer.Deserialize<Dictionary<string, string>>(json) ?? new Dictionary<string, string>();
+                    RegisteredUsers = JsonSerializer.Deserialize<Dictionary<string, string>>(json) ?? [];
                     Logger?.Invoke("Данные пользователей загружены.");
                 }
                 else
@@ -75,41 +77,53 @@ namespace WPFTasks.Core.Models
 
         public void SaveCredentials()
         {
-            string json = JsonSerializer.Serialize(RegisteredUsers, new JsonSerializerOptions { WriteIndented = true });
+            string json;
+            lock (_locker)
+            {
+                json = JsonSerializer.Serialize(RegisteredUsers, new JsonSerializerOptions { WriteIndented = true });
+            }
             File.WriteAllText(CredentialsFile, json);
             Logger?.Invoke("Данные пользователей сохранены.");
         }
-        public bool CheckAuthenticatedConnection(TopClient client, string login)
-        {
-            bool resSearch = AuthenticatedConnection.TryGetValue(client, out var pair) && pair.isAuthenticated && (pair.login == login);
-            if (!resSearch)
-                return false;
+        #endregion
 
-            if(DateTime.Now - pair.timestamp >= MaxSessionDuration)
+        /// <summary>
+        /// 1) Всё ок: True
+        /// 2) Если есть, но время сесии кончилось: отправка сообщения об необходимости повторить аутентификацию + отключение соединения + False <br/>
+        /// 3) Иначе: False <br/>
+        /// </summary>
+        public async Task<bool> VerifyAuthenticatedConnection(TopClient client  )
+        {
+            if(AuthenticatedConnection.TryGetValue(client, out var res))
             {
-                
+                if (DateTime.Now - res.timestamp < MaxSessionDuration)
+                    return true;
+
+                await client.SendMessageAsync(CurrencyMsgBuilder.CreateEndSessionNotification());
+                Logger?.Invoke($"{client.RemoteEndPoint}: закончилось время сессии.");
+                client.Close();
             }
 
+            await client.SendMessageAsync(CurrencyMsgBuilder.CreateAuthenticationResult(false, "Пройдите аутентификацию, перед началом использования."));
+            return false;
         }
-        public async Task<Message?> HandleDisconnection(TopClient client, Message message)
+        public async Task<Message?> HandleCloseSessionRequest(TopClient client, Message message)
         {
-            if(VerifyAuthenticatedConnection(client))
-                AuthenticatedConnection.Remove(client);
-            
+            AuthenticatedConnection.Remove(client);
+            client.Close();
+            Logger?.Invoke($"{client.RemoteEndPoint}: Request - CloseSession");
             return null;
         }
-        public async Task<Message?> HandleAuthentication(TopClient client, Message message)
+        public async Task<Message?> HandleAuthenticationRequest(TopClient client, Message message)
         {
             string[] credentials = message.Payload.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
             if (credentials.Length != 2)
             {
-                return new Message
-                {
-                    MessageType = CurrencyServer.GetMessageTypeStr(CurrencyServer.MessageType.Error),
-                    Headers = { { "Authenticated", "false" } },
-                    Payload = "Неверный формат данных. Ожидается: '<LOGIN> <PASSWORD>'"
-                };
+                Logger?.Invoke($"{client.RemoteEndPoint}: Ошибка аутентификации - неверный формат данных.");
+                return CurrencyMsgBuilder.CreateAuthenticationResult(false, "Неверный формат данных. Ожидается: '<LOGIN> <PASSWORD>'");
             }
+            
 
             string login = credentials[0];
             string password = credentials[1];
@@ -118,24 +132,14 @@ namespace WPFTasks.Core.Models
             {
                 if (RegisteredUsers.TryGetValue(login, out var storedPassword) && storedPassword == password)
                 {
-                    Logger?.Invoke($"Успешная аутентификация: {login}");
-                    AuthenticatedConnection[client] = true;
-                    return new Message
-                    {
-                        MessageType = "Authentication",
-                        Headers = { { "Authenticated", "true" } },
-                        Payload = "Аутентификация успешна"
-                    };
+                    Logger?.Invoke($"{client.RemoteEndPoint}: Успешная аутентификация, под логином - {login}.");
+                    AuthenticatedConnection[client] = new(login, DateTime.Now);
+                    return CurrencyMsgBuilder.CreateAuthenticationResult(true, "Аутентификация успешна");
                 }
             }
 
-            Logger?.Invoke($"Ошибка аутентификации: {login}");
-            return new Message
-            {
-                MessageType = CurrencyServer.GetMessageTypeStr(CurrencyServer.MessageType.Error),
-                Headers = { { "Authenticated", "false" } },
-                Payload = "Неверный логин или пароль"
-            };
+            Logger?.Invoke($"{client.RemoteEndPoint}: Ошибка аутентификации - неверный логин или пароль.");
+            return CurrencyMsgBuilder.CreateAuthenticationResult(false, "Неверный логин или пароль.");
         }
     }
 }

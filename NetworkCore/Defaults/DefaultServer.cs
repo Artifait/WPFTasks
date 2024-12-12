@@ -11,7 +11,7 @@ namespace TopNetwork.Core.Defaults
         public int Port { get; private set; }
         public IServerStatus Status { get; set; } = null!;
         public TcpListener Listener { get; set; } = null!;
-        public HandlerBase ServerHandlers { get; set; } = null!;
+        public ServerHandlerBase ServerHandlers { get; set; } = null!;
 
 
         public virtual void Init(IPAddress address, int port)

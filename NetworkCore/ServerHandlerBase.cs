@@ -3,12 +3,12 @@ using System.Collections.Concurrent;
 
 namespace TopNetwork.Core
 {
-    public class HandlerBase
+    public class ServerHandlerBase
     {
         public ConcurrentDictionary<string, Func<TopClient, Message, Task<Message?>>> HandlerOfMessageType { get; private set; }
         public Func<TopClient, Message, Task<Message?>> DefaultHandler { get; private set; }
 
-        public HandlerBase()
+        public ServerHandlerBase()
         {
             DefaultHandler = DefaultHandlerRealization;
             HandlerOfMessageType = [];
@@ -18,8 +18,8 @@ namespace TopNetwork.Core
         {
             string msgType = msg.MessageType;
 
-            if(HandlerOfMessageType.TryGetValue(msgType, out var func))
-                return await func(client, msg);
+            if(HandlerOfMessageType.TryGetValue(msgType, out var handler))
+                return await handler(client, msg);
             
             return await DefaultHandler(client, msg);
         }
@@ -30,13 +30,14 @@ namespace TopNetwork.Core
                 throw new ArgumentNullException(nameof(handler));
 
             if (HandlerOfMessageType.ContainsKey(type))
-                throw new ArgumentException("Данный тип уже иммет свой обрабтчик");
+                throw new ArgumentException("Данный тип сообщения уже иммет свой обрабтчик");
 
             if (string.IsNullOrWhiteSpace(type))
                 throw new ArgumentException("Тип сообщения не может быть пустым.");
 
             HandlerOfMessageType[type] = handler;
         }
+
         /// <summary>
         /// Установить обработчик для <see cref="Message"/> у которого тип не задан
         /// </summary>

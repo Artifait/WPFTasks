@@ -3,8 +3,6 @@ using TopNetwork.Core;
 
 namespace WPFTasks.Core.Models.Currency
 {
-    using MsgT = CurrencyServer.MessageType;
-
     public class CurrencyClient
     {
         public bool _authenticated = false;
@@ -20,6 +18,7 @@ namespace WPFTasks.Core.Models.Currency
 
         private TopClient? _client;
         private CancellationTokenSource? _cts;
+        private ClientHandlerBase _handlers;
         /// <summary>
         /// 1) string - FromCurrency
         /// 2) string - ToCurrency
@@ -42,7 +41,7 @@ namespace WPFTasks.Core.Models.Currency
             _client = new TopClient(serverIp, port);
             _cts = new CancellationTokenSource();
 
-            _client.OnAcceptedMessage += OnMessageFromServer;
+            _client.OnAcceptedMessage += _handlers.HandleMessage;
             _client.OnDisconnected += () => Authenticated = false;
 
             _ = _client.StartListen(_cts.Token);
@@ -53,25 +52,15 @@ namespace WPFTasks.Core.Models.Currency
         {
             if (_client == null) throw new NullReferenceException("Не инициализированный клиент.");
 
-            Message request = new()
-            {
-                MessageType = CurrencyServer.GetMessageTypeStr(MsgT.Authentication),
-                Payload = $"{login} {password}"
-            };
+            Message request = CurrencyMsgBuilder.CreateAuthenticationRequest(login, password);
 
             await _client.SendMessageAsync(request);
         }
-        public async Task RequestExchangeRate(string fromCurrency, string toCurrency)
+        public async Task RequestCurrencyRate(string fromCurrency, string toCurrency)
         {
             if (_client == null) throw new NullReferenceException("Не инициализированный клиент.");
 
-            Message request = new()
-            {
-                MessageType = CurrencyServer.GetMessageTypeStr(MsgT.CurrencyConversion),
-                Payload = $"{fromCurrency} {toCurrency}"
-            };
-
-            await _client.SendMessageAsync(request);
+            await _client.SendMessageAsync(CurrencyMsgBuilder.CreateCurrencyRateRequest(fromCurrency, toCurrency));
         }
 
         private void OnMessageFromServer(Message msg)

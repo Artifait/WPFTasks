@@ -60,7 +60,7 @@ namespace TopNetwork.Core
         {
             try
             {
-                while (!token.IsCancellationRequested)
+                while (!token.IsCancellationRequested && Client.Connected)
                 {
                     try
                     {
@@ -104,9 +104,9 @@ namespace TopNetwork.Core
                 {
                     Console.WriteLine($"Ошибка при закрытии клиента: {ex.Message}");
                 }
-                _streamSemaphore?.Dispose(); // Уничтожение семафора при отключении клиента
                 // Вызываем событие OnDisconnected
                 OnDisconnected?.Invoke();
+                _streamSemaphore?.Dispose(); // Уничтожение семафора при отключении клиента
             }
         }
 
