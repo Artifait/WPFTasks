@@ -6,13 +6,12 @@ namespace TopNetwork.Core.Defaults
 {
     public abstract class DefaultServer
     {
-        private CancellationTokenSource? _cancellationTokenSource = null;
+        protected CancellationTokenSource? _cancellationTokenSource = null;
         public IPAddress Address { get; private set; } = null!;
         public int Port { get; private set; }
         public IServerStatus Status { get; set; } = null!;
         public TcpListener Listener { get; set; } = null!;
         public ServerHandlerBase ServerHandlers { get; set; } = null!;
-
 
         public virtual void Init(IPAddress address, int port)
         {
@@ -23,7 +22,7 @@ namespace TopNetwork.Core.Defaults
             ServerHandlers = new();
         }
 
-        public async Task Start()
+        public virtual async Task Start()
         {
             if (Status.IsRunning)
                 throw new InvalidOperationException("Сервер уже запущен.");
@@ -62,7 +61,7 @@ namespace TopNetwork.Core.Defaults
             await Start();
         }
 
-        protected abstract Task OnStartAsync(CancellationToken cancellationToken);
-        protected abstract Task OnStopAsync();
+        public abstract Task OnStartAsync(CancellationToken cancellationToken);
+        public abstract Task OnStopAsync();
     }
 }

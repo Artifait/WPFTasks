@@ -18,12 +18,13 @@ namespace WPFTasks.Core.Models.Currency
         }
         public Logger Logger { get; private set; } = new();
         public UserManager UserManager { get; set; }
-        public CurrencyConverter Converter { get; private set; } = new();
+        public CurrencyConverter Converter { get; private set; }
 
         public CurrencyServer(IPAddress ip, int port)
         {
             UserManager = new UserManager("user_credentials.json") { Logger = Logger.Log };
             UserManager.LoadCredentials();
+            Converter = new(Logger.Log);                    
 
             Server = new RequestResponseServer
             {
@@ -39,6 +40,7 @@ namespace WPFTasks.Core.Models.Currency
             Server.ClientDisconnected += client => Status.ActiveConnections--;
 
             Server.Init(ip, port);
+            Server.Status = new CurrencyStatus();   
 
             Server.ServerHandlers.AddHandlerForMessageType(
                 GetMsgTStr(MsgT.AuthenticationRequest),
@@ -55,13 +57,16 @@ namespace WPFTasks.Core.Models.Currency
                 CurrencyConversionHandler
             );
 
-            Server.ServerHandlers.SetDefaultHandler(async (client, message)
-                => MsgBuilder.CreateErroreMsg(payload: "Мы не смогли обработать ваш запрос..."));
+            Server.ServerHandlers.SetDefaultHandler(async (client, message) =>
+            {
+                Logger.Log("What!");
+                return MsgBuilder.CreateErroreMsg(payload: "Мы не смогли обработать ваш запрос...");
+            });
         }
 
         public void Start()
         {
-            _ = Server.Start();
+            Server.Start();
             Logger.Log("Server started!");
         }
         #region MainHandler

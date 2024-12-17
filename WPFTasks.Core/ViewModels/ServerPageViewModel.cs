@@ -9,13 +9,19 @@ namespace WPFTasks.Core.ViewModels
 {
     public class ServerPageViewModel : BaseViewModel
     {
-        private CurrencyServer _currencyServer;
+        private static CurrencyServer _currencyServer = null!;
 
         public ServerPageViewModel()
         {
-            StartServerCommand = new RelayCommand(StartServer, _ => CanStartServer);
-            StopServerCommand = new RelayCommand(StopServer, _ => CanStopServer);
+            StartServerCommand = new RelayCommand(StartServer, _ => true);
+            StopServerCommand = new RelayCommand(StopServer, _ => true);
             ClearMessagesCommand = new RelayCommand(ClearMessages);
+
+            if(_currencyServer != null)
+            {
+                _currencyServer.Logger.OnUpdateLog += OnUpdateLog;
+                Content = _currencyServer.Logger.LogMsgs;
+            }
         }
 
         private string _ipAddress = "127.0.0.1";
@@ -25,7 +31,7 @@ namespace WPFTasks.Core.ViewModels
             set => SetProperty(ref _ipAddress, value);
         }
 
-        private string _port = "8080";
+        private string _port = "8280";
         public string Port
         {
             get => _port;
@@ -42,39 +48,25 @@ namespace WPFTasks.Core.ViewModels
         public ICommand StopServerCommand { get; }
         public ICommand ClearMessagesCommand { get; }
 
-        private bool _isServerRunning;
-        public bool IsServerRunning
-        {
-            get => _isServerRunning;
-            private set
-            {
-                if (SetProperty(ref _isServerRunning, value))
-                {
-                    OnPropertyChanged(nameof(CanStartServer));
-                    OnPropertyChanged(nameof(CanStopServer));
-                }
-            }
-        }
-
-        public bool CanStartServer => !IsServerRunning;
-        public bool CanStopServer => IsServerRunning;
-
         private void StartServer(object _)
         {
             try
             {
+                if(_currencyServer != null && _currencyServer.Status.IsRunning)
+                {
+                    MessageBox.Show("Сервер уже запущен...", "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
                 var ip = IPAddress.Parse(IpAddress);
                 var port = int.Parse(Port);
 
                 _currencyServer = new CurrencyServer(ip, port);
                 _currencyServer.Logger.OnUpdateLog += OnUpdateLog;
                 _currencyServer.Start();
-                IsServerRunning = true;
-
             }
             catch (Exception ex)
             {
-
+                MessageBox.Show(ex.Message, "Ошибка при старте сервера...", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -82,21 +74,26 @@ namespace WPFTasks.Core.ViewModels
         {
             try
             {
+                if(_currencyServer == null || (_currencyServer != null &&  !_currencyServer.Status.IsRunning))
+                {
+                    MessageBox.Show("Сервер не запущен...\nИли не инициализирован...");
+                    return;
+                }
                 _currencyServer.Server.Stop();
-                IsServerRunning = false;
             }
             catch (Exception ex)
             {
+                MessageBox.Show(ex.Message, "Ошибка при остановки сервера...", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         private void ClearMessages(object _)
         {
-            Content = String.Empty;
+            _currencyServer.Logger.ClearLog();
+            Content = string.Empty;
         }
         private void OnUpdateLog(string @new)
         {
-            MessageBox.Show("Fds");
             Content = @new; 
         }
     }

@@ -78,7 +78,9 @@ namespace WPFTasks.Core.Models.Currency
                     MessageType = GetMessageTypeStr(Types.CurrencyRateResult),
                     Headers = 
                     { 
-                        { GetHeaderStr(Headers.IsSuccessfulOperation), false.ToString() }
+                        { GetHeaderStr(Headers.IsSuccessfulOperation), false.ToString() },
+                        { GetHeaderStr(Headers.FromCurrency), fromCurrency },
+                        { GetHeaderStr(Headers.ToCurrency), toCurrency },
                     },
                     Payload = $"Неподдерживаемое преобразование валют: {fromCurrency} в {toCurrency}"
                 };

@@ -1,5 +1,4 @@
-﻿
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 
@@ -11,16 +10,20 @@ namespace TopNetwork.Core
         private NetworkStream _stream;
         private readonly ConcurrentQueue<Message> _messageQueue = new();
         private readonly object _eventLock = new();
+        private readonly SemaphoreSlim _streamSemaphore = new(1, 1);
+
         private Action<Message>? _onAcceptedMessage;
-        private readonly SemaphoreSlim _streamSemaphore = new(1, 1); // Индивидуальный семафор для потоков клиента
 
         public event Action? OnDisconnected;
-        public TcpClient Client => _client;
-        public bool? IsConnected => _client?.Connected;
-        public NetworkStream Stream => _stream;
 
-        public EndPoint? RemoteEndPoint => _client.Client.RemoteEndPoint;
-        public SemaphoreSlim StreamSemaphore => _streamSemaphore; // Доступ к семафору клиента
+        public TcpClient Client => _client;
+        public NetworkStream Stream => _stream;
+        public SemaphoreSlim StreamSemaphore => _streamSemaphore;
+
+        public EndPoint? RemoteEndPoint => _client?.Client.RemoteEndPoint;
+        public bool IsConnected => _client?.Connected ?? false;
+        public bool IsInitialized { get; private set; } = false;
+
         public Action<Message>? OnAcceptedMessage
         {
             get => _onAcceptedMessage;
@@ -29,38 +32,71 @@ namespace TopNetwork.Core
                 lock (_eventLock)
                 {
                     _onAcceptedMessage = value;
-
-                    // Если подписка появилась, обрабатываем сообщения из очереди
                     if (_onAcceptedMessage != null)
                     {
-                         ProcessQueuedMessages();
+                        _ = ProcessQueuedMessages();
                     }
                 }
             }
         }
 
-        public TopClient(string ip, int port)
+        // Пустой клиент (пустышка)
+        public TopClient()
         {
-            _client = new TcpClient(ip, port);
-            _stream = _client.GetStream();
+            _client = null!;
+            _stream = null!;
         }
 
+        // Конструктор с параметрами
+        public TopClient(string ip, int port)
+        {
+            Initialize(ip, port);
+        }
+
+        // Конструктор с существующим TcpClient
         public TopClient(TcpClient client)
         {
             _client = client;
+            _stream = client.GetStream();
+            IsInitialized = true;
+        }
+
+        // Метод для инициализации клиента
+        public void Initialize(string ip, int port)
+        {
+            if (IsInitialized)
+                throw new InvalidOperationException("Клиент уже инициализирован.");
+
+            _client = new TcpClient(ip, port);
             _stream = _client.GetStream();
+            IsInitialized = true;
         }
 
         public async Task SendMessageAsync(Message msg)
         {
-            await DeliveryService.SendMessageAsync(_stream, msg);
-        }
-        public void Close() => Disconnect();
-        public async Task StartListen(CancellationToken token)
-        {
+            if (!IsInitialized)
+                throw new InvalidOperationException("Клиент не инициализирован.");
+
             try
             {
-                while (!token.IsCancellationRequested && Client.Connected)
+                await DeliveryService.SendMessageAsync(_stream, msg);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка при отправке сообщения: {ex.Message}");
+            }
+        }
+
+        public void Close() => Disconnect();
+
+        public async Task StartListen(CancellationToken token)
+        {
+            if (!IsInitialized)
+                throw new InvalidOperationException("Клиент не инициализирован.");
+
+            try
+            {
+                while (!token.IsCancellationRequested && IsConnected)
                 {
                     try
                     {
@@ -69,13 +105,11 @@ namespace TopNetwork.Core
                     }
                     catch (OperationCanceledException)
                     {
-                        // Завершаем прослушивание при отмене
-                        break;
+                        break; // Завершаем по отмене
                     }
                     catch (IOException)
                     {
-                        // Поток завершён, инициируем отключение
-                        break;
+                        break; // Отключение клиента
                     }
                     catch (Exception ex)
                     {
@@ -89,24 +123,31 @@ namespace TopNetwork.Core
                 Disconnect();
             }
         }
+
         public void Disconnect()
         {
-            if (_client.Connected)
+            lock (_eventLock)
             {
-                try
+                if (IsConnected)
                 {
-                    _stream?.Close();
-                    _client?.Close();
-                    _stream?.Dispose();
-                    _client?.Dispose();
+                    try
+                    {
+                        _stream?.Close();
+                        _client?.Close();
+                        _stream?.Dispose();
+                        _client?.Dispose();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Ошибка при отключении клиента: {ex.Message}");
+                    }
+                    finally
+                    {
+                        OnDisconnected?.Invoke();
+                        _streamSemaphore.Dispose();
+                        IsInitialized = false;
+                    }
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Ошибка при закрытии клиента: {ex.Message}");
-                }
-                // Вызываем событие OnDisconnected
-                OnDisconnected?.Invoke();
-                _streamSemaphore?.Dispose(); // Уничтожение семафора при отключении клиента
             }
         }
 
@@ -116,19 +157,18 @@ namespace TopNetwork.Core
             {
                 if (_onAcceptedMessage == null)
                 {
-                    // Если нет подписчиков, добавляем сообщение в очередь
                     _messageQueue.Enqueue(msg);
                 }
                 else
                 {
-                    // Если есть подписчики, проверяем статус клиента
-                    if (_client.Connected)
+                    if (IsConnected)
                     {
-                        _ = Task.Run(() => _onAcceptedMessage?.Invoke(msg));
+                        Task.Run(() => _onAcceptedMessage?.Invoke(msg));
                     }
                 }
             }
         }
+
         private async Task ProcessQueuedMessages()
         {
             while (_messageQueue.TryDequeue(out var msg))
@@ -136,21 +176,31 @@ namespace TopNetwork.Core
                 await Task.Run(() => _onAcceptedMessage?.Invoke(msg));
             }
         }
+
         #region EqualsZone
-        public override int GetHashCode() => _client.Client.RemoteEndPoint?.ToString().GetHashCode() ?? 0;
-        public static bool operator !=(TopClient? left, TopClient? right) => !(left == right);
+
+        public override int GetHashCode() => RemoteEndPoint?.ToString().GetHashCode() ?? 0;
+
         public override bool Equals(object? obj) => Equals(obj as TopClient);
+
         public bool Equals(TopClient? other)
         {
-            if (other == null) return false;
+            if (other == null || !IsInitialized || !other.IsInitialized)
+                return false;
 
-            return _client.Client.RemoteEndPoint?.ToString() == other._client.Client.RemoteEndPoint?.ToString();
+            return RemoteEndPoint?.ToString() == other.RemoteEndPoint?.ToString();
         }
+
         public static bool operator ==(TopClient? left, TopClient? right)
         {
-            if (left is null) return right is null;
+            if (ReferenceEquals(left, right)) return true;
+            if (left is null || right is null) return false;
+
             return left.Equals(right);
         }
+
+        public static bool operator !=(TopClient? left, TopClient? right) => !(left == right);
+
         #endregion
     }
 }

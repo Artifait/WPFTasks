@@ -1,5 +1,4 @@
 ﻿
-using System.Net;
 using TopNetwork.Core.Defaults;
 
 namespace TopNetwork.Core
@@ -17,7 +16,23 @@ namespace TopNetwork.Core
         public Func<TopClient, Task<Message?>>? BuilderDisconnectMessage;
         public LogString? Logger { get; set; }
 
-        protected override async Task OnStartAsync(CancellationToken cancellationToken)
+        public RequestResponseServer() { }
+        public void Start()
+        {
+            if (Status.IsRunning)
+                throw new InvalidOperationException("Сервер уже запущен.");
+            if (Listener == null)
+                throw new NullReferenceException("Инициализируйте");
+
+            _cancellationTokenSource = new CancellationTokenSource();
+
+            Status.StartTime = DateTime.Now;
+            Status.IsRunning = true;
+
+            Listener.Start();
+            _ = OnStartAsync(_cancellationTokenSource.Token);
+        }
+        public override async Task OnStartAsync(CancellationToken cancellationToken)
         {
             if (ServerHandlers == null)
                 throw new NullReferenceException($"Plz init server");
@@ -26,10 +41,10 @@ namespace TopNetwork.Core
             _ = AcceptClientsAsync(cancellationToken); // Запуск цикла приёма клиентов
         }
 
-        protected override Task OnStopAsync()
+
+        public override async Task OnStopAsync()
         {
             Logger?.Invoke("Server stopped.");
-            return Task.CompletedTask;
         }
 
         private async Task AcceptClientsAsync(CancellationToken cancellationToken)
@@ -39,7 +54,8 @@ namespace TopNetwork.Core
                 try
                 {
                     TopClient client = new(await Listener.AcceptTcpClientAsync(cancellationToken));
-                    if (await ShouldAccept(client))
+                    bool should = await ShouldAccept(client);
+                    if (should)
                     {
                         ClientConnected?.Invoke(client);
                         Logger?.Invoke($"Client connected: {client.RemoteEndPoint}");
@@ -130,7 +146,7 @@ namespace TopNetwork.Core
             if (ShouldAcceptClient != null)
                 return await ShouldAcceptClient(client);
 
-            return client != null && client.RemoteEndPoint is IPEndPoint;
+            return client != null;
         }
 
         private async Task RejectClient(TopClient client)

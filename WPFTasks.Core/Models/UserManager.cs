@@ -116,6 +116,8 @@ namespace WPFTasks.Core.Models
         }
         public async Task<Message?> HandleAuthenticationRequest(TopClient client, Message message)
         {
+            Logger?.Invoke($"{client.RemoteEndPoint}: Request");
+
             string[] credentials = message.Payload.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
             if (credentials.Length != 2)

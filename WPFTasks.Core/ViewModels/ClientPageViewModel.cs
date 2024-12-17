@@ -2,6 +2,7 @@
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
 using WPFTasks.Core.Models.Currency;
 using WPFTasks.ViewModels;
 
@@ -15,17 +16,33 @@ namespace WPFTasks.Core.ViewModels
 
     public class ClientPageViewModel : BaseViewModel
     {
-        private readonly CurrencyClient _currencyClient;
+        private static CurrencyClient _currencyClient = null!;
+        private readonly Dispatcher _dt;
 
-        public ClientPageViewModel()
+        public ClientPageViewModel(Dispatcher dt)
         {
-            _currencyClient = new CurrencyClient();
+            CurrencyClient.CurrentDispatcher = dt;
+            _dt = dt;
+
+            _currencyClient ??= new CurrencyClient();
+
             _currencyClient.OnAuthenticated += OnAuthenticated;
             _currencyClient.OnGetErrorMsg += OnError;
             _currencyClient.OnGetCurrencyRateMsg += OnGetCurrencyRateMsg;
 
-            ConnectCommand = new RelayCommand(async _ => await ConnectAsync(), _ => !IsConnected);
-            SendMessageCommand = new RelayCommand(SendMessage, _ => !string.IsNullOrWhiteSpace(NewMessage) && IsConnected);
+            ConnectCommand = new RelayCommand(async _ => await ConnectAsync(), (_) => !IsConnected);
+            SendMessageCommand = new RelayCommand(SendMessage, _ => IsConnected && !String.IsNullOrWhiteSpace(NewMessage));
+
+            _currencyClient.OnGetEndSessionNotification += () => { 
+                MessageBox.Show("Время сессии кончилось.\nВойдите заного.", "Уведомление", MessageBoxButton.OK, MessageBoxImage.Information);
+                IsConnected = false;
+                _currencyClient!.Close();
+
+                _dt.Invoke(() => {
+                    ((RelayCommand)SendMessageCommand).RaiseCanExecuteChanged();
+                    ((RelayCommand)ConnectCommand).RaiseCanExecuteChanged();
+                });
+            };
 
             Messages = [];
         }
@@ -37,7 +54,7 @@ namespace WPFTasks.Core.ViewModels
             set => SetProperty(ref _ipAddress, value);
         }
 
-        private string _port = "8080";
+        private string _port = "8280";
         public string Port
         {
             get => _port;
@@ -62,7 +79,7 @@ namespace WPFTasks.Core.ViewModels
         public string NewMessage
         {
             get => _newMessage;
-            set => SetProperty(ref _newMessage, value);
+            set { SetProperty(ref _newMessage, value); ((RelayCommand)SendMessageCommand).RaiseCanExecuteChanged(); }
         }
 
         public ObservableCollection<MessageViewModel> Messages { get; }
@@ -81,6 +98,7 @@ namespace WPFTasks.Core.ViewModels
         {
             try
             {
+                if(_currencyClient!.)
                 await _currencyClient.Init(IpAddress, int.Parse(Port), Login, Password);
             }
             catch (Exception ex)
@@ -91,30 +109,56 @@ namespace WPFTasks.Core.ViewModels
             {
             }
         }
-
         private void SendMessage(object _)
         {
-            AddMessage("You", NewMessage);
-            NewMessage = string.Empty;
+            try
+            {
+                string text = NewMessage.Trim();
+
+                if (text.ToLower() == "cls")
+                {
+                    _dt.Invoke(() => { Messages.Clear(); });
+                    return;
+                }
+                string[] words = text.Split(' ');
+                if (words.Length == 2)
+                {
+                    _ = _currencyClient.RequestCurrencyRate(words[0].ToUpper(), words[1].ToUpper());
+                    AddMessage(Login, NewMessage);
+                }
+                else
+                {
+                    MessageBox.Show("Нужно вести 2 слова. Пример: USD EUR");
+                }
+            }
+            catch(Exception ex)
+            {
+                AddMessage("System", ex.Message);
+            }
+            finally
+            {
+                NewMessage = string.Empty;
+            }
         }
 
         private void AddMessage(string sender, string content)
         {
-            Messages.Add(new MessageViewModel { Sender = sender, Content = content });
+            _dt.Invoke(() =>
+            {
+                Messages.Add(new MessageViewModel { Sender = sender, Content = content });
+            });
         }
 
-        private void OnAuthenticated(bool isAuthenticated)
+        private void OnAuthenticated(bool isAuthenticated, string payload)
         {
-            IsConnected = isAuthenticated;
+            _dt.Invoke(() => {
+                IsConnected = isAuthenticated;
 
-            if (isAuthenticated)
-            {
-                AddMessage("System", "Successfully authenticated.");
-            }
-            else
-            {
-                AddMessage("System", "Authentication failed.");
-            }
+                ((RelayCommand)SendMessageCommand).RaiseCanExecuteChanged();
+                ((RelayCommand)ConnectCommand).RaiseCanExecuteChanged();
+
+                AddMessage("System", payload);
+            });
         }
 
         private void OnError(string error)
@@ -124,9 +168,11 @@ namespace WPFTasks.Core.ViewModels
 
         private void OnGetCurrencyRateMsg(string from, string to, double rate)
         {
-            AddMessage(
-                "Currency Rate", 
-                $"[{from}] -> [{to}] = {rate}"
+            _dt.Invoke(() =>
+                AddMessage(
+                    "Currency Rate", 
+                    $"[{from}] -> [{to}] = {rate}"
+                )
             );
         }
     }

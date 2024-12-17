@@ -7,6 +7,7 @@ namespace WPFTasks.Core.Models
     {
         public StringBuilder sb { get; set; } = new();
         public Action<string>? OnUpdateLog { get; set; }
+        public string LogMsgs => sb.ToString();
 
         public void Log(string str)
         {
