@@ -5,7 +5,7 @@ VisualStudioVersion = 17.12.35323.107
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WPFTasks", "WPFTasks.csproj", "{64F5FB42-62F2-4DB3-8A5D-76AA9ECEC2A4}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TopNetwork.Core", "NetworkCore\TopNetwork.Core.csproj", "{59DD6E79-D59D-4902-A4F9-F21403437A06}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TopNetwork", "NetworkCore\TopNetwork.csproj", "{59DD6E79-D59D-4902-A4F9-F21403437A06}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WPFTasks.Core", "WPFTasks.Core\WPFTasks.Core.csproj", "{B240161F-2C40-4518-8EA8-166EA72B8D7B}"
 EndProject

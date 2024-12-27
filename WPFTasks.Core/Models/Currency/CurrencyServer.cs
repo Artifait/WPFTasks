@@ -31,7 +31,8 @@ namespace WPFTasks.Core.Models.Currency
                 Logger = Logger.Log,
                 ShouldAcceptClient = async client =>
                 {
-                    Logger.Log("Checking if client should be accepted...");
+                    Logger.Log($"[{client.RemoteEndPoint}]: Trying сonnect to the server...");
+                    await UserManager.VerifyAllAuthenticatedConnection();
                     return client != null && Status.ActiveConnections < Status.MaxActiveConnection;
                 }
             };
@@ -59,7 +60,7 @@ namespace WPFTasks.Core.Models.Currency
 
             Server.ServerHandlers.SetDefaultHandler(async (client, message) =>
             {
-                Logger.Log("What!");
+                Logger.Log($"");
                 return MsgBuilder.CreateErroreMsg(payload: "Мы не смогли обработать ваш запрос...");
             });
         }

@@ -94,18 +94,34 @@ namespace WPFTasks.Core.Models
         /// </summary>
         public async Task<bool> VerifyAuthenticatedConnection(TopClient client)
         {
-            if(AuthenticatedConnection.TryGetValue(client, out var res))
+            try
             {
-                if (DateTime.Now - res.timestamp < MaxSessionDuration)
-                    return true;
+                if (AuthenticatedConnection.TryGetValue(client, out var res))
+                {
+                    if (DateTime.Now - res.timestamp < MaxSessionDuration)
+                        return true;
 
-                await client.SendMessageAsync(CurrencyMsgBuilder.CreateEndSessionNotification());
-                Logger?.Invoke($"{client.RemoteEndPoint}: закончилось время сессии.");
-                client.Close();
+                    await client.SendMessageAsync(CurrencyMsgBuilder.CreateEndSessionNotification());
+                    Logger?.Invoke($"{client.RemoteEndPoint}: закончилось время сессии.");
+                    client.Close();
+                }
+
+                await client.SendMessageAsync(CurrencyMsgBuilder.CreateAuthenticationResult(false, "Пройдите аутентификацию, перед началом использования."));
+                return false;
             }
+            catch (Exception ex)
+            {
+                Logger?.Invoke(ex.Message);
+                return false;
+            }
+        }
 
-            await client.SendMessageAsync(CurrencyMsgBuilder.CreateAuthenticationResult(false, "Пройдите аутентификацию, перед началом использования."));
-            return false;
+        public async Task VerifyAllAuthenticatedConnection()
+        {
+            foreach(var user in AuthenticatedConnection.Keys)
+            {
+                await VerifyAuthenticatedConnection(user);
+            }
         }
         public async Task<Message?> HandleCloseSessionRequest(TopClient client, Message message)
         {

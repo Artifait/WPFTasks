@@ -35,7 +35,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="NetworkCore\TopNetwork.Core.csproj" />
+    <ProjectReference Include="NetworkCore\TopNetwork.csproj" />
     <ProjectReference Include="WPFTasks.Core\WPFTasks.Core.csproj" />
   </ItemGroup>
 

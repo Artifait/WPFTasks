@@ -21,21 +21,18 @@ namespace WPFTasks.Core.ViewModels
 
         public ClientPageViewModel(Dispatcher dt)
         {
-            CurrencyClient.CurrentDispatcher = dt;
             _dt = dt;
-
             _currencyClient ??= new CurrencyClient();
 
             _currencyClient.OnAuthenticated += OnAuthenticated;
-            _currencyClient.OnGetErrorMsg += OnError;
+            _currencyClient.OnErrorOccurred += OnError;
             _currencyClient.OnGetCurrencyRateMsg += OnGetCurrencyRateMsg;
 
-            ConnectCommand = new RelayCommand(async _ => await ConnectAsync(), (_) => !IsConnected);
-            SendMessageCommand = new RelayCommand(SendMessage, _ => IsConnected && !String.IsNullOrWhiteSpace(NewMessage));
+            ConnectCommand = new RelayCommand(async _ => await ConnectAsync(), (_) => !_currencyClient.IsInitialized);
+            SendMessageCommand = new RelayCommand(async _ => await SendMessage(), (_) => !String.IsNullOrWhiteSpace(NewMessage));
 
             _currencyClient.OnGetEndSessionNotification += () => { 
                 MessageBox.Show("Время сессии кончилось.\nВойдите заного.", "Уведомление", MessageBoxButton.OK, MessageBoxImage.Information);
-                IsConnected = false;
                 _currencyClient!.Close();
 
                 _dt.Invoke(() => {
@@ -98,8 +95,8 @@ namespace WPFTasks.Core.ViewModels
         {
             try
             {
-                if(_currencyClient!.)
-                await _currencyClient.Init(IpAddress, int.Parse(Port), Login, Password);
+                await _currencyClient.InitAsync(IpAddress, int.Parse(Port));
+                AddHelpMessage();
             }
             catch (Exception ex)
             {
@@ -107,28 +104,52 @@ namespace WPFTasks.Core.ViewModels
             }
             finally
             {
+                ((RelayCommand)ConnectCommand).RaiseCanExecuteChanged();
             }
         }
-        private void SendMessage(object _)
+        private async Task SendMessage()
         {
+            AddMessage(Login, NewMessage);
+
             try
             {
                 string text = NewMessage.Trim();
 
-                if (text.ToLower() == "cls")
+                if (text.Equals("/cls", StringComparison.CurrentCultureIgnoreCase))
                 {
                     _dt.Invoke(() => { Messages.Clear(); });
                     return;
                 }
-                string[] words = text.Split(' ');
-                if (words.Length == 2)
+                if(text.Equals("/out", StringComparison.CurrentCultureIgnoreCase))
                 {
-                    _ = _currencyClient.RequestCurrencyRate(words[0].ToUpper(), words[1].ToUpper());
-                    AddMessage(Login, NewMessage);
+                    await _currencyClient.TryDisconnectAsync();
+                    ((RelayCommand)ConnectCommand).RaiseCanExecuteChanged();
+                    return;
                 }
-                else
+                if(text.Equals("/help", StringComparison.CurrentCultureIgnoreCase))
                 {
-                    MessageBox.Show("Нужно вести 2 слова. Пример: USD EUR");
+                    AddHelpMessage();
+                    return;
+                }
+                string[] words = text.Split(' ');
+                if(words.Length == 3)
+                {
+                    if (words[0].Equals("/auth", StringComparison.CurrentCultureIgnoreCase))
+                    {
+                        if(!_currencyClient.IsInitialized)
+                        {
+                            await _currencyClient.InitAsync(IpAddress, int.Parse(Port));
+                        }
+                        _ = _currencyClient.AuthenticateAsync(words[1], words[2]);
+                    }
+                    if (words[0].Equals("/rate", StringComparison.CurrentCultureIgnoreCase))
+                    {
+                        if (_currencyClient.Authenticated)
+                            await _currencyClient.RequestCurrencyRateAsync(words[1], words[2]);
+                        else
+                            MessageBox.Show("Пройдите аутентификацию...", "Подсказка", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                    }
                 }
             }
             catch(Exception ex)
@@ -148,12 +169,19 @@ namespace WPFTasks.Core.ViewModels
                 Messages.Add(new MessageViewModel { Sender = sender, Content = content });
             });
         }
+        private void AddHelpMessage()
+        {
+            AddMessage("System",
+                "Сводка:\n" +
+                "1) '/cls' - очистить чат.\n" +
+                "2) '/auth <Login> <Password>' - авторизоваться.\n" +
+                "3) '/out' - завершить сессию.\n" +
+                "4) '/rate <FromCurrency> <ToCurrency>' - получить курс валют.");
+        }
 
         private void OnAuthenticated(bool isAuthenticated, string payload)
         {
             _dt.Invoke(() => {
-                IsConnected = isAuthenticated;
-
                 ((RelayCommand)SendMessageCommand).RaiseCanExecuteChanged();
                 ((RelayCommand)ConnectCommand).RaiseCanExecuteChanged();
 

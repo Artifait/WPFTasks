@@ -25,10 +25,10 @@ namespace WPFTasks.Core.Models.Currency
 
             try
             {
-                string apiUrl = "https://api.exchangerate-api.com/v4/latest/" + fromCurrency;  // Бесплатный API
+                string apiUrl = "https://api.exchangerate-api.com/v4/latest/" + fromCurrency.ToUpper();  // Бесплатный API
                 string response = await httpClient.GetStringAsync(apiUrl);
                 JObject data = JObject.Parse(response);
-                return data["rates"]?[toCurrency]?.ToObject<double>();
+                return data["rates"]?[toCurrency.ToUpper()]?.ToObject<double>();
             }
             catch (Exception ex)
             {

@@ -11,7 +11,6 @@ namespace WPFTasks.Core.Models
         protected CancellationTokenSource? _cts;
         protected ClientHandlerBase Handlers;
 
-        public Dispatcher CurrentDispatcher { get; set; } = Dispatcher.CurrentDispatcher;
 
         private bool _authenticated = false;
         public bool Authenticated

@@ -38,7 +38,7 @@ namespace TopNetwork.Core
         /// <param name="stream">Сетевой поток.</param>
         /// <param name="token">Токен отмены.</param>
         /// <returns>Полученное сообщение.</returns>
-        [Obsolete("Эта версия работает только с одним потокомб, при возможности используйте версию с передечей TopClient.")]
+        [Obsolete("Эта версия работает только с одним потоком, при возможности используйте версию с передечей TopClient.")]
         public static async Task<Message> AcceptMessageAsync(NetworkStream stream, CancellationToken token)
         {
             await _accepterSemaphore.WaitAsync(); // Ожидание доступа к потоку
@@ -80,9 +80,10 @@ namespace TopNetwork.Core
         /// <returns>Полученное сообщение.</returns>
         public static async Task<Message> AcceptMessageAsync(TopClient client, CancellationToken token)
         {
-            await client.StreamSemaphore.WaitAsync(); // Ожидание доступа к потоку
+            NetworkStream? stream = client.ReadStream ?? throw new InvalidOperationException("Stream is not available.");
 
-            NetworkStream stream = client.Stream;
+            await client.ReadSemaphore.WaitAsync(token); // Ожидание доступа к потоку
+
             try
             {
                 // Читаем длину сообщения (4 байта)
@@ -110,7 +111,7 @@ namespace TopNetwork.Core
             {
                 throw new InvalidOperationException("Ошибка при приёме сообщения." + ex.Message, ex);
             }
-            finally { client.StreamSemaphore.Release(); }
+            finally { client.ReadSemaphore.Release(); }
         }
 
         /// <summary>
