@@ -11,6 +11,5 @@ namespace TopNetwork.Services.MessageBuilder
         where TMsgSourceData : IMsgSourceData
     {
         Message BuildMsg();
-        TMsgSourceData Parse(Message msg);
     }
 }

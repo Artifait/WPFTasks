@@ -8,7 +8,8 @@ namespace TopNetwork.Services.MessageBuilder
         public string Login { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
 
-        public string MessageType => "AuthenticationRequest";
+        public string MessageType => MsgType;
+        public static string MsgType => "AuthenticationRequest";
     }
 
     public class AuthenticationRequestMessageBuilder : IMessageBuilder<AuthenticationRequestData>

@@ -9,20 +9,49 @@ namespace TopNetwork.RequestResponse
     /// </summary>
     public class RrClient
     {
-        private readonly TopClient _topClient;
+        private TopClient _topClient;
         private readonly ConcurrentDictionary<string, TaskCompletionSource<Message>> _pendingResponses = new();
 
         public RrClientHandlerBase? Handler { get; private set; } = null;
-        public ServiceRegistry ServiceRegistry { get; private set; }
-        public bool IsActive => _topClient?.IsConnected ?? false;
+        public ServiceRegistry ServiceRegistry { get; set; } = new();
+        public bool IsConnected => _topClient?.IsConnected ?? false;
+        public bool IsInitialized => _topClient?.IsInitialized ?? false;
 
-        public RrClient(TopClient topClient, RrClientHandlerBase? handler = null)
+        public event Action? OnConnectionLost;
+
+        public RrClient(RrClientHandlerBase? handler = null)
         {
-            _topClient = topClient ?? throw new ArgumentNullException(nameof(topClient));
             Handler = handler;
-
-            _topClient.OnMessageReceived += HandleIncomingMessageAsync;
         }
+
+        public RrClient Connect(string ip, int port)
+        {
+            if(_topClient != null)
+            {
+                _topClient.OnMessageReceived -= HandleIncomingMessageAsync;
+                _topClient.OnConnectionLost -= OnConnectionLost;
+                _topClient.Disconnect();
+            }
+
+            _topClient = new TopClient().Connect(ip, port);
+            _topClient.OnConnectionLost += OnConnectionLost;
+            _topClient.OnMessageReceived += HandleIncomingMessageAsync;
+            return this;
+        }
+        public void Disconnect()
+        {
+            _topClient?.Disconnect();
+        }
+
+        public void StartListening()
+        {
+            if (!IsConnected)
+                throw new InvalidOperationException("Сначало нужно подключиться к серверу...");
+
+            _ = _topClient.StartListeningAsync();
+        }
+
+        public void StopListening() => _topClient.StopListening();
 
         /// <param name="message"> Сообщение для отправки </param>
         /// <param name="cancellationToken"> токен отмены </param>
@@ -30,8 +59,8 @@ namespace TopNetwork.RequestResponse
         /// <exception cref="ArgumentNullException"> если message == null</exception>
         public async Task<Message?> SendMessageWithResponseAsync(Message message, CancellationToken cancellationToken = default)
         {
-            if(!IsActive) 
-                throw new InvalidOperationException("Невозможно отправить сообщение из не активного состояния...");
+            if(!IsConnected) 
+                throw new InvalidOperationException("Невозможно отправить сообщение из не подключеного состояния...");
 
             ArgumentNullException.ThrowIfNull(message);
 
@@ -58,8 +87,8 @@ namespace TopNetwork.RequestResponse
         }
         public async Task SendMessageWithoutResponseAsync(Message message, CancellationToken cancellationToken = default)
         {
-            if (!IsActive)
-                throw new InvalidOperationException("Невозможно отправить сообщение из не активного состояния...");
+            if (!IsConnected)
+                throw new InvalidOperationException("Невозможно отправить сообщение из не подключеного состояния...");
 
             ArgumentNullException.ThrowIfNull(message);
             await _topClient.SendMessageAsync(message, cancellationToken);

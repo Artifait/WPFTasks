@@ -11,7 +11,8 @@ namespace WPFTasks.Core.Models.Currency.MessageBuilder
         public string ToCurrency { get; set; } = string.Empty;
         public double? Rate { get; set; } = null;
 
-        public string MessageType => "CurrencyResponse";
+        public string MessageType => MsgType;
+        public static string MsgType => "CurrencyResponse";
     }
 
     public class CurrencyResponseMessageBuilder : IMessageBuilder<CurrencyResponseData>
@@ -57,9 +58,9 @@ namespace WPFTasks.Core.Models.Currency.MessageBuilder
             };
         }
 
-        public CurrencyResponseData Parse(Message msg)
+        public static CurrencyResponseData Parse(Message msg)
         {
-            if (msg.MessageType != _data.MessageType)
+            if (msg.MessageType != CurrencyResponseData.MsgType)
                 throw new InvalidOperationException("Incorrect message type.");
 
             return new CurrencyResponseData()

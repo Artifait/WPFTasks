@@ -47,12 +47,10 @@ namespace TopNetwork.Services.MessageBuilder
         /// Упрощает создание сообщения через MessageBuilderService с настройкой билдера.
         /// </summary>
         public Message BuildMessage<TBuilder, TMsgSourceData>(
-            Action<TBuilder> configure)
+            Action<TBuilder>? configure = null)
             where TBuilder : IMessageBuilder<TMsgSourceData>
             where TMsgSourceData : IMsgSourceData
         {
-            ArgumentNullException.ThrowIfNull(configure);
-
             // Получаем и настраиваем билдер, а затем создаём сообщение
             var builder = CreateBuilder<TBuilder, TMsgSourceData>(configure);
             return builder.BuildMsg();

@@ -9,12 +9,25 @@ namespace WPFTasks.Core.Models.Currency.MessageBuilder
         public string FromCurrency { get; set; } = string.Empty;
         public string ToCurrency { get; set; } = string.Empty;
 
-        public string MessageType => "CurrencyRequest";
+        public string MessageType => MsgType;
+        public static string MsgType => "CurrencyRequest";
     }
 
     public class CurrencyRequestMessageBuilder : IMessageBuilder<CurrencyRequestData>
     {
         private CurrencyRequestData _data = new();
+
+        public CurrencyRequestMessageBuilder SetFromCurrency(string fromCurrency)
+        {
+            _data.FromCurrency = fromCurrency;
+            return this;
+        }
+
+        public CurrencyRequestMessageBuilder SetToCurrency(string toCurrency)
+        {
+            _data.ToCurrency = toCurrency;
+            return this;
+        }
 
         public Message BuildMsg()
         {
@@ -25,9 +38,9 @@ namespace WPFTasks.Core.Models.Currency.MessageBuilder
             };
         }
 
-        public CurrencyRequestData Parse(Message msg)
+        public static CurrencyRequestData Parse(Message msg)
         {
-            if (msg.MessageType != _data.MessageType)
+            if (msg.MessageType != CurrencyRequestData.MsgType)
                 throw new InvalidOperationException("Incorrect message type.");
 
             string[] words = msg.Payload.Split(':');

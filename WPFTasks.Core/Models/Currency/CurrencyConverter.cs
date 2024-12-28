@@ -1,7 +1,7 @@
 ﻿
 using Newtonsoft.Json.Linq;
 using System.Net.Http;
-using TopNetwork.Core;
+using TopNetwork.RequestResponse;
 
 namespace WPFTasks.Core.Models.Currency
 {

@@ -4,10 +4,11 @@ namespace TopNetwork.Services.MessageBuilder
 {
     public class AuthenticationResponseData : IMsgSourceData
     {
-        public string MessageType => "AuthenticationResponse";
-
-        public bool IsAuthenticated { get; set; } = false;
         public string Payload { get; set; } = string.Empty;
+        public bool IsAuthenticated { get; set; } = false;
+
+        public string MessageType => MsgType;
+        public static string MsgType => "AuthenticationResponse";
     }
 
     public class AuthenticationResponseMessageBuilder : IMessageBuilder<AuthenticationResponseData>
@@ -35,9 +36,9 @@ namespace TopNetwork.Services.MessageBuilder
             };
         }
 
-        public AuthenticationResponseData Parse(Message msg)
+        public static AuthenticationResponseData Parse(Message msg)
         {
-            if (msg.MessageType != _data.MessageType)
+            if (msg.MessageType != AuthenticationResponseData.MsgType)
                 throw new InvalidOperationException("Incorrect message type.");
 
             if (msg.Headers.TryGetValue("IsAuthed", out var value))

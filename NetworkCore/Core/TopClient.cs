@@ -34,11 +34,8 @@ namespace TopNetwork.Core
         public bool HasPendingMessages => !_messageQueue.IsEmpty;
 
         // Public Methods
-        public TopClient Initialize(string ip, int port)
+        public TopClient Connect(string ip, int port)
         {
-            if (IsInitialized)
-                throw new InvalidOperationException("Client is already initialized.");
-
             _client = new TcpClient();
             _client.Connect(ip, port);
             _stream = _client.GetStream();

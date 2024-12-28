@@ -2,7 +2,7 @@
 using System.IO;
 using System.Text.Json;
 using TopNetwork.Core;
-using WPFTasks.Core.Models.Currency;
+using TopNetwork.RequestResponse;
 
 namespace WPFTasks.Core.Models
 {

@@ -6,7 +6,10 @@ namespace TopNetwork.Services.MessageBuilder
     public class ErroreData : IMsgSourceData
     {
         public string Payload = "Ошибка";
-        public string MessageType => "Errore";
+
+        public string MessageType => MsgType;
+        public static string MsgType => "Errore";
+
     }
 
     public class ErroreMessageBuilder : IMessageBuilder<ErroreData>

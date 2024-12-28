@@ -5,8 +5,10 @@ namespace TopNetwork.Services.MessageBuilder
 {
     public class EndSessionNotificationData : IMsgSourceData
     {
-        public string MessageType => "EndSessionNotification";
         public string Payload = "Ваша сессия завершена...";
+
+        public string MessageType => MsgType;
+        public static string MsgType => "EndSessionNotification";
     }
 
     public class EndSessionNotificationMessageBuilder : IMessageBuilder<EndSessionNotificationData>
@@ -30,9 +32,9 @@ namespace TopNetwork.Services.MessageBuilder
             };
         }
 
-        public EndSessionNotificationData Parse(Message msg)
+        public static EndSessionNotificationData Parse(Message msg)
         {
-            if (msg.MessageType != _data.MessageType)
+            if (msg.MessageType != EndSessionNotificationData.MsgType)
                 throw new InvalidOperationException("Incorrect message type.");
 
             return new()
