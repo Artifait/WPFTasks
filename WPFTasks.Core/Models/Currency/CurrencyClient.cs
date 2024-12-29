@@ -112,20 +112,25 @@ namespace WPFTasks.Core.Models.Currency
         #endregion
 
         #region CurrencyRequest
-        public async Task<CurrencyResponseData?> SendCurrencyRequestWithResponse(string fromCurrency, string toCurrency)
+        public async Task<IMsgSourceData?> SendCurrencyRequestWithResponse(string fromCurrency, string toCurrency)
         {
             var msg = BuildCurrencyRequestMsg(fromCurrency, toCurrency);
-
             try
             {
                 var response = await _client.SendMessageWithResponseAsync(msg);
                 ArgumentNullException.ThrowIfNull(response);
 
-                return CurrencyResponseMessageBuilder.Parse(response);
+                if(response.MessageType == AuthenticationResponseData.MsgType)
+                    return CurrencyResponseMessageBuilder.Parse(response);
+
+                if (response.MessageType == ErroreData.MsgType)
+                    return ErroreMessageBuilder.Parse(msg);
+
+                throw new Exception($"Не удалось распознать сообщение, его тип: {response.MessageType}.");
             }
             catch (Exception ex)
             {
-                OnErrore?.Invoke($"Ошибка при парсинге ответа:\n{msg}");
+                OnErrore?.Invoke($"[Server]: Ошибка при парсинге ответа:\n{msg}");
             }
             return null;
         }

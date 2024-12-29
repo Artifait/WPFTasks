@@ -15,7 +15,7 @@ namespace TopNetwork.RequestResponse
         private readonly TcpListener _listener;
         private readonly ConcurrentDictionary<Guid, ClientSession> _sessions = new();
         private readonly ServiceRegistry _serviceRegistry = new();
-        private readonly Func<TopClient, ServiceRegistry, ClientSession> _sessionFactory;
+        private readonly Func<TopClient, ServiceRegistry, LogString, ClientSession> _sessionFactory;
         private CancellationTokenSource? _cancellationTokenSource;
 
         // События
@@ -25,7 +25,7 @@ namespace TopNetwork.RequestResponse
 
         public LogString? Logger { get; set; }
 
-        public RrServer(IPEndPoint endPoint, Func<TopClient, ServiceRegistry, ClientSession> sessionFactory)
+        public RrServer(IPEndPoint endPoint, Func<TopClient, ServiceRegistry, LogString?, ClientSession?> sessionFactory)
         {
             _listener = new TcpListener(endPoint ?? throw new ArgumentNullException(nameof(endPoint)));
             _sessionFactory = sessionFactory ?? throw new ArgumentNullException(nameof(sessionFactory));
@@ -47,14 +47,21 @@ namespace TopNetwork.RequestResponse
 
             _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             _listener.Start();
-            Logger?.Invoke("Server started.");
+            Logger?.Invoke("[Server]: Started.");
 
             try
             {
                 while (!_cancellationTokenSource.Token.IsCancellationRequested)
                 {
-                    var tcpClient = await _listener.AcceptTcpClientAsync();
-                    _ = Task.Run(() => HandleNewClientAsync(tcpClient), _cancellationTokenSource.Token);
+                    try
+                    {
+                        var tcpClient = await _listener.AcceptTcpClientAsync();
+                        _ = Task.Run(() => HandleNewClientAsync(tcpClient), _cancellationTokenSource.Token);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger?.Invoke($"[Server]: Errore - {ex.Message}.");
+                    }
                 }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
@@ -64,7 +71,7 @@ namespace TopNetwork.RequestResponse
             finally
             {
                 StopListening();
-                Logger?.Invoke("Server stopped.");
+                Logger?.Invoke("[Server]: Stopped.");
             }
         }
 
@@ -95,7 +102,7 @@ namespace TopNetwork.RequestResponse
             }
             catch (Exception ex)
             {
-                Logger?.Invoke($"Error while stopping the listener: {ex.Message}");
+                Logger?.Invoke($"[Server]: Error while stopping the listener: {ex.Message}");
             }
         }
 
@@ -110,7 +117,10 @@ namespace TopNetwork.RequestResponse
                 topClient = new TopClient();
                 topClient.Connect(tcpClient);
 
-                session = _sessionFactory(topClient, _serviceRegistry);
+                session = _sessionFactory(topClient, _serviceRegistry, Logger);
+
+                if(session == null)
+                    return;
 
                 if (!_sessions.TryAdd(clientGuid, session))
                 {
@@ -125,13 +135,13 @@ namespace TopNetwork.RequestResponse
             catch (Exception ex)
             {
                 ServerError?.Invoke(ex);
-                Logger?.Invoke($"[{topClient!.RemoteEndPoint}]: Error handling client - {ex.Message}");
+                Logger?.Invoke($"[Server]: Error handling client [{topClient!.RemoteEndPoint}] - {ex.Message}");
             }
             finally
             {
                 if (session != null)
                 {
-                    _sessions.TryRemove(clientGuid, out _);
+                    _sessions.TryRemove(clientGuid, out _); 
                     session.CloseSession();
                 }
 

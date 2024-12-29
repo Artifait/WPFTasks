@@ -30,6 +30,24 @@ namespace TopNetwork.Core
             return _services.ContainsKey(typeof(TService));
         }
 
+        public bool TryGetService<TService>(out TService service) where TService : class
+        {
+            // Попытка получить сервис из словаря
+            if (_services.TryGetValue(typeof(TService), out var objService))
+            {
+                // Дополнительная проверка типа, чтобы избежать ошибок приведения
+                if (objService is TService typedService)
+                {
+                    service = typedService;
+                    return true;
+                }
+            }
+
+            // Если не удалось получить сервис, возвращаем false и null
+            service = null!;
+            return false;
+        }
+
         // Получение сервиса с автоматическим разрешением зависимостей
         public TService? Get<TService>() where TService : class
         {

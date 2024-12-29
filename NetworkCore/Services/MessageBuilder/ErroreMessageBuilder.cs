@@ -33,9 +33,9 @@ namespace TopNetwork.Services.MessageBuilder
             };
         }
 
-        public ErroreData Parse(Message msg)
+        public static ErroreData Parse(Message msg)
         {
-            if (msg.MessageType != _data.MessageType)
+            if (msg.MessageType != ErroreData.MsgType)
                 throw new InvalidOperationException("Incorrect message type.");
 
             return new()

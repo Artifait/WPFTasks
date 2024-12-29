@@ -35,9 +35,9 @@ namespace TopNetwork.Services.MessageBuilder
             };
         }
 
-        public AuthenticationRequestData Parse(Message msg)
+        public static AuthenticationRequestData Parse(Message msg)
         {
-            if (msg.MessageType != _data.MessageType)
+            if (msg.MessageType != AuthenticationRequestData.MsgType)
                 throw new InvalidOperationException("Incorrect message type.");
 
             var parts = msg.Payload.Split(':');

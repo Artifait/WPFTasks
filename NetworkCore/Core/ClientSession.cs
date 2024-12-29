@@ -42,11 +42,21 @@ namespace TopNetwork.Core
 
         public virtual async Task StartAsync()
         {
-            if (!OpenConditionEvaluator.ShouldOpen(this))
+            try {
+                if (!OpenConditionEvaluator.ShouldOpen(this))
+                    return;
+            }
+            catch(Exception ex) {
+                logger?.Invoke($"[Server.ClientSession]: Errore on checking OpenConditions - {ex.Message}.");
                 return;
+            }
+
 
             if (IsRunning)
-                throw new InvalidOperationException("Session is already running.");
+            {
+                logger?.Invoke($"[Server.ClientSession]: Errore - Session is already running.");
+                return;
+            }
 
             IsRunning = true;
             StartTime = DateTime.UtcNow;
@@ -122,7 +132,7 @@ namespace TopNetwork.Core
 
         private void HandleClientDisconnected()
         {
-            OnError($"[{RemoteEndPoint}]: Client disconnected");
+            OnError($"[{RemoteEndPoint}]: Client disconnected...");
             CloseSession();
         }
 
