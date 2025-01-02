@@ -5,14 +5,14 @@ namespace TopNetwork.Conditions
 {
     public class SessionOpenConditionEvaluator : ConditionEvaluator<ClientSession>
     {
-        public async Task<bool> ShouldOpenAsync(ClientSession session)
-        {
-            return await AllConditionsSatisfiedAsync(session);
-        }
+        public override SessionOpenConditionEvaluator AddCondition(ICondition<ClientSession> condition)
+            => (SessionOpenConditionEvaluator)base.AddCondition(condition);
+        public override SessionOpenConditionEvaluator AddAsyncCondition(IAsyncCondition<ClientSession> asyncCondition)
+            => (SessionOpenConditionEvaluator)base.AddAsyncCondition(asyncCondition);
 
+        public async Task<bool> ShouldOpenAsync(ClientSession session)
+            => await AllConditionsSatisfiedAsync(session);
         public bool ShouldOpen(ClientSession session)               
-        {
-            return AllConditionsSatisfied(session);
-        }
+            => AllConditionsSatisfied(session);
     }
 }

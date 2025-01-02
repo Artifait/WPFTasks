@@ -15,6 +15,7 @@ namespace TopNetwork.Services
         private readonly TimeSpan _maxSessionDuration;
 
         public LogString? Logger { get; set; }
+        public int CountConnections { get =>  _authenticatedSessions.Count; }
 
         public AuthenticationService(UserService<UserT> userService, MessageBuilderService msgService, TimeSpan maxSessionDuration)
         {

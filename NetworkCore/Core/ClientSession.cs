@@ -21,11 +21,12 @@ namespace TopNetwork.Core
         public SessionCloseConditionEvaluator CloseConditionEvaluator { get; set; } = new();
         public SessionOpenConditionEvaluator OpenConditionEvaluator { get; set; } = new();
         public RrServerHandlerBase MessageHandlers { get; set; }
-        public readonly ServiceRegistry ServerContext;
+        public TopClient Client => _client;
 
+        public readonly ServiceRegistry ServerContext;
         public LogString? logger;
         public bool IsRunning { get; private set; }
-        public bool IsClosed { get; private set; }
+        public bool IsClosed { get; private set; } = false;
         public EndPoint? RemoteEndPoint => _client.RemoteEndPoint;
         public DateTime StartTime { get; private set; }
         public int ProcessedMessagesCountAll => ProcessedMessagesCountOfType.Values.Sum();
@@ -38,6 +39,11 @@ namespace TopNetwork.Core
             _client.OnMessageReceived += HandleMessageAsync;
             _client.OnDisconnected += HandleClientDisconnected;
             ServerContext = context;
+        }
+
+        public async Task SendMessage(Message msg)
+        {
+            await _client.SendMessageAsync(msg);
         }
 
         public virtual async Task StartAsync()

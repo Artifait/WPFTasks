@@ -4,51 +4,46 @@ using TopNetwork.Core;
 using TopNetwork.RequestResponse;
 using TopNetwork.Services;
 using TopNetwork.Services.MessageBuilder;
+using WPFTasks.Core.Models.Currency.Conditions;
 using WPFTasks.Core.Models.Currency.MessageBuilder;
 
 namespace WPFTasks.Core.Models.Currency
 {
-    public class CurrencyOpenCondition : ICondition<ClientSession>
-    {
-        public bool IsSatisfied(ClientSession sesion)
-        {
-            if(sesion.ServerContext.TryGetService<AuthenticationService<CurrencyUser>>(out var authService))
-            {
-
-            }
-            throw new Exception($"Не зарегистрирован сервис: {nameof(AuthenticationService<CurrencyUser>)}");
-        }
-    }
     public class CurrencyServer
     { 
         // Регистрация всех фабрик для типов сообщений отправляемых сервером 
         private static readonly MessageBuilderService _msgService = new MessageBuilderService()
+                    .Register(() => new AuthenticationResponseMessageBuilder())
                     .Register(() => new CurrencyResponseMessageBuilder())
                     .Register(() => new ErroreMessageBuilder())    
-                    .Register(() => new AuthenticationResponseMessageBuilder())
-                    .Register(() => new EndSessionNotificationMessageBuilder());
+                    .Register(() => new EndSessionNotificationMessageBuilder())
+                    .Register(() => new ServerOverloadedNotificationMessageBuilder());
 
-        private readonly SessionOpenConditionEvaluator _sessionOpenCondition = (SessionOpenConditionEvaluator)new SessionOpenConditionEvaluator()
-            .AddCondition(new CurrencyOpenCondition());
+        private static readonly SessionOpenConditionEvaluator _sessionOpenCondition = new SessionOpenConditionEvaluator()
+            .AddAsyncCondition(new CurrencyOpenCondition());
+
+        private static readonly SessionCloseConditionEvaluator _sessionCloseCondition = new SessionCloseConditionEvaluator()
+            .AddAsyncCondition(new CurrencyCloseCondition());
 
         private readonly CurrencyConverter _converter;
         private readonly RrServerHandlerBase _handlers;
         private RrServer _server;    
         
-        public Logger Logger { get; private set; } = new();
+        public Logger Logger { get; private set; }
         public AuthenticationService<CurrencyUser> AuthenticationService { get; private set; }
 
         public CurrencyServer()
         {
+            Logger = new Logger();
             _converter = new(Logger.Log);
-
+            
             _handlers = new RrServerHandlerBase()
                 .AddHandlerForMessageType(CurrencyRequestData.MsgType, async (client, msg, context) =>
                 {
                     try
                     {
                         var requestData = CurrencyRequestMessageBuilder.Parse(msg);
-                        var convertData = await _converter.GetExchangeRate(requestData.FromCurrency, requestData.FromCurrency);
+                        var convertData = await _converter.GetExchangeRate(requestData.FromCurrency, requestData.ToCurrency);
 
                         return _msgService.BuildMessage<CurrencyResponseMessageBuilder, CurrencyResponseData>(builder => builder
                             .SetFromCurrency(requestData.FromCurrency)
@@ -68,7 +63,6 @@ namespace WPFTasks.Core.Models.Currency
                 {
                     try {
                         var requestData = AuthenticationRequestMessageBuilder.Parse(msg);
-                        await AuthenticationService.VerifyAllSessions();
                         return await AuthenticationService.AuthenticateClient(client, requestData); ;
                     }
                     catch (Exception ex)
@@ -84,13 +78,18 @@ namespace WPFTasks.Core.Models.Currency
                     AuthenticationService.CloseSession(client);
                     return _msgService.BuildMessage<EndSessionNotificationMessageBuilder, EndSessionNotificationData>();
                 });
+        }
 
-            ClientSession SessionFactory(TopClient client, ServiceRegistry context, LogString? logger)
+        private ClientSession SessionFactory(TopClient client, ServiceRegistry context, LogString? logger)
+        {
+            ClientSession session = new(client, _handlers, context)
             {
-                ClientSession session = new(client, _handlers, context);
-                session.OpenConditionEvaluator.AddCondition()
-                return session;
-            }
+                logger = logger,
+                OpenConditionEvaluator = _sessionOpenCondition,
+                CloseConditionEvaluator = _sessionCloseCondition,
+            };
+
+            return session;
         }
     }
 }

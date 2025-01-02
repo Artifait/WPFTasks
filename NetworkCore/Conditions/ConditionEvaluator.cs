@@ -6,14 +6,14 @@ namespace TopNetwork.Conditions
         private readonly List<ICondition<T>> _conditions = new();
         private readonly List<IAsyncCondition<T>> _asyncConditions = new();
 
-        public ConditionEvaluator<T> AddCondition(ICondition<T> condition)
+        public virtual ConditionEvaluator<T> AddCondition(ICondition<T> condition)
         {
             ArgumentNullException.ThrowIfNull(condition);
             _conditions.Add(condition);
             return this;
         }
 
-        public ConditionEvaluator<T> AddAsyncCondition(IAsyncCondition<T> asyncCondition)
+        public virtual ConditionEvaluator<T> AddAsyncCondition(IAsyncCondition<T> asyncCondition)
         {
             ArgumentNullException.ThrowIfNull(asyncCondition);
             _asyncConditions.Add(asyncCondition);
