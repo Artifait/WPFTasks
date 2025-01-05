@@ -3,7 +3,7 @@ using System.Security.Cryptography;
 
 namespace TopNetwork.Services
 {
-    public class PasswordService
+    public class PasswordService : IPasswordService
     {
         public string HashPassword(string password)
         {

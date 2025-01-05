@@ -1,4 +1,5 @@
 ﻿
+using System.Net;
 using TopNetwork.Conditions;
 using TopNetwork.Core;
 using TopNetwork.RequestResponse;
@@ -19,24 +20,40 @@ namespace WPFTasks.Core.Models.Currency
                     .Register(() => new EndSessionNotificationMessageBuilder())
                     .Register(() => new ServerOverloadedNotificationMessageBuilder());
 
-        private static readonly SessionOpenConditionEvaluator _sessionOpenCondition = new SessionOpenConditionEvaluator()
-            .AddAsyncCondition(new CurrencyOpenCondition());
+        private readonly ConnectionLimitCondition _openCondition = new();
+        private readonly SessionOpenConditionEvaluator _sessionOpenCondition = new();
 
-        private static readonly SessionCloseConditionEvaluator _sessionCloseCondition = new SessionCloseConditionEvaluator()
-            .AddAsyncCondition(new CurrencyCloseCondition());
+        private readonly MaxRequestsCloseCondition _closeCondition = new();
+        private readonly SessionCloseConditionEvaluator _sessionCloseCondition = new SessionCloseConditionEvaluator()
+            .AddAsyncCondition(new AuthCloseCondition());
 
         private readonly CurrencyConverter _converter;
+        private readonly Repository<CurrencyUser> _userRepository;
+        private readonly UserService<CurrencyUser> _userService;
+        private readonly AuthenticationService<CurrencyUser> _authenticationService;
         private readonly RrServerHandlerBase _handlers;
-        private RrServer _server;    
-        
-        public Logger Logger { get; private set; }
-        public AuthenticationService<CurrencyUser> AuthenticationService { get; private set; }
+        private RrServer _server = new();
 
-        public CurrencyServer()
+        public Logger Logger { get; private set; } = new();
+
+        public CurrencyServer(string? filePath = null)
         {
-            Logger = new Logger();
-            _converter = new(Logger.Log);
-            
+            _converter = new(Logger.LogString);
+            _server.Logger = Logger.LogString;
+
+            _userRepository = new(filePath ?? "CurrencyUsers.json");
+            _userService = new(_userRepository, new PasswordService());
+
+            _server
+                .RegisterGeneric(typeof(AuthenticationService<>), typeof(AuthenticationService<>))
+                .RegisterService(_msgService)
+                .RegisterService(_userRepository)
+                .RegisterService(_userService)
+                .Context.TryGetService(out _authenticationService!);                    
+
+            _sessionOpenCondition.AddAsyncCondition(_openCondition);
+            _sessionCloseCondition.AddCondition(_closeCondition);
+
             _handlers = new RrServerHandlerBase()
                 .AddHandlerForMessageType(CurrencyRequestData.MsgType, async (client, msg, context) =>
                 {
@@ -45,15 +62,17 @@ namespace WPFTasks.Core.Models.Currency
                         var requestData = CurrencyRequestMessageBuilder.Parse(msg);
                         var convertData = await _converter.GetExchangeRate(requestData.FromCurrency, requestData.ToCurrency);
 
-                        return _msgService.BuildMessage<CurrencyResponseMessageBuilder, CurrencyResponseData>(builder => builder
+                        var response = _msgService.BuildMessage<CurrencyResponseMessageBuilder, CurrencyResponseData>(builder => builder
                             .SetFromCurrency(requestData.FromCurrency)
                             .SetToCurrency(requestData.ToCurrency)
                             .SetRate(convertData)
                         );
+
+                        return response;
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log($"[Server]: Ошибка обработки {CurrencyRequestData.MsgType} от [{client.RemoteEndPoint}].\n{ex.Message}");
+                        Logger.LogString($"[Server]: Ошибка обработки {CurrencyRequestData.MsgType} от [{client.RemoteEndPoint}].\n{ex.Message}");
                         return _msgService.BuildMessage<ErroreMessageBuilder, ErroreData>(builder => builder
                             .SetPayload($"Невозможно обработать {CurrencyRequestData.MsgType}.\n{ex.Message}")
                         );
@@ -63,11 +82,11 @@ namespace WPFTasks.Core.Models.Currency
                 {
                     try {
                         var requestData = AuthenticationRequestMessageBuilder.Parse(msg);
-                        return await AuthenticationService.AuthenticateClient(client, requestData); ;
+                        return await _authenticationService.AuthenticateClient(client, requestData);
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log($"[Server]: Ошибка обработки {AuthenticationRequestData.MsgType} от [{client.RemoteEndPoint}].\n{ex.Message}");
+                        Logger.LogString($"[Server]: Ошибка обработки {AuthenticationRequestData.MsgType} от [{client.RemoteEndPoint}].\n{ex.Message}");
                         return _msgService.BuildMessage<ErroreMessageBuilder, ErroreData>(builder => builder
                             .SetPayload($"Невозможно обработать {AuthenticationRequestData.MsgType}.\n{ex.Message}")
                         );
@@ -75,12 +94,23 @@ namespace WPFTasks.Core.Models.Currency
                 })
                 .AddHandlerForMessageType(CloseSessionRequestData.MsgType, async (client, msg, context) =>
                 {
-                    AuthenticationService.CloseSession(client);
+                    _authenticationService.CloseSession(client);
                     return _msgService.BuildMessage<EndSessionNotificationMessageBuilder, EndSessionNotificationData>();
                 });
+
+            _server.SetSessionFactory(SessionFactory);
         }
 
-        private ClientSession SessionFactory(TopClient client, ServiceRegistry context, LogString? logger)
+        public void SetEndPoint(IPEndPoint endPoint)
+            => _server.SetEndPoint(endPoint);
+
+        public async Task StartServer(CancellationToken token = default)
+            => await _server.StartAsync(token);
+
+        public async Task StopServer()
+            => await _server.StopAsync();
+
+        private ClientSession? SessionFactory(TopClient client, ServiceRegistry context, LogString? logger)
         {
             ClientSession session = new(client, _handlers, context)
             {
@@ -90,6 +120,29 @@ namespace WPFTasks.Core.Models.Currency
             };
 
             return session;
+        }
+
+        // Свойства Задаваемые юзером
+        public string FilePath
+        {
+            get => _userRepository.FilePath;
+            set => _userRepository.SetFilePath(value);
+        }
+
+        public TimeSpan MaxSessionDuration => _authenticationService.MaxSessionDuration;
+        public async Task UpdateSessionDuration(TimeSpan newDuration)
+            => await _authenticationService.UpdateSessionDuration(newDuration);
+
+        public int MaxConnections
+        {
+            set => _openCondition.MaxConnections = value;
+            get => _openCondition.MaxConnections;
+        }
+
+        public int MaxRequests
+        {
+            get => _closeCondition.MaxRequests;
+            set => _closeCondition.MaxRequests = value;
         }
     }
 }

@@ -5,7 +5,7 @@ using TopNetwork.Services;
 
 namespace WPFTasks.Core.Models.Currency.Conditions
 {
-    public class CurrencyCloseCondition : IAsyncCondition<ClientSession>
+    public class AuthCloseCondition : IAsyncCondition<ClientSession>
     {
         public async Task<bool> IsSatisfiedAsync(ClientSession session)
         {
@@ -14,6 +14,20 @@ namespace WPFTasks.Core.Models.Currency.Conditions
 
             session.logger?.Invoke($"[ServerContext]: Чееел ты забыл зарегать сервис - {nameof(AuthenticationService<CurrencyUser>)}");
             return true;
+        }
+    }
+
+    public class MaxRequestsCloseCondition : ICondition<ClientSession>
+    {
+        public int MaxRequests { get; set; } = 3;
+        public string MsgType { get; set; } = string.Empty;
+
+        public bool IsSatisfied(ClientSession session)
+        {
+            if(session.ProcessedMessagesCountOfType.TryGetValue(MsgType, out var count))
+                return count >= MaxRequests;
+
+            return false;
         }
     }
 }

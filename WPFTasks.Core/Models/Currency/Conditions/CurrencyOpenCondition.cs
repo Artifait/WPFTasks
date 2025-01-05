@@ -7,7 +7,7 @@ using WPFTasks.Core.Models.Currency.MessageBuilder;
 
 namespace WPFTasks.Core.Models.Currency.Conditions
 {
-    public class CurrencyOpenCondition : IAsyncCondition<ClientSession>
+    public class ConnectionLimitCondition : IAsyncCondition<ClientSession>
     {
         public int MaxConnections { get; set; } = 2;
 

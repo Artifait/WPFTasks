@@ -8,14 +8,12 @@ namespace TopNetwork.Core
     [AttributeUsage(AttributeTargets.Property)]
     public class InjectAttribute : Attribute { }
 
-    /// <summary>
-    /// Регистр сервисов, чтоб не плодить статики
-    /// </summary>
     public class ServiceRegistry
     {
-        private readonly ConcurrentDictionary<Type, object> _services = new();
+        private readonly ConcurrentDictionary<Type, object> _services = new(); // Регистрация конкретных типов
+        private readonly ConcurrentDictionary<Type, Type> _genericRegistrations = new(); // Регистрация generic-типов
 
-        // Регистрации сервиса
+        // Регистрация конкретного сервиса
         public ServiceRegistry Register<TService>(TService service) where TService : class
         {
             ArgumentNullException.ThrowIfNull(service);
@@ -24,36 +22,25 @@ namespace TopNetwork.Core
             return this;
         }
 
-        // Проверка, зарегистрирован ли сервис
-        public bool IsRegistered<TService>() where TService : class
+        // Регистрация generic-типа
+        public ServiceRegistry RegisterGeneric(Type serviceType, Type implementationType)
         {
-            return _services.ContainsKey(typeof(TService));
-        }
-
-        public bool TryGetService<TService>(out TService service) where TService : class
-        {
-            // Попытка получить сервис из словаря
-            if (_services.TryGetValue(typeof(TService), out var objService))
+            if (!serviceType.IsGenericTypeDefinition || !implementationType.IsGenericTypeDefinition)
             {
-                // Дополнительная проверка типа, чтобы избежать ошибок приведения
-                if (objService is TService typedService)
-                {
-                    service = typedService;
-                    return true;
-                }
+                throw new ArgumentException("Оба типа должны быть определениями generic-типов.");
             }
 
-            // Если не удалось получить сервис, возвращаем false и null
-            service = null!;
-            return false;
+            _genericRegistrations[serviceType] = implementationType;
+            return this;
         }
 
-        // Получение сервиса с автоматическим разрешением зависимостей
+        // Получение зарегистрированного сервиса
         public TService? Get<TService>() where TService : class
         {
             return (TService?)GetService(typeof(TService));
         }
 
+        // Получение сервиса по типу
         private object? GetService(Type serviceType)
         {
             if (_services.TryGetValue(serviceType, out var service))
@@ -61,50 +48,86 @@ namespace TopNetwork.Core
                 return service;
             }
 
-            // Создаём объект через конструктор (или через активацию по умолчанию)
-            service = CreateInstance(serviceType);
-
-            if (service == null)
+            if (serviceType.IsGenericType)
             {
-                throw new InvalidOperationException($"Unable to create an instance of type {serviceType.FullName}");
+                service = ResolveGenericType(serviceType);
+                if (service != null)
+                {
+                    _services[serviceType] = service;
+                    InjectDependencies(service);
+                    return service;
+                }
             }
 
-            // Регистрируем созданный объект
-            _services[serviceType] = service;
+            if (serviceType.IsInterface || serviceType.IsAbstract)
+            {
+                throw new InvalidOperationException($"Нет зарегистрированной реализации для {serviceType.FullName}");
+            }
 
-            // Заполняем зависимости через свойства
-            InjectDependencies(service);
+            service = CreateInstance(serviceType);
+            if (service != null)
+            {
+                _services[serviceType] = service;
+                InjectDependencies(service);
+            }
 
             return service;
         }
 
+        // Метод TryGetService
+        public bool TryGetService<TService>(out TService? service) where TService : class
+        {
+            service = (TService?)TryGetService(typeof(TService));
+            return service != null;
+        }
+
+        private object? TryGetService(Type serviceType)
+        {
+            try
+            {
+                return GetService(serviceType);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        // Разрешение generic-типа
+        private object? ResolveGenericType(Type genericType)
+        {
+            var genericTypeDefinition = genericType.GetGenericTypeDefinition();
+
+            if (!_genericRegistrations.TryGetValue(genericTypeDefinition, out var implementationType))
+            {
+                throw new InvalidOperationException($"Generic-тип {genericType.FullName} не зарегистрирован.");
+            }
+
+            var constructedType = implementationType.MakeGenericType(genericType.GenericTypeArguments);
+            return CreateInstance(constructedType);
+        }
+
+        // Создание экземпляра сервиса
         private object? CreateInstance(Type serviceType)
         {
-            // Пробуем найти конструктор с параметрами
             var constructor = serviceType.GetConstructors()
                 .OrderByDescending(c => c.GetParameters().Length)
                 .FirstOrDefault();
 
             if (constructor == null)
             {
-                // Если конструкторов нет, используем стандартную активацию
                 return Activator.CreateInstance(serviceType);
             }
 
-            // Разрешаем параметры конструктора
-            var parameters = constructor.GetParameters();
-            var parameterInstances = parameters
-                .Select(p => GetService(p.ParameterType))
+            var parameters = constructor.GetParameters()
+                .Select(p => GetService(p.ParameterType) ?? throw new InvalidOperationException(
+                    $"Невозможно разрешить зависимость {p.ParameterType.FullName} для {serviceType.FullName}"))
                 .ToArray();
 
-            if (parameterInstances.Any(p => p == null))
-            {
-                throw new InvalidOperationException($"Cannot resolve dependencies for type {serviceType.FullName}");
-            }
-
-            return constructor.Invoke(parameterInstances);
+            return constructor.Invoke(parameters);
         }
 
+        // Внедрение зависимостей в свойства
         private void InjectDependencies(object instance)
         {
             var properties = instance.GetType()
@@ -114,7 +137,7 @@ namespace TopNetwork.Core
             foreach (var property in properties)
             {
                 var dependency = GetService(property.PropertyType) ?? throw new InvalidOperationException(
-                    $"Unable to resolve dependency for property {property.Name} in type {instance.GetType().FullName}");
+                    $"Невозможно разрешить зависимость для свойства {property.Name} в {instance.GetType().FullName}");
 
                 property.SetValue(instance, dependency);
             }

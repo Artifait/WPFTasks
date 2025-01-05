@@ -10,17 +10,17 @@ namespace WPFTasks.Pages
         public ClientPage()
         {
             InitializeComponent();
-            DataContext = new ClientPageViewModel(App.Current.Dispatcher);
+            //DataContext = new ClientPageViewModel(App.Current.Dispatcher);
         }
 
         private void TextBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
             {
-                if (DataContext is ClientPageViewModel vm && vm.SendMessageCommand.CanExecute(null))
-                {
-                    vm.SendMessageCommand.Execute(null);
-                }
+                //if (DataContext is ClientPageViewModel vm && vm.SendMessageCommand.CanExecute(null))
+                //{
+                //    vm.SendMessageCommand.Execute(null);
+                //}
             }
         }
     }

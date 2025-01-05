@@ -25,12 +25,14 @@
                     <ColumnDefinition Width="2*"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <Button Grid.Column="0" Margin="0 0 10 10" FontSize="14" Content="Clear" Command="{Binding ClearMessagesCommand}" Style="{StaticResource DarkButtonStyle}"/>
                 <TextBox Grid.Column="1" Margin="0 0 10 10" Text="{Binding IpAddress}" ToolTip="IP Address" Style="{StaticResource TextBoxStyle}"/>
                 <TextBox Grid.Column="2" Margin="0 0 10 10" Text="{Binding Port}" ToolTip="Port" Style="{StaticResource TextBoxStyle}"/>
-                <Button Grid.Column="3" Margin="0 0 10 10" Content="Connect" Command="{Binding StartServerCommand}" Style="{StaticResource DarkButtonStyle}"/>
-                <TextBlock Grid.Column="4" Margin="0 0 0 10" Text="Server" Style="{DynamicResource LabelTextStyle}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <Button Grid.Column="3" Margin="0 0 10 10" Content="Start" Command="{Binding StartServerCommand}" Style="{StaticResource DarkButtonStyle}"/>
+                <Button Grid.Column="4" Margin="0 0 10 10" Content="Stop" Command="{Binding StopServerCommand}" Style="{StaticResource DarkButtonStyle}"/>
+                <TextBlock Grid.Column="5" Margin="0 0 0 10" Text="Server" Style="{DynamicResource LabelTextStyle}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Grid>
 
             <TextBlock Grid.Row="1" VerticalAlignment="Bottom" Text="Консоль" Style="{DynamicResource LabelTextStyle}"/>

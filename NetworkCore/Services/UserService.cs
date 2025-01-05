@@ -31,17 +31,27 @@ namespace TopNetwork.Services
         List<T> GetAll();
     }
 
-
+    public interface IPasswordService
+    {
+        string HashPassword(string password);
+        bool VerifyHashedPassword(string hashedPassword, string password);
+    }
     public class Repository<T> : IRepository<T> where T : class
     {
-        private readonly string _filePath;
         private readonly object _locker = new();
+        private string _filePath;
+
+        public string FilePath => _filePath;
 
         public Repository(string filePath)
         {
             _filePath = filePath;
         }
 
+        public void SetFilePath(string filePath)
+        {
+            _filePath = filePath;
+        }
         public void Add(T entity)
         {
             lock (_locker)
@@ -79,7 +89,7 @@ namespace TopNetwork.Services
             lock (_locker)
             {
                 if (!File.Exists(_filePath))
-                    return new List<T>();
+                    return [];
 
                 var json = File.ReadAllText(_filePath);
                 return JsonSerializer.Deserialize<List<T>>(json) ?? new List<T>();
@@ -95,13 +105,12 @@ namespace TopNetwork.Services
         }
     }
 
-
     public class UserService<UserT> where UserT : User
     {
         private readonly IRepository<UserT> _repository;
-        private readonly PasswordService _passwordService;
+        private readonly IPasswordService _passwordService;
 
-        public UserService(IRepository<UserT> repository, PasswordService passwordService)
+        public UserService(IRepository<UserT> repository, IPasswordService passwordService)
         {
             _repository = repository;
             _passwordService = passwordService;

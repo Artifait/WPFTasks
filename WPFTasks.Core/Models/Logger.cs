@@ -5,14 +5,19 @@ namespace WPFTasks.Core.Models
 {
     public class Logger
     {
+        private string _log = string.Empty;
         public StringBuilder sb { get; set; } = new();
-        public Action<string>? OnUpdateLog { get; set; }
-        public string LogMsgs => sb.ToString();
+        public event Action<string>? OnUpdateLog;
+        public event Action<string>? OnLogged;
+        public string Log => _log;
 
-        public void Log(string str)
+        public void LogString(string str)
         {
             sb.AppendLine(str);
-            OnUpdateLog?.Invoke(sb.ToString());
+            _log = sb.ToString();
+
+            OnUpdateLog?.Invoke(_log);
+            OnLogged?.Invoke(str);
         }
         public void ClearLog() => sb.Clear();
     }
