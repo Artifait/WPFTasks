@@ -27,7 +27,7 @@ namespace TopNetwork.Core
         // Properties
         public bool IsConnected => _client?.Connected ?? false;
         public bool IsInitialized { get; private set; }
-        public EndPoint? RemoteEndPoint => _client?.Client.RemoteEndPoint;
+        public EndPoint? RemoteEndPoint => _client?.Client?.RemoteEndPoint;
         public NetworkStream? ReadStream => _stream;
         public readonly SemaphoreSlim ReadSemaphore = new(1, 1);
 
@@ -133,8 +133,9 @@ namespace TopNetwork.Core
             }
             finally
             {
-                OnConnectionLost?.Invoke();
                 StopListening();
+                _client?.Close();
+                OnConnectionLost?.Invoke();
             }
         }
 

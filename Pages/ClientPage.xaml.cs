@@ -17,10 +17,10 @@ namespace WPFTasks.Pages
         {
             if (e.Key == Key.Enter)
             {
-                //if (DataContext is ClientPageViewModel vm && vm.SendMessageCommand.CanExecute(null))
-                //{
-                //    vm.SendMessageCommand.Execute(null);
-                //}
+                if (DataContext is CurrencyClientViewModel vm && vm.SendMessageCommand.CanExecute(null))
+                {
+                    vm.SendMessageCommand.Execute(null);
+                }
             }
         }
     }

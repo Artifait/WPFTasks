@@ -109,22 +109,26 @@ namespace TopNetwork.Services
     {
         private readonly IRepository<UserT> _repository;
         private readonly IPasswordService _passwordService;
+        private readonly Func<(string login, string hashPassword), UserT> _userFactory;
 
-        public UserService(IRepository<UserT> repository, IPasswordService passwordService)
+        public UserService(IRepository<UserT> repository, IPasswordService passwordService, Func<(string login, string hashPassword), UserT> userFactory)
         {
             _repository = repository;
             _passwordService = passwordService;
+            _userFactory = userFactory;
+            _userFactory.Invoke(("fdf", "fdfds"));
         }
 
-        public void RegisterUser(UserT user)
+        public UserService<UserT> RegisterUser(string login, string password)
         {
-            if (string.IsNullOrWhiteSpace(user.Login) || string.IsNullOrWhiteSpace(user.PasswordHash))
+            if (string.IsNullOrWhiteSpace(login) || string.IsNullOrWhiteSpace(password))
                 throw new ArgumentException("Логин и пароль не могут быть пустыми.");
 
-            if (_repository.Get(u => u.Login == user.Login) != null)
+            if (_repository.Get(u => u.Login == login) != null)
                 throw new InvalidOperationException("Пользователь с таким логином уже существует.");
 
-            _repository.Add(user);
+            _repository.Add(_userFactory.Invoke((login, _passwordService.HashPassword(password))));
+            return this;
         }
 
         public UserT? Authenticate(string login, string password)

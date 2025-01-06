@@ -59,7 +59,8 @@ namespace WPFTasks.Core.ViewModels
                 _server.SetEndPoint(new IPEndPoint(IPAddress.Parse(IpAddress), Port));
                 _cancellationTokenSource = new CancellationTokenSource();
                 await _server.StartServer(_cancellationTokenSource.Token);
-                LogMessage("[Server]: Сервер запущен.");
+                
+                //LogMessage("[Server]: Сервер запущен.");
             }
             catch (Exception ex)
             {
@@ -89,8 +90,9 @@ namespace WPFTasks.Core.ViewModels
         // Обработчик сообщений лога
         private void OnLogMessage(string message)
             => LogMessage(message);
-
+            
         private void LogMessage(string message)
             => Content += $"{message}\n";
     }
 }
+

@@ -12,7 +12,7 @@ namespace TopNetwork.Services
         private readonly UserService<UserT> _userService;
         private readonly MessageBuilderService _msgService;
         private readonly ConcurrentDictionary<TopClient, (string Login, DateTime Timestamp)> _authenticatedSessions = new();
-        private TimeSpan _maxSessionDuration = TimeSpan.FromMinutes(5);
+        private TimeSpan _maxSessionDuration = TimeSpan.FromMinutes(10);
 
         public LogString? Logger { get; set; }
         public TimeSpan MaxSessionDuration => _maxSessionDuration;
@@ -23,6 +23,8 @@ namespace TopNetwork.Services
             _msgService = msgService;
             _userService = userService;
         }
+
+        public bool IsAuthClient(TopClient client) => _authenticatedSessions.TryGetValue(client, out _);
 
         /// <summary>
         /// Проверка текущей сессии.
@@ -36,14 +38,11 @@ namespace TopNetwork.Services
 
                 Logger?.Invoke($"[AuthenticationService]: Сессия клиента [{client.RemoteEndPoint}] истекла.");
                 _authenticatedSessions.Remove(client, out var _);
-            }
-            else
-            {
+                await NotifySessionExpired(client);
                 return false;
             }
 
-            await NotifySessionExpired(client);
-            return false;
+            return true;
         }
 
         /// <summary>

@@ -23,18 +23,19 @@ namespace WPFTasks.Core.Models.Currency
         private readonly ConnectionLimitCondition _openCondition = new();
         private readonly SessionOpenConditionEvaluator _sessionOpenCondition = new();
 
-        private readonly MaxRequestsCloseCondition _closeCondition = new();
+        private readonly MaxRequestsCloseCondition _closeCondition = new() { MsgType = CurrencyRequestData.MsgType };
         private readonly SessionCloseConditionEvaluator _sessionCloseCondition = new SessionCloseConditionEvaluator()
             .AddAsyncCondition(new AuthCloseCondition());
 
-        private readonly CurrencyConverter _converter;
+        private readonly AuthenticationService<CurrencyUser> _authenticationService;
         private readonly Repository<CurrencyUser> _userRepository;
         private readonly UserService<CurrencyUser> _userService;
-        private readonly AuthenticationService<CurrencyUser> _authenticationService;
         private readonly RrServerHandlerBase _handlers;
+        private readonly CurrencyConverter _converter;
         private RrServer _server = new();
 
         public Logger Logger { get; private set; } = new();
+        public EndPoint? EndPoint => _server.CurrentEndPoint;
 
         public CurrencyServer(string? filePath = null)
         {
@@ -42,14 +43,19 @@ namespace WPFTasks.Core.Models.Currency
             _server.Logger = Logger.LogString;
 
             _userRepository = new(filePath ?? "CurrencyUsers.json");
-            _userService = new(_userRepository, new PasswordService());
+
+            _userService = new(_userRepository, new PasswordService(), data => new(data.login, data.hashPassword));
+            //_userService
+            //    .RegisterUser("Art", "123")
+            //    .RegisterUser("User1", "123")
+            //    .RegisterUser("Peshka", "123");
 
             _server
                 .RegisterGeneric(typeof(AuthenticationService<>), typeof(AuthenticationService<>))
                 .RegisterService(_msgService)
                 .RegisterService(_userRepository)
                 .RegisterService(_userService)
-                .Context.TryGetService(out _authenticationService!);                    
+                .Context.TryGetService(out _authenticationService!);
 
             _sessionOpenCondition.AddAsyncCondition(_openCondition);
             _sessionCloseCondition.AddCondition(_closeCondition);
@@ -59,6 +65,12 @@ namespace WPFTasks.Core.Models.Currency
                 {
                     try
                     {
+                        if(!_authenticationService.IsAuthClient(client))
+                        {
+                            return _msgService.BuildMessage<ErroreMessageBuilder, ErroreData>(builder => builder
+                                .SetPayload("Для использования данной функции нужно быть авторизироваться...")
+                            );
+                        }
                         var requestData = CurrencyRequestMessageBuilder.Parse(msg);
                         var convertData = await _converter.GetExchangeRate(requestData.FromCurrency, requestData.ToCurrency);
 

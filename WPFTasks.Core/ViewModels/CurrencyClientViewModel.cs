@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using WPFTasks.Core.Models.Currency;
@@ -23,18 +19,18 @@ namespace WPFTasks.Core.ViewModels
         private readonly CurrencyClient _currencyClient;
 
         // Поля для подключения
-        private string _ipAddress;
-        private string _port;
+        private string _ipAddress = "127.0.0.1";
+        private string _port = "18080";
         private string _login;
         private string _password;
         private string _newMessage;
 
         // Состояние
         private bool _areHintsVisible;
-        private ObservableCollection<string> _hints;
+        private ObservableCollection<string> _hints = [];
 
         // Чат и сообщения
-        public ObservableCollection<ChatMessage> Messages { get; } = new ObservableCollection<ChatMessage>();
+        public ObservableCollection<ChatMessage> Messages { get; } = [];
 
         // Свойства
         public string IpAddress
@@ -67,8 +63,8 @@ namespace WPFTasks.Core.ViewModels
             set
             {
                 _newMessage = value;
-                OnPropertyChanged(nameof(NewMessage));
                 UpdateHints();
+                OnPropertyChanged(nameof(NewMessage));
             }
         }
 
@@ -90,24 +86,33 @@ namespace WPFTasks.Core.ViewModels
 
         public event PropertyChangedEventHandler PropertyChanged;
 
+        private void OnDsa()
+        {
+            ShowMessageBox("Соединение потеряно." + CanConnect());
+
+            bool sad = !_currencyClient.IsConnected;
+        }
         public CurrencyClientViewModel()
         {
             _currencyClient = new CurrencyClient();
 
             // Подписываемся на события
-            _currencyClient.OnEndSession += () => ShowMessageBox("Сессия завершена.");
-            _currencyClient.OnConnectionLost += () => ShowMessageBox("Соединение потеряно.");
+            _currencyClient.OnEndSession += () 
+                => ShowMessageBox("Сессия завершена.");
+            _currencyClient.OnConnectionLost += OnDsa;
             _currencyClient.OnAuthenticationResponse += response =>
             {
                 var message = response.IsAuthenticated ? "Аутентификация успешна." : "Ошибка аутентификации.";
                 ShowMessageBox(message);
             };
-            _currencyClient.OnCurrencyResponse += response =>
-                ShowMessageBox($"Курс валют: {response.FromCurrency} → {response.ToCurrency}: {response.Rate}");
-            _currencyClient.OnErroreOnClient += error => ShowMessageBox($"Ошибка клиента: {error}");
-            _currencyClient.OnErroreFromServer += error =>
-                ShowMessageBox($"Ошибка сервера: [{error.Payload}].");
-            _currencyClient.OnServerOverloaded += () => ShowMessageBox("Сервер перегружен.");
+            _currencyClient.OnCurrencyResponse += response 
+                => ShowMessageBox($"Курс валют: {response.FromCurrency} → {response.ToCurrency}: {response.Rate}");
+            _currencyClient.OnErroreOnClient += error 
+                => ShowMessageBox($"Ошибка клиента: {error}");
+            _currencyClient.OnErroreFromServer += error 
+                => ShowMessageBox($"Ошибка сервера: [{error.Payload}].");
+            _currencyClient.OnServerOverloaded += () 
+                => ShowMessageBox("Сервер перегружен.\nНевозможно подключиться, попробуйте позже...");
 
             // Инициализация команд
             ConnectCommand = new RelayCommand(async _ => await ConnectAsync(), _ => CanConnect());
@@ -119,7 +124,7 @@ namespace WPFTasks.Core.ViewModels
             Application.Current.Dispatcher.Invoke(() => MessageBox.Show(message, "Информация", MessageBoxButton.OK, MessageBoxImage.Information));
         }
 
-        private bool CanConnect() => !string.IsNullOrWhiteSpace(IpAddress) && int.TryParse(Port, out _);
+        private bool CanConnect() => !string.IsNullOrWhiteSpace(IpAddress) && int.TryParse(Port, out _) && !_currencyClient.IsConnected;
 
         private async Task ConnectAsync()
         {
@@ -132,49 +137,96 @@ namespace WPFTasks.Core.ViewModels
             {
                 ShowMessageBox($"Ошибка подключения: {ex.Message}");
             }
+            finally {
+
+            }
         }
 
         private bool CanSendMessage() => !string.IsNullOrWhiteSpace(NewMessage) && _currencyClient.IsConnected;
 
         private async Task SendMessageAsync()
         {
-            if (NewMessage.StartsWith("/currency"))
+            string input = NewMessage.TrimEnd();
+            Messages.Add(new ChatMessage { Sender = "Вы", Content = NewMessage });
+            NewMessage = string.Empty;
+
+            try
             {
-                var parts = NewMessage.Split(' ');
-                if (parts.Length == 3)
+                if (input.StartsWith("/Rate", StringComparison.CurrentCultureIgnoreCase))
                 {
-                    await _currencyClient.SendCurrencyRequest(parts[1], parts[2]);
+                    var parts = input.Split(' ');
+                    if (parts.Length == 3)
+                    {
+                        await _currencyClient.SendCurrencyRequest(parts[1], parts[2]);
+                    }
+                    else
+                    {
+                        ShowMessageBox("Команда /Rate должна быть в формате: {/Rate <FromCurrency> <ToCurrency>}");
+                    }
                 }
-                else
+                if (input.StartsWith("/Auth", StringComparison.CurrentCultureIgnoreCase))
                 {
-                    ShowMessageBox("Команда /currency должна быть в формате: /currency FROM TO.");
+                    var parts = input.Split(" ");
+                    if (parts.Length == 3)
+                    {
+                        await _currencyClient.SendAuthRequest(parts[1], parts[2]);
+                    }
+                    else
+                    {
+                        ShowMessageBox("Команда /auth должна быть в формате: {/auth <Login> <Password>}");
+                    }
+                }
+                if (input.StartsWith("/Out", StringComparison.CurrentCultureIgnoreCase))
+                {
+                    await _currencyClient.SendCloseSessionRequest();
+                }
+                if (input.StartsWith("/Break", StringComparison.CurrentCultureIgnoreCase))
+                {
+                    _currencyClient.Disconnect();
                 }
             }
-            else
+            catch (Exception ex)
             {
-                Messages.Add(new ChatMessage { Sender = "Вы", Content = NewMessage });
+                ShowMessageBox(ex.Message);
             }
 
-            NewMessage = string.Empty;
         }
 
         private void UpdateHints()
         {
-            if (!string.IsNullOrWhiteSpace(NewMessage) && NewMessage.StartsWith("/"))
+            Hints.Clear();
+
+            if (!string.IsNullOrWhiteSpace(NewMessage) && NewMessage.StartsWith('/'))
             {
-                Hints = new ObservableCollection<string>
+                var allHints = new Dictionary<string, string>
                 {
-                    "/currency USD EUR",
-                    "/currency EUR GBP",
-                    "/disconnect"
+                    { "/rate", "/Rate <FromCurrency> <ToCurrency>" },
+                    { "/auth", "/Auth <Login> <Password>" },
+                    { "/out", "/Out" },
+                    { "/break", "/Break" },
                 };
-                AreHintsVisible = true;
+                string input = NewMessage.ToLower();
+
+                foreach (var hint in allHints)
+                {
+                    int minLenght = Math.Min(input.Length, hint.Key.Length);
+                    for (int i = 0; i < minLenght; i++)
+                    {
+                        if (input[i].Equals(hint.Key[i]))
+                        {
+                            if (i == minLenght - 1)
+                                Hints.Add(hint.Value);
+
+                            continue;
+                        }
+                        break;
+                    }
+                }
             }
-            else
-            {
-                AreHintsVisible = false;
-            }
+
+            AreHintsVisible = Hints.Any();
         }
+
 
         protected void OnPropertyChanged(string propertyName) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

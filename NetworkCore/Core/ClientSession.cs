@@ -9,6 +9,7 @@ namespace TopNetwork.Core
     public class ClientSession
     {
         private readonly TopClient _client;
+        private readonly EndPoint _clientEndPoint;
         private readonly CancellationTokenSource _cancellationTokenSource = new();
         private readonly object _stateLock = new();
         private readonly object _conditionsLock = new();
@@ -27,7 +28,7 @@ namespace TopNetwork.Core
         public LogString? logger;
         public bool IsRunning { get; private set; }
         public bool IsClosed { get; private set; } = false;
-        public EndPoint? RemoteEndPoint => _client.RemoteEndPoint;
+        public EndPoint? RemoteEndPoint => _clientEndPoint;
         public DateTime StartTime { get; private set; }
         public int ProcessedMessagesCountAll => ProcessedMessagesCountOfType.Values.Sum();
         public ConcurrentDictionary<string, int> ProcessedMessagesCountOfType { get; private set; } = new();
@@ -35,6 +36,7 @@ namespace TopNetwork.Core
         public ClientSession(TopClient client, RrServerHandlerBase messageHandler, ServiceRegistry context)
         {
             _client = client ?? throw new ArgumentNullException(nameof(client));
+            _clientEndPoint = _client.RemoteEndPoint ?? throw new ArgumentNullException(nameof(_client.RemoteEndPoint));
             MessageHandlers = messageHandler ?? throw new ArgumentNullException(nameof(messageHandler));
             _client.OnMessageReceived += HandleMessageAsync;
             _client.OnDisconnected += HandleClientDisconnected;

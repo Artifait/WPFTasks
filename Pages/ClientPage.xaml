@@ -30,7 +30,7 @@
                 </Grid.ColumnDefinitions>
                 <TextBox Grid.Column="0" Margin="0 0 10 10" Text="{Binding IpAddress}" ToolTip="IP Address" Style="{StaticResource TextBoxStyle}"/>
                 <TextBox Grid.Column="1" Margin="0 0 10 10" Text="{Binding Port}" ToolTip="Port" Style="{StaticResource TextBoxStyle}"/>
-                <Button Grid.Column="2" Margin="0 0 10 10" Content="Connect" Command="{Binding ConnectCommand, UpdateSourceTrigger=Default}" Style="{StaticResource DarkButtonStyle}"/>
+                <Button Grid.Column="2" Margin="0 0 10 10" Content="Connect" Command="{Binding ConnectCommand, UpdateSourceTrigger =PropertyChanged}" Style="{StaticResource DarkButtonStyle}"/>
                 <TextBlock Grid.Column="3" Margin="0 0 0 10" Text="Client" Style="{DynamicResource LabelTextStyle}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Grid>
 
@@ -61,13 +61,12 @@
 
                     <!-- Popup для подсказок -->
                     <Popup IsOpen="{Binding AreHintsVisible}" PlacementTarget="{Binding ElementName=InputTextBox}" StaysOpen="False" Placement="Top">
-                        <Border Background="#DDDDDD" Opacity="0.9" CornerRadius="5" Padding="5" MaxHeight="100" Width="{Binding ActualWidth, ElementName=InputTextBox}">
+                        <Border Background="{DynamicResource SecundaryBackgroundColor}" Opacity="0.7" CornerRadius="5 5 0 0" Padding="5" MaxHeight="100" BorderBrush="LightGray" BorderThickness="1" Width="{Binding ActualWidth, ElementName=InputTextBox}">
                             <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                <ListBox ItemsSource="{Binding Hints}" Background="Transparent" BorderThickness="0"
-                                     Style="{StaticResource HintListBoxStyle}">
+                                <ListBox ItemsSource="{Binding Hints}" Background="Transparent" BorderThickness="0">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
-                                            <TextBlock Text="{Binding}" FontSize="12" Foreground="Black"/>
+                                            <TextBlock Text="{Binding}" FontSize="12" Foreground="WhiteSmoke"/>
                                         </DataTemplate>
                                     </ListBox.ItemTemplate>
                                 </ListBox>

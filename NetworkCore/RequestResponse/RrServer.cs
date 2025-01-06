@@ -6,7 +6,7 @@ using TopNetwork.Core;
 
 namespace TopNetwork.RequestResponse
 {
-        public delegate void LogString(string message);
+    public delegate void LogString(string message);
     /// <summary>
     /// Rr -> Request Response Server
     /// </summary>
@@ -25,14 +25,13 @@ namespace TopNetwork.RequestResponse
 
         public LogString? Logger { get; set; }
         public ServiceRegistry Context { get; private set; } = new();
-
+        public EndPoint? CurrentEndPoint => _currentEndPoint;
 
         // Сеттеры для зависимостей
         public RrServer SetEndPoint(IPEndPoint endPoint)
         {
             _currentEndPoint = endPoint ?? throw new ArgumentNullException(nameof(endPoint));
             _listener = new TcpListener(_currentEndPoint);
-
             return this;
         }
 
@@ -85,11 +84,13 @@ namespace TopNetwork.RequestResponse
                 {
                     try
                     {
-                        var tcpClient = await _listener.AcceptTcpClientAsync();
+                        var tcpClient = await _listener.AcceptTcpClientAsync(_cancellationTokenSource.Token);
                         _ = Task.Run(() => HandleNewClientAsync(tcpClient), _cancellationTokenSource.Token);
                     }
-                    catch (Exception ex)
-                    {
+                    catch(OperationCanceledException ex) {
+                        Logger?.Invoke($"[Server]: Остановка прослушки.");
+                    }
+                    catch (Exception ex) {
                         Logger?.Invoke($"[Server]: Error - {ex.Message}.");
                     }
                 }
@@ -159,14 +160,14 @@ namespace TopNetwork.RequestResponse
                 }
 
                 ClientConnected?.Invoke(topClient);
-                Logger?.Invoke($"[{topClient.RemoteEndPoint}]: Client Connected...");
+                Logger?.Invoke($"[{session.RemoteEndPoint}]: Client Connected...");
 
                 await session.StartAsync();
             }
             catch (Exception ex)
             {
                 ServerError?.Invoke(ex);
-                Logger?.Invoke($"[Server]: Error handling client [{topClient!.RemoteEndPoint}] - {ex.Message}");
+                Logger?.Invoke($"[Server]: Error handling client [{session?.RemoteEndPoint}] - {ex.Message}");
             }
             finally
             {
@@ -177,7 +178,6 @@ namespace TopNetwork.RequestResponse
                 }
 
                 ClientDisconnected?.Invoke(topClient!);
-                Logger?.Invoke($"[{topClient?.RemoteEndPoint}]: Client disconnected...");
             }
         }
     }

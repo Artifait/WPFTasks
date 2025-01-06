@@ -86,7 +86,7 @@ namespace WPFTasks.Core.Models.Currency
             _client.ServiceRegistry
                 .Register(_msgService);
 
-            _client.OnConnectionLost += OnConnectionLost;
+            _client.OnConnectionLost += () => OnConnectionLost?.Invoke();
         }
 
         #region Requests

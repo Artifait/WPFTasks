@@ -29,13 +29,14 @@ namespace TopNetwork.RequestResponse
             if(_topClient != null)
             {
                 _topClient.OnMessageReceived -= HandleIncomingMessageAsync;
-                _topClient.OnConnectionLost -= OnConnectionLost;
+                _topClient.OnConnectionLost -= OnConnectionLostEvent;
                 _topClient.Disconnect();
             }
 
             _topClient = new TopClient().Connect(ip, port);
-            _topClient.OnConnectionLost += OnConnectionLost;
+            _topClient.OnConnectionLost += OnConnectionLostEvent;
             _topClient.OnMessageReceived += HandleIncomingMessageAsync;
+            _ = StartListening();
             return this;
         }
         public void Disconnect()
@@ -43,12 +44,12 @@ namespace TopNetwork.RequestResponse
             _topClient?.Disconnect();
         }
 
-        public void StartListening()
+        public async Task StartListening()
         {
             if (!IsConnected)
                 throw new InvalidOperationException("Сначало нужно подключиться к серверу...");
 
-            _ = _topClient.StartListeningAsync();
+            await _topClient.StartListeningAsync();
         }
 
         public void StopListening() => _topClient.StopListening();
@@ -120,6 +121,11 @@ namespace TopNetwork.RequestResponse
                 }
             }
             catch { }
+        }
+
+        private void OnConnectionLostEvent()
+        {
+            OnConnectionLost?.Invoke();
         }
     }
 }
