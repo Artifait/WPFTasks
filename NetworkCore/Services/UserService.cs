@@ -142,6 +142,12 @@ namespace TopNetwork.Services
             return null;
         }
 
+        public void UpdateUser(UserT user)
+        {
+            RemoveUser(user.Login);
+            _repository.Add(user);
+        }
+
         public void RemoveUser(string login)
         {
             _repository.Remove(u => u.Login == login);

@@ -99,8 +99,11 @@ namespace WPFTasks.Core.ViewModels
             _currencyClient.OnAuthenticationResponse += response
                 => AddMessage("ServerResponse", response.Payload);
 
-            _currencyClient.OnCurrencyResponse += response
-                => AddMessage("ServerResponse", $"Курс валют: {response.FromCurrency} → {response.ToCurrency}: {response.Rate}");
+            _currencyClient.OnCurrencyResponse += response => 
+            {
+                AddMessage("ServerResponse", $"Курс валют: {response.FromCurrency} → {response.ToCurrency}: " +
+                    (response.Rate == -1 ? "Не найдено..." : response.Rate.ToString()));
+            };
 
             _currencyClient.OnErroreOnClient += error
                 => AddMessage("Client", $"Ошибка: {error}");

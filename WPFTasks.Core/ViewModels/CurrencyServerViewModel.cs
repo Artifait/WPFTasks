@@ -38,8 +38,12 @@ namespace WPFTasks.Core.ViewModels
             _commandProcessor
                 .AddCommand("/GetServerStatus", "/GetServerStatus", GetServerStatusHandler)
                 .AddCommand("/Clear", "/Clear", async _ => { ClearMessages(); await Task.CompletedTask; })
-                .AddCommand("/OpenUserDataFile", "/OpenUserDataFile", OpenUserDataFileHandler);
-            //.AddCommand("SetMaxSessionDuration", "SetMaxSessionDuration", );
+                .AddCommand("/OpenUserDataFile", "/OpenUserDataFile", OpenUserDataFileHandler)
+                .AddCommand("/SetSessionDuration", "/SetSessionDuration <hh:mm:ss>", SetSessionDurationHandler)
+                .AddCommand("/SetCountMaxConnections", "/SetCountMaxConnections <int>", SetCountMaxConnectionsHandler)
+                .AddCommand("/SetCountMaxRequests", "/SetCountMaxRequests <int>", SetCountMaxRequestsHandler)
+                .AddCommand("/SetCooldown", "/SetCooldown <hh:mm:ss> - настройка времени ожидания, между запросами, при привешении лимита.", SetCooldownHandler)
+                .AddCommand("/SetTimeWindow", "/SetTimeWindow <hh:mm:ss> - настройка промежутка времени, в котором учитываються запросы.", SetTimeWindowHandler);
         }
         private bool CanSendMessage() => !string.IsNullOrWhiteSpace(NewMessage);
 
@@ -158,6 +162,14 @@ namespace WPFTasks.Core.ViewModels
             return text;
         }
 
+        public void SelectHint(string hint)
+        {
+            if (!string.IsNullOrWhiteSpace(hint))
+            {
+                NewMessage = hint;
+            }
+        }
+
         private async Task OpenUserDataFileHandler(string _)
         {
             if (!System.IO.File.Exists(_server.FilePath))
@@ -178,7 +190,10 @@ namespace WPFTasks.Core.ViewModels
                 .AppendLine("{")
                 .AppendLine($"    IsRunning: {_server.IsRunning}")
                 .AppendLine($"    NowConnections: {_server.CountOpenSessions}/{_server.MaxConnections}")
-                .AppendLine($"    MaxSessionDuration: {_server.MaxSessionDuration}")
+                .AppendLine($"    MaxRequests: {_server.MaxRequests}")
+                .AppendLine($"    MaxSessionDuration: {_server.MaxSessionDuration.TotalMinutes} Мин.")
+                .AppendLine($"    Cooldown: {_server.Cooldown.TotalMinutes}  Мин.")
+                .AppendLine($"    TimeWindow: {_server.TimeWindow.TotalMinutes}  Мин.")
                 .AppendLine($"    FilePathToUserData: {_server.FilePath}")
                 .AppendLine("}");
 
@@ -186,6 +201,98 @@ namespace WPFTasks.Core.ViewModels
             await Task.CompletedTask;
         }
 
+        private async Task SetSessionDurationHandler(string input)
+        {
+            var parts = input.Split(' ');
+            if(parts.Length == 2) 
+            {
+                try {
+                    await _server.UpdateSessionDuration(TimeSpan.Parse(parts[1]));
+                }
+                catch(Exception ex) {
+                    LogMessage($"[/SetSessionDuration]: {ex.Message}");
+                }
+            }
+            else {
+                LogMessage("[/SetSessionDuration]: Неверный формат вызова...");
+            }
+        }
+
+        private async Task SetCountMaxConnectionsHandler(string input)
+        {
+            var parts = input.Split(' ');
+            if (parts.Length == 2)
+            {
+                try {
+                    _server.MaxConnections = int.Parse(parts[1]);
+                }
+                catch (Exception ex) {
+                    LogMessage($"[/SetSessionDuration]: {ex.Message}");
+                }
+            }
+            else
+            {
+                LogMessage("[/SetSessionDuration]: Неверный формат вызова...");
+            }
+            await Task.CompletedTask;
+        }
+
+        private async Task SetCountMaxRequestsHandler(string input)
+        {
+            var parts = input.Split(' ');
+            if (parts.Length == 2)
+            {
+                try
+                {
+                    _server.MaxRequests = int.Parse(parts[1]);
+                }
+                catch (Exception ex)
+                {
+                    LogMessage($"[/SetCountMaxRequests]: {ex.Message}");
+                }
+            }
+            else
+            {
+                LogMessage("[/SetCountMaxRequests]: Неверный формат вызова...");
+            }
+            await Task.CompletedTask;
+        }
+
+        private async Task SetCooldownHandler(string input)
+        {
+            var parts = input.Split(' ');
+            if (parts.Length == 2)
+            {
+                try {
+                    _server.Cooldown = TimeSpan.Parse(parts[1]);
+                }
+                catch (Exception ex) {
+                    LogMessage($"[/SetCooldown]: {ex.Message}");
+                }
+            }
+            else {
+                LogMessage("[/SetCooldown]: Неверный формат вызова...");
+            }
+            await Task.CompletedTask;
+        }
+
+        private async Task SetTimeWindowHandler(string input)
+        {
+            var parts = input.Split(' ');
+            if (parts.Length == 2)
+            {
+                try {
+                    _server.TimeWindow = TimeSpan.Parse(parts[1]);
+                }
+                catch (Exception ex) {
+                    LogMessage($"[/SetTimeWindow]: {ex.Message}");
+                }
+            }
+            else {
+                LogMessage("[/SetTimeWindow]: Неверный формат вызова...");
+            }
+            await Task.CompletedTask;
+        }
         // Очистка сообщений
         private void ClearMessages()
             => Content = string.Empty;
@@ -203,7 +310,7 @@ namespace WPFTasks.Core.ViewModels
             => LogMessage(message);
             
         private void LogMessage(string message)
-            => Content += $"{message}\n";
+            => Content += $"[{DateTime.UtcNow.ToString("HH:mm:ss.ffff")}]{message}\n";
     }
 }
 

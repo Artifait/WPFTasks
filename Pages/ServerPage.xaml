@@ -60,7 +60,7 @@
                     <Popup IsOpen="{Binding AreHintsVisible}" PlacementTarget="{Binding ElementName=InputTextBox}" StaysOpen="False" Placement="Top">
                         <Border Background="{DynamicResource SecundaryBackgroundColor}" Opacity="0.7" CornerRadius="5 5 0 0" Padding="5" MaxHeight="100" BorderBrush="LightGray" BorderThickness="1" Width="{Binding ActualWidth, ElementName=InputTextBox}">
                             <ScrollViewer VerticalScrollBarVisibility="Disabled" CanContentScroll="True">
-                                <ListBox ItemsSource="{Binding Hints}" Background="Transparent" BorderThickness="0">
+                                <ListBox ItemsSource="{Binding Hints}" Background="Transparent" BorderThickness="0" SelectionChanged="HintsListBox_SelectionChanged">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
                                             <TextBlock Text="{Binding}" FontSize="12" Foreground="WhiteSmoke"/>

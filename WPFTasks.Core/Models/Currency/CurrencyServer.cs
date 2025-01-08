@@ -20,9 +20,6 @@ namespace WPFTasks.Core.Models.Currency
                     .Register(() => new EndSessionNotificationMessageBuilder())
                     .Register(() => new ServerOverloadedNotificationMessageBuilder());
 
-        private readonly MaxRequestsCloseCondition _closeCondition = new() { MsgType = CurrencyRequestData.MsgType };
-        private readonly SessionCloseConditionEvaluator _sessionCloseCondition = new();
-
         private readonly AuthenticationService<CurrencyUser> _authenticationService;
         private readonly Repository<CurrencyUser> _userRepository;
         private readonly UserService<CurrencyUser> _userService;
@@ -50,8 +47,6 @@ namespace WPFTasks.Core.Models.Currency
                 .RegisterService(_userService)
                 .RegisterService(_authenticationService);
 
-            _sessionCloseCondition.AddCondition(_closeCondition);
-
             _handlers = new RrServerHandlerBase()
                 .AddHandlerForMessageType(CurrencyRequestData.MsgType, async (client, msg, context) =>
                 {
@@ -63,6 +58,7 @@ namespace WPFTasks.Core.Models.Currency
                                 .SetPayload("Для использования данной функции нужно авторизироваться...")
                             );
                         }
+                        var user = _authenticationService.GetUserBy(client);
                         var requestData = CurrencyRequestMessageBuilder.Parse(msg);
                         var convertData = await _converter.GetExchangeRate(requestData.FromCurrency, requestData.ToCurrency);
 
@@ -71,7 +67,8 @@ namespace WPFTasks.Core.Models.Currency
                             .SetToCurrency(requestData.ToCurrency)
                             .SetRate(convertData)
                         );
-
+                        user.AddCurrencyRequest();
+                        _userService.UpdateUser(user);
                         return response;
                     }
                     catch (Exception ex)
@@ -132,11 +129,27 @@ namespace WPFTasks.Core.Models.Currency
             ClientSession session = new(client, _handlers, context)
             {
                 logger = logger,
-                CloseConditionEvaluator = _sessionCloseCondition,
             };
+            session.OnMessageProcessed += Session_OnMessageProcessed;
 
             return session;
         }
+
+        private void Session_OnMessageProcessed(ClientSession arg1, Message arg2)
+        {
+            if(arg2.MessageType == CurrencyResponseData.MsgType)
+            {
+                if(!_authenticationService.GetUserBy(arg1.Client).IsUserLoginPossibleAsync().Result)
+                {
+                    arg1.SendMessage(_msgService.BuildMessage<EndSessionNotificationMessageBuilder, EndSessionNotificationData>(builder => builder
+                        .SetPayload($"Вы сделали максимальное количество запросов...\nЧерез {CurrencyUser.Cooldown.TotalMinutes} минут вы снова сможете отправлять запросы."))).Wait();
+                    _authenticationService.CloseSession(arg1.Client);
+                    arg1.CloseSession();
+                }
+            }
+        }
+
+
 
         // Свойства Задаваемые юзером
         public string FilePath
@@ -149,11 +162,23 @@ namespace WPFTasks.Core.Models.Currency
         public async Task UpdateSessionDuration(TimeSpan newDuration)
             => await _authenticationService.UpdateSessionDuration(newDuration);
 
-        public int MaxConnections { get; set; } = 1;
+        public int MaxConnections { get; set; } = 3;
         public int MaxRequests
         {
-            get => _closeCondition.MaxRequests;
-            set => _closeCondition.MaxRequests = value;
+            get => CurrencyUser.MaxRequests;
+            set => CurrencyUser.MaxRequests = value;
+        }
+
+        public TimeSpan Cooldown
+        {
+            get => CurrencyUser.Cooldown;
+            set => CurrencyUser.Cooldown = value;
+        }
+
+        public TimeSpan TimeWindow
+        {
+            get => CurrencyUser.TimeWindow;
+            set => CurrencyUser.TimeWindow = value;
         }
     }
 }

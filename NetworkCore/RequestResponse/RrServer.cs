@@ -22,7 +22,7 @@ namespace TopNetwork.RequestResponse
         public event Action<TopClient>? ClientConnected;
         public event Action<TopClient>? ClientDisconnected;
         public event Action<Exception>? ServerError;
-
+        public event Action<ClientSession, Message>? OnMessageProcessed;
         public LogString? Logger { get; set; }
         public ServiceRegistry Context { get; private set; } = new();
         public EndPoint? CurrentEndPoint => _currentEndPoint;
@@ -191,6 +191,7 @@ namespace TopNetwork.RequestResponse
         private void Session_OnMessageProcessed(ClientSession arg1, Message arg2)
         {
             Logger?.Invoke($"[Server]: Отправка ответа клиенту [{arg1.RemoteEndPoint}] с типом сообщения: {arg2.MessageType}...");
+            OnMessageProcessed?.Invoke(arg1, arg2);
         }
     }
 }

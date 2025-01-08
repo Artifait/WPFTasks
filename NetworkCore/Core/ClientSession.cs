@@ -19,7 +19,8 @@ namespace TopNetwork.Core
         public event Action<ClientSession>? OnSessionStarted;
         public event Action<ClientSession>? OnSessionClosed;
 
-        public SessionCloseConditionEvaluator CloseConditionEvaluator { get; set; } = new();
+        public SessionCloseConditionEvaluator PreMsgCloseConditionEvaluator { get; set; } = new();
+        public SessionCloseConditionEvaluator PostMsgCloseConditionEvaluator { get; set; } = new();
         public SessionOpenConditionEvaluator OpenConditionEvaluator { get; set; } = new();
         public RrServerHandlerBase MessageHandlers { get; set; }
         public TopClient Client => _client;
@@ -110,7 +111,7 @@ namespace TopNetwork.Core
 
         private async Task HandleMessageAsync(Message message)
         {
-            await CheckCloseConditions();
+            await CheckPreMsgCloseConditions();
 
             if (message == null) return;
 
@@ -131,6 +132,7 @@ namespace TopNetwork.Core
                     await _client.SendMessageAsync(response);
                     OnMessageProcessed?.Invoke(this, response);
                 }
+                await CheckPostMsgCloseConditions();
             }
             catch (Exception ex)
             {
@@ -143,15 +145,22 @@ namespace TopNetwork.Core
             CloseSession();
         }
 
-        protected async Task CheckCloseConditions()
+        protected async Task CheckPreMsgCloseConditions()
         {
-            if (await CloseConditionEvaluator.ShouldCloseAsync(this))
+            if (await PreMsgCloseConditionEvaluator.ShouldCloseAsync(this))
             {
                 lock (_conditionsLock)
                     CloseSession();
             }
         }
-
+        protected async Task CheckPostMsgCloseConditions()
+        {
+            if (await PostMsgCloseConditionEvaluator.ShouldCloseAsync(this))
+            {
+                lock (_conditionsLock)
+                    CloseSession();
+            }
+        }
         protected virtual void OnError(string errorMessage)
         {
             logger?.Invoke(errorMessage);

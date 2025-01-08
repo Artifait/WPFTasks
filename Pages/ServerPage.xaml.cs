@@ -22,7 +22,7 @@ namespace WPFTasks.Pages
         {
             if (sender is ListBox listBox && listBox.SelectedItem is string selectedHint)
             {
-                var viewModel = DataContext as CurrencyClientViewModel;
+                var viewModel = DataContext as CurrencyServerViewModel;
                 int index = selectedHint.IndexOf(' ');
                 index = index == -1 ? selectedHint.Length : index;
                 viewModel?.SelectHint(selectedHint[..index]);

@@ -11,8 +11,8 @@ namespace TopNetwork.Services
         private readonly SemaphoreSlim _sessionsLock = new(1, 1);
         private readonly UserService<UserT> _userService;
         private readonly MessageBuilderService _msgService;
-        private readonly ConcurrentDictionary<TopClient, ClientTimerSession> _authenticatedSessions = new();
-        private TimeSpan _maxSessionDuration = TimeSpan.FromSeconds(3);
+        private readonly ConcurrentDictionary<TopClient, ClientTimerSession<UserT>> _authenticatedSessions = new();
+        private TimeSpan _maxSessionDuration = TimeSpan.FromMinutes(3);
 
         public LogString? Logger { get; set; }
         public TimeSpan MaxSessionDuration => _maxSessionDuration;
@@ -25,6 +25,7 @@ namespace TopNetwork.Services
         }
 
         public bool IsAuthClient(TopClient client) => _authenticatedSessions.ContainsKey(client);
+        public UserT GetUserBy(TopClient client) => _authenticatedSessions[client].User;
 
         public async Task<Message?> AuthenticateClient(TopClient client, AuthenticationRequestData requestData)
         {
@@ -36,14 +37,14 @@ namespace TopNetwork.Services
                     Logger?.Invoke($"[AuthenticationService]: Клиент [{client.RemoteEndPoint}] не может использовать логин {requestData.Login}.");
                     return BuildFailedAuthResponse("Невозможно авторизоваться под этим логином.");
                 }
-
+                
                 if (_authenticatedSessions.Values.Any(s => s.Login == requestData.Login))
                 {
                     Logger?.Invoke($"[AuthenticationService]: Логин {requestData.Login} уже используется другим пользователем.");
                     return BuildFailedAuthResponse("Этот логин уже используется.");
                 }
 
-                var session = new ClientTimerSession(client, requestData.Login, _maxSessionDuration, NotifySessionExpired);
+                var session = new ClientTimerSession<UserT>(client, user, _maxSessionDuration, NotifySessionExpired);
                 _authenticatedSessions[client] = session;
                 Logger?.Invoke($"[AuthenticationService]: Клиент [{client.RemoteEndPoint}] успешно авторизован на {_maxSessionDuration.TotalMinutes} минут.");
                 return BuildSuccessAuthResponse();
@@ -93,7 +94,7 @@ namespace TopNetwork.Services
         private Message BuildSuccessAuthResponse() =>
             _msgService.BuildMessage<AuthenticationResponseMessageBuilder, AuthenticationResponseData>(builder => builder
                 .SetAuthentication(true)
-                .SetExplanatoryMsg("Вы успешно авторизовались!"));
+                .SetExplanatoryMsg($"Вы успешно авторизовались!\nВаша сессия длится - {MaxSessionDuration.TotalMinutes} Мин."));
 
         private Message BuildFailedAuthResponse(string reason) =>
             _msgService.BuildMessage<AuthenticationResponseMessageBuilder, AuthenticationResponseData>(builder => builder
@@ -101,20 +102,20 @@ namespace TopNetwork.Services
                 .SetExplanatoryMsg(reason));
     }
 
-    public class ClientTimerSession : IDisposable
+    public class ClientTimerSession<UserT> where UserT : User
     {
         private readonly TopClient _client;
         private readonly Timer _timer;
         private readonly Func<TopClient, Task> _onSessionExpired;
 
-        public string Login { get; }
-
-        public ClientTimerSession(TopClient client, string login, TimeSpan duration, Func<TopClient, Task> onSessionExpired)
+        public string Login => User.Login;
+        public readonly UserT User;
+        public ClientTimerSession(TopClient client, UserT user, TimeSpan duration, Func<TopClient, Task> onSessionExpired)
         {
             _client = client;
-            Login = login;
-            _onSessionExpired = onSessionExpired;
+            User = user;
 
+            _onSessionExpired = onSessionExpired;
             _timer = new Timer(OnTimerElapsed, null, duration, Timeout.InfiniteTimeSpan);
         }
 
