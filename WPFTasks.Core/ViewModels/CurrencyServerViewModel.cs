@@ -177,7 +177,7 @@ namespace WPFTasks.Core.ViewModels
                 .AppendLine("<ServerStatus>")
                 .AppendLine("{")
                 .AppendLine($"    IsRunning: {_server.IsRunning}")
-                .AppendLine($"    MaxConnections: {_server.MaxConnections}")
+                .AppendLine($"    NowConnections: {_server.CountOpenSessions}/{_server.MaxConnections}")
                 .AppendLine($"    MaxSessionDuration: {_server.MaxSessionDuration}")
                 .AppendLine($"    FilePathToUserData: {_server.FilePath}")
                 .AppendLine("}");
@@ -192,7 +192,7 @@ namespace WPFTasks.Core.ViewModels
         private void UpdateHints()
         {
             int index = NewMessage.LastIndexOf('/');
-            if (index == -1) return;
+            if (index == -1) { AreHintsVisible = false; return; }
             string text = NewMessage[index..];
             _commandProcessor.GetHints(text, Hints);
             AreHintsVisible = Hints.Any();

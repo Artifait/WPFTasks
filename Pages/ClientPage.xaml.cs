@@ -12,6 +12,7 @@ namespace WPFTasks.Pages
         {
             InitializeComponent();
             DataContext = Instance;
+            Instance.OnUpdateMessages += ScrollToEnd;
         }
 
         private void HintsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -56,5 +57,10 @@ namespace WPFTasks.Pages
         // Переместить каретку в конец
         public void CareInputTextBoxToEnd()
             => InputTextBox.CaretIndex = InputTextBox.Text.Length;
+
+        private void ScrollToEnd()
+        {
+            MessagesListBox.ScrollIntoView(MessagesListBox.Items[^1]);
+        }
     }
 }

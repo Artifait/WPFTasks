@@ -32,7 +32,7 @@
             </Grid>
 
             <!-- Чат -->
-            <ListBox Grid.Row="1" ScrollViewer.VerticalScrollBarVisibility="Auto" ItemsSource="{Binding Messages}" Background="{DynamicResource PrimaryBackgroundColor}">
+            <ListBox Name="MessagesListBox" Grid.Row="1" ScrollViewer.VerticalScrollBarVisibility="Auto" ItemsSource="{Binding Messages}" Background="{DynamicResource PrimaryBackgroundColor}" >
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <StackPanel>

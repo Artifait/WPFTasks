@@ -39,9 +39,9 @@
             <TextBlock Grid.Row="1" VerticalAlignment="Bottom" Text="Консоль" Style="{DynamicResource LabelTextStyle}"/>
             <!-- Консоль -->
             <TextBox Grid.Row="2" Text="{Binding Content}" 
-                     Style="{StaticResource TextBoxStyle}" 
+                     Style="{StaticResource TextBoxStyle}" VerticalScrollBarVisibility="Auto"
                      TextWrapping="Wrap" HorizontalAlignment="Stretch"
-                     IsReadOnly="True"/>
+                     IsReadOnly="True" TextChanged="TextBox_TextChanged"/>
 
             <!-- Отправка сообщения -->
             <Grid Grid.Row="3">

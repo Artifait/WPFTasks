@@ -1,11 +1,11 @@
-﻿using System.Collections.ObjectModel;
+﻿
+using System.Collections.ObjectModel;
+using WPFTasks.Core.Models.Currency;
 using System.ComponentModel;
-using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Input;
 using WPFTasks.Core.Models;
-using WPFTasks.Core.Models.Currency;
 using WPFTasks.ViewModels;
+using System.Windows;
 
 namespace WPFTasks.Core.ViewModels
 {
@@ -71,6 +71,7 @@ namespace WPFTasks.Core.ViewModels
         // Команды
         public ICommand ConnectCommand { get; }
         public ICommand SendMessageCommand { get; }
+        public event Action OnUpdateMessages;
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -85,7 +86,8 @@ namespace WPFTasks.Core.ViewModels
                 .AddCommand("/SignOut", "/SignOut", HandleSignOut)
                 .AddCommand("/Disconnect", "/Disconnect", HandleDisconnect)
                 .AddCommand("/Clear", "/Clear", HandleClear)
-                .AddCommand("/Connect", "/Connect <Ip> <Port> or /Connect", HandleConnect);
+                .AddCommand("/Connect", "/Connect <Ip> <Port> or /Connect", HandleConnect)
+                .AddCommand("/Delay", "/Delay <milliseconds>", HandleDelay);
 
             // Подписываемся на события
             _currencyClient.OnEndSession += data
@@ -110,7 +112,7 @@ namespace WPFTasks.Core.ViewModels
                 => AddMessage("ServerResponse", "Сервер перегружен.\nНевозможно подключиться, попробуйте позже...");
 
             // Инициализация команд
-            ConnectCommand = new RelayCommand(_ => ConnectAsync(), _ => CanConnect());
+            ConnectCommand = new RelayCommand(async _ => await ConnectAsync(), _ => CanConnect());
             SendMessageCommand = new RelayCommand(async _ => await SendMessageAsync(), _ => CanSendMessage());
         }
 
@@ -180,6 +182,17 @@ namespace WPFTasks.Core.ViewModels
             }
         }
 
+        private async Task HandleDelay(string input)
+        {
+            var parts = input.Split(" ");
+            if(parts.Length == 2)
+                await Task.Delay(int.Parse(parts[1]));
+            else
+            {
+                ShowMessageBox("Команда /Delay должна быть в формате: { /Delay <milliseconds> }");
+                throw new ArgumentException("Неверный формат /Delay...");
+            }
+        }
         private async Task ConnectAsync()
         {
             try
@@ -235,7 +248,7 @@ namespace WPFTasks.Core.ViewModels
             => Application.Current.Dispatcher.Invoke(() => MessageBox.Show(message, "Информация", MessageBoxButton.OK, MessageBoxImage.Information));
 
         private void AddMessage(string sender, string message)
-            => Application.Current.Dispatcher.Invoke(() => Messages.Add(new ChatMessage { Sender = sender, Content = message }));
+            => Application.Current.Dispatcher.Invoke(() => { Messages.Add(new ChatMessage { Sender = sender, Content = message }); OnUpdateMessages?.Invoke(); });
 
         private bool CanConnect() => !string.IsNullOrWhiteSpace(IpAddress) && int.TryParse(Port, out _) && !_currencyClient.IsConnected;
 

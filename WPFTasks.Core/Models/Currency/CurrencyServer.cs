@@ -33,6 +33,7 @@ namespace WPFTasks.Core.Models.Currency
         public Logger Logger { get; private set; } = new();
         public EndPoint? EndPoint => _server.CurrentEndPoint;
         public bool IsRunning => _server.IsRunning;
+        public int CountOpenSessions => _server.CountOpenSessions;
 
         public CurrencyServer(string? filePath = null)
         {

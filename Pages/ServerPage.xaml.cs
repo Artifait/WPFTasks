@@ -60,5 +60,13 @@ namespace WPFTasks.Pages
         // Переместить каретку в конец
         public void CareInputTextBoxToEnd()
             => InputTextBox.CaretIndex = InputTextBox.Text.Length;
+
+        private void TextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox textBox)
+            {
+                textBox.ScrollToEnd(); 
+            }
+        }
     }
 }
