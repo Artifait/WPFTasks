@@ -8,10 +8,10 @@ namespace TopNetwork.Services
 {
     public class AuthenticationService<UserT> where UserT : User
     {
-        private readonly SemaphoreSlim _verifyAllSessionsSemaphore = new(1, 1); // Для синхронизации вызова VerifyAllSessions & UpdateSessionDuration
+        private readonly SemaphoreSlim _sessionsLock = new(1, 1);
         private readonly UserService<UserT> _userService;
         private readonly MessageBuilderService _msgService;
-        private readonly ConcurrentDictionary<TopClient, (string Login, DateTime Timestamp)> _authenticatedSessions = new();
+        private readonly ConcurrentDictionary<TopClient, ClientTimerSession> _authenticatedSessions = new();
         private TimeSpan _maxSessionDuration = TimeSpan.FromSeconds(3);
 
         public LogString? Logger { get; set; }
@@ -24,30 +24,8 @@ namespace TopNetwork.Services
             _userService = userService;
         }
 
-        public bool IsAuthClient(TopClient client) => _authenticatedSessions.TryGetValue(client, out _);
+        public bool IsAuthClient(TopClient client) => _authenticatedSessions.ContainsKey(client);
 
-        /// <summary>
-        /// Проверка текущей сессии.
-        /// </summary>
-        public async Task<bool> VerifySession(TopClient client)
-        {
-            if (_authenticatedSessions.TryGetValue(client, out var session))
-            {
-                if (DateTime.UtcNow - session.Timestamp < _maxSessionDuration)
-                    return true;
-
-                Logger?.Invoke($"[AuthenticationService]: Сессия клиента [{client.RemoteEndPoint}] истекла.");
-                _authenticatedSessions.Remove(client, out var _);
-                await NotifySessionExpired(client);
-                return false;
-            }
-
-            return true;
-        }
-
-        /// <summary>
-        /// Обработка аутентификации.
-        /// </summary>
         public async Task<Message?> AuthenticateClient(TopClient client, AuthenticationRequestData requestData)
         {
             var user = _userService.Authenticate(requestData.Login, requestData.Password);
@@ -55,100 +33,104 @@ namespace TopNetwork.Services
             {
                 if (!await user.IsUserLoginPossibleAsync())
                 {
-                    Logger?.Invoke($"[AuthenticationService]: Клиент [{client.RemoteEndPoint}] пытается авторизоваться под логином {requestData.Login}, который в данный момент не подлежит авторизации.");
-                    return _msgService.BuildMessage<AuthenticationResponseMessageBuilder, AuthenticationResponseData>(builder => builder
-                        .SetAuthentication(false)
-                        .SetExplanatoryMsg("Невозможно авторизоваться под этим логином...")
-                    );
+                    Logger?.Invoke($"[AuthenticationService]: Клиент [{client.RemoteEndPoint}] не может использовать логин {requestData.Login}.");
+                    return BuildFailedAuthResponse("Невозможно авторизоваться под этим логином.");
                 }
-                if(_authenticatedSessions.Where(s => s.Value.Login == requestData.Login).Any())
+
+                if (_authenticatedSessions.Values.Any(s => s.Login == requestData.Login))
                 {
-                    Logger?.Invoke($"[AuthenticationService]: Клиент [{client.RemoteEndPoint}] пытается авторизоваться с логином { requestData.Login}, который уже используется другим пользователем.");
-                    return _msgService.BuildMessage<AuthenticationResponseMessageBuilder, AuthenticationResponseData>(builder => builder
-                        .SetAuthentication(false)
-                        .SetExplanatoryMsg("Невозможно авторизоваться под этим логином, тк уже используется другим пользователем...")
-                    );
+                    Logger?.Invoke($"[AuthenticationService]: Логин {requestData.Login} уже используется другим пользователем.");
+                    return BuildFailedAuthResponse("Этот логин уже используется.");
                 }
 
-                _authenticatedSessions[client] = (requestData.Login, DateTime.UtcNow);
-
-                Logger?.Invoke($"[AuthenticationService]: Клиент [{client.RemoteEndPoint}] успешно аутентифицирован под логином {requestData.Login}, на всё про всё у него {_maxSessionDuration.TotalMinutes} минут.");
-                return _msgService.BuildMessage<AuthenticationResponseMessageBuilder, AuthenticationResponseData>(builder => builder
-                    .SetAuthentication(true)
-                    .SetExplanatoryMsg("Вы успешно авторизовались!")
-                );
+                var session = new ClientTimerSession(client, requestData.Login, _maxSessionDuration, NotifySessionExpired);
+                _authenticatedSessions[client] = session;
+                Logger?.Invoke($"[AuthenticationService]: Клиент [{client.RemoteEndPoint}] успешно авторизован на {_maxSessionDuration.TotalMinutes} минут.");
+                return BuildSuccessAuthResponse();
             }
 
-            Logger?.Invoke($"[AuthenticationService]: Клиент [{client.RemoteEndPoint}] ввёл неверный логин или пароль.");
-            return _msgService.BuildMessage<AuthenticationResponseMessageBuilder, AuthenticationResponseData>(builder => builder
-                .SetAuthentication(false)
-                .SetExplanatoryMsg("Неверный Логин или Пароль.")
-            );
+            Logger?.Invoke($"[AuthenticationService]: Неверный логин или пароль от клиента [{client.RemoteEndPoint}].");
+            return BuildFailedAuthResponse("Неверный логин или пароль.");
         }
 
-        /// <summary>
-        /// Закрытие сессии клиента.
-        /// </summary>
         public void CloseSession(TopClient client)
         {
-            _authenticatedSessions.Remove(client, out var _);
-            Logger?.Invoke($"[AuthenticationService]: Сессия клиента [{client.RemoteEndPoint}] была закрыта.");
+            if (_authenticatedSessions.TryRemove(client, out var session))
+            {
+                session.Dispose();
+                Logger?.Invoke($"[AuthenticationService]: Сессия клиента [{client.RemoteEndPoint}] закрыта.");
+            }
         }
 
-        /// <summary>
-        /// Уведомление клиента об истечении сессии.
-        /// </summary>
         private async Task NotifySessionExpired(TopClient client)
         {
+            CloseSession(client);
             await client.SendMessageAsync(_msgService.BuildMessage<EndSessionNotificationMessageBuilder, EndSessionNotificationData>(builder => builder
-                .SetPayload("Ваша сессия истекла...")
-            ));
-
-            Logger?.Invoke($"[AuthenticationService]: Клиент [{client.RemoteEndPoint}] был уведомлен об истечении сессии.");
+                .SetPayload("Ваша сессия истекла.")));
+            Logger?.Invoke($"[AuthenticationService]: Клиент [{client.RemoteEndPoint}] уведомлен об истечении сессии.");
             client.Disconnect();
         }
 
-        /// <summary>
-        /// Проверка всех активных сессий.
-        /// </summary>
-        public async Task VerifyAllSessions()
+        public async Task UpdateSessionDuration(TimeSpan newDuration)
         {
+            await _sessionsLock.WaitAsync();
             try
             {
-                await _verifyAllSessionsSemaphore.WaitAsync(); // Ожидаем, пока не завершится текущая проверка сессий
+                _maxSessionDuration = newDuration;
+                Logger?.Invoke($"[AuthenticationService]: Время длительности сессии обновлено до {_maxSessionDuration.TotalMinutes} минут.");
 
-                var clients = _authenticatedSessions.Keys.ToList();
-                foreach (var client in clients)
+                foreach (var session in _authenticatedSessions.Values)
                 {
-                    await VerifySession(client);
+                    session.UpdateDuration(newDuration);
                 }
             }
             finally
             {
-                _verifyAllSessionsSemaphore.Release(); // Освобождаем семафор
+                _sessionsLock.Release();
             }
         }
 
-        /// <summary>
-        /// Динамическое изменение времени длительности сессии и вызов метода VerifyAllSessions.
-        /// </summary>
-        public async Task UpdateSessionDuration(TimeSpan newDuration)
+        private Message BuildSuccessAuthResponse() =>
+            _msgService.BuildMessage<AuthenticationResponseMessageBuilder, AuthenticationResponseData>(builder => builder
+                .SetAuthentication(true)
+                .SetExplanatoryMsg("Вы успешно авторизовались!"));
+
+        private Message BuildFailedAuthResponse(string reason) =>
+            _msgService.BuildMessage<AuthenticationResponseMessageBuilder, AuthenticationResponseData>(builder => builder
+                .SetAuthentication(false)
+                .SetExplanatoryMsg(reason));
+    }
+
+    public class ClientTimerSession : IDisposable
+    {
+        private readonly TopClient _client;
+        private readonly Timer _timer;
+        private readonly Func<TopClient, Task> _onSessionExpired;
+
+        public string Login { get; }
+
+        public ClientTimerSession(TopClient client, string login, TimeSpan duration, Func<TopClient, Task> onSessionExpired)
         {
-            // Ожидаем, если кто-то уже работает с VerifyAllSessions
-            await _verifyAllSessionsSemaphore.WaitAsync();
+            _client = client;
+            Login = login;
+            _onSessionExpired = onSessionExpired;
 
-            try
-            {
-                _maxSessionDuration = newDuration;
-                Logger?.Invoke($"[AuthenticationService]: Время длительности сессии было изменено на {_maxSessionDuration.TotalMinutes} минут.");
+            _timer = new Timer(OnTimerElapsed, null, duration, Timeout.InfiniteTimeSpan);
+        }
 
+        public void UpdateDuration(TimeSpan newDuration)
+        {
+            _timer.Change(newDuration, Timeout.InfiniteTimeSpan);
+        }
 
-                await VerifyAllSessions();
-            }
-            finally
-            {
-                _verifyAllSessionsSemaphore.Release();
-            }
+        private async void OnTimerElapsed(object? state)
+        {
+            await _onSessionExpired(_client);
+        }
+
+        public void Dispose()
+        {
+            _timer.Dispose();
         }
     }
 }

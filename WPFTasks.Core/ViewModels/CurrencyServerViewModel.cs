@@ -1,6 +1,10 @@
 ﻿
+using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Net;
+using System.Text;
 using System.Windows.Input;
+using WPFTasks.Core.Models;
 using WPFTasks.Core.Models.Currency;
 using WPFTasks.ViewModels;
 
@@ -9,10 +13,17 @@ namespace WPFTasks.Core.ViewModels
     public class CurrencyServerViewModel : BaseViewModel
     {
         private static readonly CurrencyServer _server = new();
+        private readonly ChatCommandProcessor _commandProcessor = new();
+
         private CancellationTokenSource _cancellationTokenSource;
         private string _content;
         private string _ipAddress = "127.0.0.1";
         private int _port = 18080;
+        private string _newMessage;
+
+        // Состояние
+        private bool _areHintsVisible;
+        private ObservableCollection<string> _hints = [];
 
         public CurrencyServerViewModel()
         {
@@ -22,8 +33,15 @@ namespace WPFTasks.Core.ViewModels
             StartServerCommand = new RelayCommand(async _ => await StartServer(), _ => CanStartServer());
             StopServerCommand = new RelayCommand(async _ => await StopServer(), _ => CanStopServer());
             ClearMessagesCommand = new RelayCommand(_ => ClearMessages());
-            UpdateSessionDurationCommand = new RelayCommand(async _ => await UpdateSessionDuration());
+            SendMessageCommand = new RelayCommand(async _ => await SendMessageAsync(), _ => CanSendMessage());
+
+            _commandProcessor
+                .AddCommand("/GetServerStatus", "/GetServerStatus", GetServerStatusHandler)
+                .AddCommand("/Clear", "/Clear", async _ => { ClearMessages(); await Task.CompletedTask; })
+                .AddCommand("/OpenUserDataFile", "/OpenUserDataFile", OpenUserDataFileHandler);
+            //.AddCommand("SetMaxSessionDuration", "SetMaxSessionDuration", );
         }
+        private bool CanSendMessage() => !string.IsNullOrWhiteSpace(NewMessage);
 
         // Привязка консоли
         public string Content
@@ -38,6 +56,27 @@ namespace WPFTasks.Core.ViewModels
             get => _ipAddress;
             set => SetProperty(ref _ipAddress, value);
         }
+        public string NewMessage
+        {
+            get => _newMessage;
+            set
+            {
+                _newMessage = value;
+                UpdateHints();
+                OnPropertyChanged(nameof(NewMessage));
+            }
+        }
+        public bool AreHintsVisible
+        {
+            get => _areHintsVisible;
+            set { _areHintsVisible = value; OnPropertyChanged(nameof(AreHintsVisible)); }
+        }
+
+        public ObservableCollection<string> Hints
+        {
+            get => _hints;
+            set { _hints = value; OnPropertyChanged(nameof(Hints)); }
+        }
 
         // Порт
         public int Port
@@ -46,46 +85,26 @@ namespace WPFTasks.Core.ViewModels
             set => SetProperty(ref _port, value);
         }
 
-        // MaxSessionDuration
-        private TimeSpan _maxSessionDuration;
-        public TimeSpan MaxSessionDuration
-        {
-            get => _maxSessionDuration;
-            set
-            {
-                _maxSessionDuration = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public ICommand UpdateSessionDurationCommand { get; }
-
-        // MaxConnections
-        public int MaxConnections
-        {
-            get => _server.MaxConnections;
-            set
-            {
-                _server.MaxConnections = value;
-                OnPropertyChanged();
-            }
-        }
-
-        // MaxRequests
-        public int MaxRequests
-        {
-            get => _server.MaxRequests;
-            set
-            {
-                _server.MaxRequests = value;
-                OnPropertyChanged();
-            }
-        }
-
         // Команды
         public ICommand StartServerCommand { get; }
         public ICommand StopServerCommand { get; }
         public ICommand ClearMessagesCommand { get; }
+        public ICommand SendMessageCommand { get; }
+
+
+        private async Task SendMessageAsync()
+        {
+            string input = NewMessage.TrimEnd();
+            LogMessage("[Root]: " + NewMessage);
+            NewMessage = string.Empty;
+
+            try {
+                await _commandProcessor.ExecuteCommand(input);
+            }
+            catch (Exception ex) {
+                LogMessage("[CommandProcessor]: " + ex.Message);
+            }
+        }
 
         // Запуск сервера
         private bool CanStartServer() => _cancellationTokenSource == null || _cancellationTokenSource.IsCancellationRequested;
@@ -93,10 +112,16 @@ namespace WPFTasks.Core.ViewModels
         {
             try
             {
+                if (!CanStartServer())
+                {
+                    LogMessage($"[Server]: Я уже запущен...");
+                    return;
+                }
+
                 _server.SetEndPoint(new IPEndPoint(IPAddress.Parse(IpAddress), Port));
                 _cancellationTokenSource = new CancellationTokenSource();
                 await _server.StartServer(_cancellationTokenSource.Token);
-                
+
                 //LogMessage("[Server]: Сервер запущен.");
             }
             catch (Exception ex)
@@ -111,6 +136,11 @@ namespace WPFTasks.Core.ViewModels
         {
             try
             {
+                if (!CanStopServer())
+                {
+                    LogMessage($"[Server]: Запусти сначало...");
+                    return;
+                }
                 _cancellationTokenSource?.Cancel();
                 await _server.StopServer();
             }
@@ -120,14 +150,53 @@ namespace WPFTasks.Core.ViewModels
             }
         }
 
-        private async Task UpdateSessionDuration()
+        public string TryCompleteCommand(string text)
         {
-            await _server.UpdateSessionDuration(MaxSessionDuration);
+            if (_commandProcessor.TryCompleteCommand(text, out var completedCommand))
+                return completedCommand;
+
+            return text;
+        }
+
+        private async Task OpenUserDataFileHandler(string _)
+        {
+            if (!System.IO.File.Exists(_server.FilePath))
+            {
+                LogMessage("[/OpenUserDataFile]: Файл не найден.");
+                return;
+            }
+
+            Process.Start("notepad.exe", _server.FilePath);
+            await Task.CompletedTask;
+        }
+
+        private async Task GetServerStatusHandler(string _)
+        {
+            StringBuilder sb = new();
+            sb
+                .AppendLine("<ServerStatus>")
+                .AppendLine("{")
+                .AppendLine($"    IsRunning: {_server.IsRunning}")
+                .AppendLine($"    MaxConnections: {_server.MaxConnections}")
+                .AppendLine($"    MaxSessionDuration: {_server.MaxSessionDuration}")
+                .AppendLine($"    FilePathToUserData: {_server.FilePath}")
+                .AppendLine("}");
+
+            LogMessage(sb.ToString());
+            await Task.CompletedTask;
         }
 
         // Очистка сообщений
         private void ClearMessages()
             => Content = string.Empty;
+        private void UpdateHints()
+        {
+            int index = NewMessage.LastIndexOf('/');
+            if (index == -1) return;
+            string text = NewMessage[index..];
+            _commandProcessor.GetHints(text, Hints);
+            AreHintsVisible = Hints.Any();
+        }
 
         // Обработчик сообщений лога
         private void OnLogMessage(string message)

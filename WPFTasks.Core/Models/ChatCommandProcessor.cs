@@ -1,14 +1,10 @@
 ﻿
+using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 
 namespace WPFTasks.Core.Models
 {
-    using System;
-    using System.Collections.Concurrent;
-    using System.Collections.Generic;
-    using System.Collections.ObjectModel;
-    using System.Linq;
-    using System.Threading.Tasks;
+
 
     public class ChatCommandProcessor
     {
@@ -75,6 +71,9 @@ namespace WPFTasks.Core.Models
 
             if (matches.Count == 1)
             {
+                if (input.StartsWith(matches[0]))
+                    return false;
+
                 completedCommand = matches[0];
                 return true;
             }
@@ -100,20 +99,41 @@ namespace WPFTasks.Core.Models
 
         public async Task ExecuteCommand(string input)
         {
-            if (string.IsNullOrWhiteSpace(input) || !input.StartsWith('/'))
-                throw new ArgumentException("Команда должна начинаться с '/' и не быть пустой.", nameof(input));
+            if (string.IsNullOrWhiteSpace(input))
+                throw new ArgumentException("Команда не должна быть пустой.", nameof(input));
 
-            foreach (var command in _commands)
+            // Разделение команд по "&&" типо консоль из линукса
+            var commands = input.Split(new[] { "&&" }, StringSplitOptions.RemoveEmptyEntries)
+                                .Select(c => c.Trim())
+                                .ToList();
+
+            foreach (var commandInput in commands)
             {
-                if (input.StartsWith(command.Key, StringComparison.OrdinalIgnoreCase))
-                {
-                    await command.Value.Handler(input);
-                    return;
-                }
-            }
+                if (!commandInput.StartsWith('/'))
+                    throw new ArgumentException($"Каждая команда должна начинаться с '/'. Некорректная команда: {commandInput}");
 
-            throw new KeyNotFoundException($"Команда, начинающаяся с '{input}', не найдена.");
+                var executed = false;
+
+                foreach (var command in _commands)
+                {
+                    if (commandInput.StartsWith(command.Key, StringComparison.OrdinalIgnoreCase))
+                    {
+                        try {
+                            await command.Value.Handler(commandInput);
+                            executed = true;
+                        }
+                        catch{
+                            executed = false;
+                        }
+                        break;
+                    }
+                }
+
+                if (!executed)
+                    throw new KeyNotFoundException($"Команда '{commandInput}' не найдена.");
+            }
         }
+
 
         public string? GetCommandDescription(string command)
         {

@@ -21,8 +21,7 @@ namespace WPFTasks.Core.Models.Currency
                     .Register(() => new ServerOverloadedNotificationMessageBuilder());
 
         private readonly MaxRequestsCloseCondition _closeCondition = new() { MsgType = CurrencyRequestData.MsgType };
-        private readonly SessionCloseConditionEvaluator _sessionCloseCondition = new SessionCloseConditionEvaluator()
-            .AddAsyncCondition(new AuthCloseCondition());
+        private readonly SessionCloseConditionEvaluator _sessionCloseCondition = new();
 
         private readonly AuthenticationService<CurrencyUser> _authenticationService;
         private readonly Repository<CurrencyUser> _userRepository;
@@ -33,6 +32,7 @@ namespace WPFTasks.Core.Models.Currency
 
         public Logger Logger { get; private set; } = new();
         public EndPoint? EndPoint => _server.CurrentEndPoint;
+        public bool IsRunning => _server.IsRunning;
 
         public CurrencyServer(string? filePath = null)
         {
@@ -113,9 +113,10 @@ namespace WPFTasks.Core.Models.Currency
         public async Task StopServer()
             => await _server.StopAsync();
 
-        private ClientSession? SessionFactory(TopClient client, ServiceRegistry context, LogString? logger)
+        private async Task<ClientSession?> SessionFactory(TopClient client, ServiceRegistry context, LogString? logger)
         {
-            if(_server.CountOpenSessions > MaxConnections)
+            
+            if (_server.CountOpenSessions >= MaxConnections)
             {
                 try {
                     client.SendMessageAsync(_msgService.BuildMessage<ServerOverloadedNotificationMessageBuilder, ServerOverloadedNotificationData>(null)).Wait();
@@ -147,7 +148,7 @@ namespace WPFTasks.Core.Models.Currency
         public async Task UpdateSessionDuration(TimeSpan newDuration)
             => await _authenticationService.UpdateSessionDuration(newDuration);
 
-        public int MaxConnections { get; set; }
+        public int MaxConnections { get; set; } = 1;
         public int MaxRequests
         {
             get => _closeCondition.MaxRequests;

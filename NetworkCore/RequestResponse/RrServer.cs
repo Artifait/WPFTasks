@@ -13,7 +13,7 @@ namespace TopNetwork.RequestResponse
     public class RrServer
     {
         private readonly ConcurrentDictionary<Guid, ClientSession> _sessions = new();
-        private Func<TopClient, ServiceRegistry, LogString?, ClientSession?>? _sessionFactory;
+        private Func<TopClient, ServiceRegistry, LogString?, Task<ClientSession?>>? _sessionFactory;
         private CancellationTokenSource? _cancellationTokenSource;
         private IPEndPoint? _currentEndPoint;
         private TcpListener? _listener;
@@ -27,6 +27,7 @@ namespace TopNetwork.RequestResponse
         public ServiceRegistry Context { get; private set; } = new();
         public EndPoint? CurrentEndPoint => _currentEndPoint;
         public int CountOpenSessions => _sessions.Count;
+        public bool IsRunning => _cancellationTokenSource != null;
 
         // Сеттеры для зависимостей
         public RrServer SetEndPoint(IPEndPoint endPoint)
@@ -36,7 +37,7 @@ namespace TopNetwork.RequestResponse
             return this;
         }
 
-        public RrServer SetSessionFactory(Func<TopClient, ServiceRegistry, LogString?, ClientSession?> sessionFactory)
+        public RrServer SetSessionFactory(Func<TopClient, ServiceRegistry, LogString?, Task<ClientSession?>> sessionFactory)
         {
             _sessionFactory = sessionFactory ?? throw new ArgumentNullException(nameof(sessionFactory));
             return this;
@@ -66,7 +67,7 @@ namespace TopNetwork.RequestResponse
         /// <summary> Запускает сервер для обработки подключений. </summary>
         public async Task StartAsync(CancellationToken cancellationToken = default)
         {
-            if (_cancellationTokenSource != null)
+            if (IsRunning)
                 throw new InvalidOperationException("Server is already running.");
 
             // Проверка зависимостей
@@ -150,7 +151,7 @@ namespace TopNetwork.RequestResponse
                 topClient = new TopClient();
                 topClient.Connect(tcpClient);
 
-                session = _sessionFactory!(topClient, Context, Logger);
+                session = await _sessionFactory!(topClient, Context, Logger);
 
                 if (session == null)
                 {
@@ -168,6 +169,7 @@ namespace TopNetwork.RequestResponse
                 session.logger = Logger;
                 session.OnMessageProcessed += Session_OnMessageProcessed;
                 await session.StartAsync();
+                _sessions.TryRemove(clientGuid, out _);
             }
             catch (Exception ex)
             {
@@ -178,7 +180,6 @@ namespace TopNetwork.RequestResponse
             {
                 if (session != null)
                 {
-                    _sessions.TryRemove(clientGuid, out _);
                     session.CloseSession();
                     session.OnMessageProcessed -= Session_OnMessageProcessed;
                     Logger?.Invoke($"[{session.RemoteEndPoint}]: Клиент отключился...");

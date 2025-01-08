@@ -224,7 +224,10 @@ namespace WPFTasks.Core.ViewModels
 
         private void UpdateHints()
         {
-            _commandProcessor.GetHints(NewMessage, Hints);
+            int index = NewMessage.LastIndexOf('/');
+            if (index == -1) return;
+            string text = NewMessage[index..];
+            _commandProcessor.GetHints(text, Hints);
             AreHintsVisible = Hints.Any();
         }
 

@@ -17,7 +17,6 @@ namespace WPFTasks.Core.Models.Currency.Conditions
         {
             if (session.ServerContext.TryGetService<AuthenticationService<CurrencyUser>>(out var authService))
             {
-                await authService.VerifyAllSessions();
                 if (authService.CountAuthConnections < MaxConnections)
                     return true;
 

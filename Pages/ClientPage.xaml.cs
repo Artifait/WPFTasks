@@ -7,10 +7,11 @@ namespace WPFTasks.Pages
 {
     public partial class ClientPage : Page
     {
+        private static CurrencyClientViewModel Instance = new();
         public ClientPage()
         {
             InitializeComponent();
-            //DataContext = new ClientPageViewModel(App.Current.Dispatcher);
+            DataContext = Instance;
         }
 
         private void HintsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -42,7 +43,11 @@ namespace WPFTasks.Pages
             {
                 if (DataContext is CurrencyClientViewModel vm)
                 {
-                    InputTextBox.Text = vm.TryCompleteCommand(InputTextBox.Text);
+                    int index = InputTextBox.Text.LastIndexOf('/');
+                    if (index == -1) return;
+                    string text = InputTextBox.Text[index..];
+                    text = vm.TryCompleteCommand(text);
+                    InputTextBox.Text = InputTextBox.Text[..index] + text;
                     CareInputTextBoxToEnd();
                     e.Handled = true;
                 }

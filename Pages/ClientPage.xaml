@@ -8,9 +8,6 @@
       mc:Ignorable="d"      
       d:DesignHeight="450" d:DesignWidth="800"
       Title="Task1">
-    <Page.DataContext>
-        <vm:CurrencyClientViewModel />
-    </Page.DataContext>
     <Border CornerRadius="5" Background="{DynamicResource SecundaryBackgroundColor}"
         BorderBrush="Gray" BorderThickness="2" Padding="10">
         <Grid>

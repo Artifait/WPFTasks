@@ -1,5 +1,6 @@
 ﻿
 using System.Windows.Controls;
+using System.Windows.Input;
 using WPFTasks.Core.ViewModels;
 
 namespace WPFTasks.Pages
@@ -9,15 +10,55 @@ namespace WPFTasks.Pages
     /// </summary>
     public partial class ServerPage : Page
     {
+        private static CurrencyServerViewModel Instance = new();
+
         public ServerPage()
         {
             InitializeComponent();
-            DataContext = new CurrencyServerViewModel();
+            DataContext = Instance;
         }
+
+        private void HintsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is ListBox listBox && listBox.SelectedItem is string selectedHint)
+            {
+                var viewModel = DataContext as CurrencyClientViewModel;
+                int index = selectedHint.IndexOf(' ');
+                index = index == -1 ? selectedHint.Length : index;
+                viewModel?.SelectHint(selectedHint[..index]);
+                listBox.SelectedItem = null; // Сбрасываем выбор
+                InputTextBox.Focus();
+                CareInputTextBoxToEnd();
+            }
+        }
+
 
         private void TextBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
-
+            if (e.Key == Key.Enter)
+            {
+                if (DataContext is CurrencyServerViewModel vm && vm.SendMessageCommand.CanExecute(null))
+                {
+                    vm.SendMessageCommand.Execute(null);
+                }
+                e.Handled = true;
+            }
+            if (e.Key == Key.Tab)
+            {
+                if (DataContext is CurrencyServerViewModel vm)
+                {
+                    int index = InputTextBox.Text.LastIndexOf('/');
+                    if (index == -1) return;
+                    string text = InputTextBox.Text[index..];
+                    text = vm.TryCompleteCommand(text);
+                    InputTextBox.Text = InputTextBox.Text[..index] + text;
+                    CareInputTextBoxToEnd();
+                    e.Handled = true;
+                }
+            }
         }
+        // Переместить каретку в конец
+        public void CareInputTextBoxToEnd()
+            => InputTextBox.CaretIndex = InputTextBox.Text.Length;
     }
 }
