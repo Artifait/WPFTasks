@@ -24,9 +24,25 @@ namespace TopNetwork.RequestResponse
             Handler = handler;
         }
 
-        public RrClient Connect(string ip, int port)
+        public async Task<RrClient> ConnectAsync(string ip, int port)
         {
             if(_topClient != null)
+            {
+                _topClient.OnMessageReceived -= HandleIncomingMessageAsync;
+                _topClient.OnConnectionLost -= OnConnectionLostEvent;
+                _topClient.Disconnect();
+            }
+
+            _topClient = await new TopClient().ConnectAsync(ip, port);
+            _topClient.OnConnectionLost += OnConnectionLostEvent;
+            _topClient.OnMessageReceived += HandleIncomingMessageAsync;
+            _ = StartListening();
+            return this;
+        }
+
+        public RrClient Connect(string ip, int port)
+        {
+            if (_topClient != null)
             {
                 _topClient.OnMessageReceived -= HandleIncomingMessageAsync;
                 _topClient.OnConnectionLost -= OnConnectionLostEvent;
@@ -39,6 +55,7 @@ namespace TopNetwork.RequestResponse
             _ = StartListening();
             return this;
         }
+
         public void Disconnect()
         {
             _topClient?.Disconnect();

@@ -16,7 +16,7 @@ namespace WPFTasks.Core.Models.Currency
         private RrClientHandlerBase _handlers;
         private RrClient _client;
 
-        public event Action OnEndSession;
+        public event Action<EndSessionNotificationData> OnEndSession;
         public event Action OnConnectionLost;
         public event Action<AuthenticationResponseData> OnAuthenticationResponse;
         public event Action<CurrencyResponseData> OnCurrencyResponse;
@@ -26,7 +26,6 @@ namespace WPFTasks.Core.Models.Currency
 
         public bool IsInitialized => _client?.IsInitialized ?? false;
         public bool IsConnected => _client?.IsConnected ?? false;
-        public bool IsAuth { get; set; }
 
         public CurrencyClient()
         {
@@ -45,16 +44,20 @@ namespace WPFTasks.Core.Models.Currency
                 .AddHandlerForMessageType(EndSessionNotificationData.MsgType, async msg =>
                 {
                     _client?.Disconnect();
-                    IsAuth = false;
 
-                    OnEndSession?.Invoke();
+                    try {
+                        OnEndSession?.Invoke(EndSessionNotificationMessageBuilder.Parse(msg));
+                    }
+                    catch (Exception ex) {
+                        OnErroreOnClient?.Invoke($"Ошибка при парсинге ответа: {msg}");
+                    }
+
                     return null;
                 })
                 .AddHandlerForMessageType(AuthenticationResponseData.MsgType, async msg =>
                 {
                     try {
                         var response = AuthenticationResponseMessageBuilder.Parse(msg);
-                        IsAuth = response.IsAuthenticated;
 
                         OnAuthenticationResponse?.Invoke(response);
                     }
@@ -124,6 +127,9 @@ namespace WPFTasks.Core.Models.Currency
 
         public void Connect(string IpServer, int port)
             => _client.Connect(IpServer, port);
+        public async Task ConnectAsync(string IpServer, int port)
+            => await _client.ConnectAsync(IpServer, port);
+
         public void Disconnect()
             => _client.Disconnect();
     }

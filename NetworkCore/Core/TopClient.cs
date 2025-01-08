@@ -34,10 +34,10 @@ namespace TopNetwork.Core
         public bool HasPendingMessages => !_messageQueue.IsEmpty;
 
         // Public Methods
-        public TopClient Connect(string ip, int port)
+        public async Task<TopClient> ConnectAsync(string ip, int port)
         {
             _client = new TcpClient();
-            _client.Connect(ip, port);
+            await _client.ConnectAsync(ip, port);
             _stream = _client.GetStream();
             IsInitialized = true;
 
@@ -53,6 +53,18 @@ namespace TopNetwork.Core
 
             _client = client;
             _stream = client.GetStream();
+            IsInitialized = true;
+
+            OnConnected?.Invoke();
+
+            return this;
+        }
+
+        public TopClient Connect(string ip, int port)
+        {
+            _client = new TcpClient();
+            _client.Connect(ip, port);
+            _stream = _client.GetStream();
             IsInitialized = true;
 
             OnConnected?.Invoke();

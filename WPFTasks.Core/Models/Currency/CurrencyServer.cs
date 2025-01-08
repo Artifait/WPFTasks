@@ -20,9 +20,6 @@ namespace WPFTasks.Core.Models.Currency
                     .Register(() => new EndSessionNotificationMessageBuilder())
                     .Register(() => new ServerOverloadedNotificationMessageBuilder());
 
-        private readonly ConnectionLimitCondition _openCondition = new();
-        private readonly SessionOpenConditionEvaluator _sessionOpenCondition = new();
-
         private readonly MaxRequestsCloseCondition _closeCondition = new() { MsgType = CurrencyRequestData.MsgType };
         private readonly SessionCloseConditionEvaluator _sessionCloseCondition = new SessionCloseConditionEvaluator()
             .AddAsyncCondition(new AuthCloseCondition());
@@ -43,21 +40,15 @@ namespace WPFTasks.Core.Models.Currency
             _server.Logger = Logger.LogString;
 
             _userRepository = new(filePath ?? "CurrencyUsers.json");
-
             _userService = new(_userRepository, new PasswordService(), data => new(data.login, data.hashPassword));
-            //_userService
-            //    .RegisterUser("Art", "123")
-            //    .RegisterUser("User1", "123")
-            //    .RegisterUser("Peshka", "123");
+            _authenticationService = new(_userService, _msgService) { Logger = Logger.LogString };
 
             _server
-                .RegisterGeneric(typeof(AuthenticationService<>), typeof(AuthenticationService<>))
                 .RegisterService(_msgService)
                 .RegisterService(_userRepository)
                 .RegisterService(_userService)
-                .Context.TryGetService(out _authenticationService!);
+                .RegisterService(_authenticationService);
 
-            _sessionOpenCondition.AddAsyncCondition(_openCondition);
             _sessionCloseCondition.AddCondition(_closeCondition);
 
             _handlers = new RrServerHandlerBase()
@@ -68,7 +59,7 @@ namespace WPFTasks.Core.Models.Currency
                         if(!_authenticationService.IsAuthClient(client))
                         {
                             return _msgService.BuildMessage<ErroreMessageBuilder, ErroreData>(builder => builder
-                                .SetPayload("Для использования данной функции нужно быть авторизироваться...")
+                                .SetPayload("Для использования данной функции нужно авторизироваться...")
                             );
                         }
                         var requestData = CurrencyRequestMessageBuilder.Parse(msg);
@@ -124,10 +115,21 @@ namespace WPFTasks.Core.Models.Currency
 
         private ClientSession? SessionFactory(TopClient client, ServiceRegistry context, LogString? logger)
         {
+            if(_server.CountOpenSessions > MaxConnections)
+            {
+                try {
+                    client.SendMessageAsync(_msgService.BuildMessage<ServerOverloadedNotificationMessageBuilder, ServerOverloadedNotificationData>(null)).Wait();
+                    logger?.Invoke($"[SessionFactory]: Отвергнуто подключение с [{client.RemoteEndPoint}], из-за перегрузки сервера...");
+                    return null;
+                }
+                catch (Exception ex) {
+                    logger?.Invoke($"[SessionFactory]: {ex.Message}.");
+                }
+            }
+
             ClientSession session = new(client, _handlers, context)
             {
                 logger = logger,
-                OpenConditionEvaluator = _sessionOpenCondition,
                 CloseConditionEvaluator = _sessionCloseCondition,
             };
 
@@ -145,12 +147,7 @@ namespace WPFTasks.Core.Models.Currency
         public async Task UpdateSessionDuration(TimeSpan newDuration)
             => await _authenticationService.UpdateSessionDuration(newDuration);
 
-        public int MaxConnections
-        {
-            set => _openCondition.MaxConnections = value;
-            get => _openCondition.MaxConnections;
-        }
-
+        public int MaxConnections { get; set; }
         public int MaxRequests
         {
             get => _closeCondition.MaxRequests;

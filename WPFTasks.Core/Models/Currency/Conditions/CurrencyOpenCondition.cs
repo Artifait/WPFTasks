@@ -7,16 +7,18 @@ using WPFTasks.Core.Models.Currency.MessageBuilder;
 
 namespace WPFTasks.Core.Models.Currency.Conditions
 {
+    //Для авторизованых соединений
     public class ConnectionLimitCondition : IAsyncCondition<ClientSession>
     {
-        public int MaxConnections { get; set; } = 2;
+        public int MaxConnections { get; set; } = 1;
+
 
         public async Task<bool> IsSatisfiedAsync(ClientSession session)
         {
             if (session.ServerContext.TryGetService<AuthenticationService<CurrencyUser>>(out var authService))
             {
                 await authService.VerifyAllSessions();
-                if (authService.CountConnections < MaxConnections)
+                if (authService.CountAuthConnections < MaxConnections)
                     return true;
 
                 if (session.ServerContext.TryGetService<MessageBuilderService>(out var msgBuilder))

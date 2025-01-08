@@ -140,7 +140,6 @@ namespace TopNetwork.Core
 
         private void HandleClientDisconnected()
         {
-            OnError($"[{RemoteEndPoint}]: Client disconnected...");
             CloseSession();
         }
 

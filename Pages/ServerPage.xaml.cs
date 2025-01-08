@@ -14,5 +14,10 @@ namespace WPFTasks.Pages
             InitializeComponent();
             DataContext = new CurrencyServerViewModel();
         }
+
+        private void TextBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+
+        }
     }
 }

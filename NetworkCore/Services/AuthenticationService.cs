@@ -12,11 +12,11 @@ namespace TopNetwork.Services
         private readonly UserService<UserT> _userService;
         private readonly MessageBuilderService _msgService;
         private readonly ConcurrentDictionary<TopClient, (string Login, DateTime Timestamp)> _authenticatedSessions = new();
-        private TimeSpan _maxSessionDuration = TimeSpan.FromMinutes(10);
+        private TimeSpan _maxSessionDuration = TimeSpan.FromSeconds(3);
 
         public LogString? Logger { get; set; }
         public TimeSpan MaxSessionDuration => _maxSessionDuration;
-        public int CountConnections => _authenticatedSessions.Count;
+        public int CountAuthConnections => _authenticatedSessions.Count;
 
         public AuthenticationService(UserService<UserT> userService, MessageBuilderService msgService)
         {
@@ -61,10 +61,18 @@ namespace TopNetwork.Services
                         .SetExplanatoryMsg("Невозможно авторизоваться под этим логином...")
                     );
                 }
+                if(_authenticatedSessions.Where(s => s.Value.Login == requestData.Login).Any())
+                {
+                    Logger?.Invoke($"[AuthenticationService]: Клиент [{client.RemoteEndPoint}] пытается авторизоваться с логином { requestData.Login}, который уже используется другим пользователем.");
+                    return _msgService.BuildMessage<AuthenticationResponseMessageBuilder, AuthenticationResponseData>(builder => builder
+                        .SetAuthentication(false)
+                        .SetExplanatoryMsg("Невозможно авторизоваться под этим логином, тк уже используется другим пользователем...")
+                    );
+                }
 
                 _authenticatedSessions[client] = (requestData.Login, DateTime.UtcNow);
 
-                Logger?.Invoke($"[AuthenticationService]: Клиент [{client.RemoteEndPoint}] успешно аутентифицирован под логином {requestData.Login}.");
+                Logger?.Invoke($"[AuthenticationService]: Клиент [{client.RemoteEndPoint}] успешно аутентифицирован под логином {requestData.Login}, на всё про всё у него {_maxSessionDuration.TotalMinutes} минут.");
                 return _msgService.BuildMessage<AuthenticationResponseMessageBuilder, AuthenticationResponseData>(builder => builder
                     .SetAuthentication(true)
                     .SetExplanatoryMsg("Вы успешно авторизовались!")

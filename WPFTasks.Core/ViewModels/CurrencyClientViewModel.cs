@@ -1,8 +1,9 @@
-﻿
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using WPFTasks.Core.Models;
 using WPFTasks.Core.Models.Currency;
 using WPFTasks.ViewModels;
 
@@ -17,20 +18,19 @@ namespace WPFTasks.Core.ViewModels
     public class CurrencyClientViewModel : INotifyPropertyChanged
     {
         private readonly CurrencyClient _currencyClient;
+        private readonly ChatCommandProcessor _commandProcessor;
 
         // Поля для подключения
         private string _ipAddress = "127.0.0.1";
         private string _port = "18080";
-        private string _login;
-        private string _password;
         private string _newMessage;
 
         // Состояние
         private bool _areHintsVisible;
-        private ObservableCollection<string> _hints = [];
+        private ObservableCollection<string> _hints = new();
 
         // Чат и сообщения
-        public ObservableCollection<ChatMessage> Messages { get; } = [];
+        public ObservableCollection<ChatMessage> Messages { get; } = new();
 
         // Свойства
         public string IpAddress
@@ -43,18 +43,6 @@ namespace WPFTasks.Core.ViewModels
         {
             get => _port;
             set { _port = value; OnPropertyChanged(nameof(Port)); }
-        }
-
-        public string Login
-        {
-            get => _login;
-            set { _login = value; OnPropertyChanged(nameof(Login)); }
-        }
-
-        public string Password
-        {
-            get => _password;
-            set { _password = value; OnPropertyChanged(nameof(Password)); }
         }
 
         public string NewMessage
@@ -86,147 +74,169 @@ namespace WPFTasks.Core.ViewModels
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private void OnDsa()
-        {
-            ShowMessageBox("Соединение потеряно." + CanConnect());
-
-            bool sad = !_currencyClient.IsConnected;
-        }
         public CurrencyClientViewModel()
         {
             _currencyClient = new CurrencyClient();
+            _commandProcessor = new();
+
+            _commandProcessor
+                .AddCommand("/GetCurrencyRate", "/GetCurrencyRate <FromCurrency> <ToCurrency>", HandleGetCurrencyRate)
+                .AddCommand("/Authentication", "/Authentication <Login> <Password>", HandleAuthentication)
+                .AddCommand("/SignOut", "/SignOut", HandleSignOut)
+                .AddCommand("/Disconnect", "/Disconnect", HandleDisconnect)
+                .AddCommand("/Clear", "/Clear", HandleClear)
+                .AddCommand("/Connect", "/Connect <Ip> <Port> or /Connect", HandleConnect);
 
             // Подписываемся на события
-            _currencyClient.OnEndSession += () 
-                => ShowMessageBox("Сессия завершена.");
-            _currencyClient.OnConnectionLost += OnDsa;
-            _currencyClient.OnAuthenticationResponse += response =>
-            {
-                var message = response.IsAuthenticated ? "Аутентификация успешна." : "Ошибка аутентификации.";
-                ShowMessageBox(message);
-            };
-            _currencyClient.OnCurrencyResponse += response 
-                => ShowMessageBox($"Курс валют: {response.FromCurrency} → {response.ToCurrency}: {response.Rate}");
-            _currencyClient.OnErroreOnClient += error 
-                => ShowMessageBox($"Ошибка клиента: {error}");
-            _currencyClient.OnErroreFromServer += error 
-                => ShowMessageBox($"Ошибка сервера: [{error.Payload}].");
-            _currencyClient.OnServerOverloaded += () 
-                => ShowMessageBox("Сервер перегружен.\nНевозможно подключиться, попробуйте позже...");
+            _currencyClient.OnEndSession += data
+                => AddMessage("Server", data.Payload);
+
+            _currencyClient.OnConnectionLost += ()
+                => AddMessage("Client", "Соединение потеряно.");
+
+            _currencyClient.OnAuthenticationResponse += response
+                => AddMessage("ServerResponse", response.Payload);
+
+            _currencyClient.OnCurrencyResponse += response
+                => AddMessage("ServerResponse", $"Курс валют: {response.FromCurrency} → {response.ToCurrency}: {response.Rate}");
+
+            _currencyClient.OnErroreOnClient += error
+                => AddMessage("Client", $"Ошибка: {error}");
+
+            _currencyClient.OnErroreFromServer += error
+                => AddMessage("Server", $"Ошибка: [{error.Payload}].");
+
+            _currencyClient.OnServerOverloaded += ()
+                => AddMessage("ServerResponse", "Сервер перегружен.\nНевозможно подключиться, попробуйте позже...");
 
             // Инициализация команд
-            ConnectCommand = new RelayCommand(async _ => await ConnectAsync(), _ => CanConnect());
+            ConnectCommand = new RelayCommand(_ => ConnectAsync(), _ => CanConnect());
             SendMessageCommand = new RelayCommand(async _ => await SendMessageAsync(), _ => CanSendMessage());
         }
 
-        private void ShowMessageBox(string message)
+        private async Task SendMessageAsync()
         {
-            Application.Current.Dispatcher.Invoke(() => MessageBox.Show(message, "Информация", MessageBoxButton.OK, MessageBoxImage.Information));
+            string input = NewMessage.TrimEnd();
+            AddMessage("Вы", NewMessage);
+            NewMessage = string.Empty;
+
+            try {
+                await _commandProcessor.ExecuteCommand(input);
+            }
+            catch (Exception ex) {
+                AddMessage("_commandProcessor", ex.Message);
+            }
         }
 
-        private bool CanConnect() => !string.IsNullOrWhiteSpace(IpAddress) && int.TryParse(Port, out _) && !_currencyClient.IsConnected;
+        private async Task HandleGetCurrencyRate(string input)
+        {
+            var parts = input.Split(' ');
+            if (parts.Length == 3)
+            {
+                await _currencyClient.SendCurrencyRequest(parts[1], parts[2]);
+            }
+            else
+            {
+                ShowMessageBox("Команда /GetCurrencyRate должна быть в формате: { /GetCurrencyRate <FromCurrency> <ToCurrency> }");
+            }
+        }
+
+        private async Task HandleAuthentication(string input)
+        {
+            var parts = input.Split(' ');
+            if (parts.Length == 3)
+            {
+                await _currencyClient.SendAuthRequest(parts[1], parts[2]);
+            }
+            else
+            {
+                ShowMessageBox("Команда /Authentication должна быть в формате: { /Authentication <Login> <Password> }");
+            }
+        }
+
+        private async Task HandleSignOut(string input)
+            => await _currencyClient.SendCloseSessionRequest();
+
+        private async Task HandleDisconnect(string input)
+            => _currencyClient.Disconnect();
+
+        private async Task HandleClear(string input)
+            => Application.Current.Dispatcher.Invoke(() => Messages.Clear());
+
+        private async Task HandleConnect(string input)
+        {
+            var parts = input.Split(' ');
+            if (parts.Length == 3)
+            {
+                await ConnectAsync(parts[1], int.Parse(parts[2]));
+            }
+            else if (parts.Length == 1)
+            {
+                await ConnectAsync();
+            }
+            else
+            {
+                ShowMessageBox("Команда /Connect должна быть в формате: { /Connect <Ip> <Port> or /Connect }");
+            }
+        }
 
         private async Task ConnectAsync()
         {
             try
             {
-                _currencyClient.Connect(IpAddress, int.Parse(Port));
-                ShowMessageBox("Подключение успешно.");
+                await ConnectAsync(IpAddress, int.Parse(Port));
             }
             catch (Exception ex)
             {
-                ShowMessageBox($"Ошибка подключения: {ex.Message}");
-            }
-            finally {
-
+                AddMessage("Server", $"Ошибка подключения: {ex.Message}");
             }
         }
 
-        private bool CanSendMessage() => !string.IsNullOrWhiteSpace(NewMessage) && _currencyClient.IsConnected;
-
-        private async Task SendMessageAsync()
+        private async Task ConnectAsync(string ipAddress, int port)
         {
-            string input = NewMessage.TrimEnd();
-            Messages.Add(new ChatMessage { Sender = "Вы", Content = NewMessage });
-            NewMessage = string.Empty;
-
             try
             {
-                if (input.StartsWith("/Rate", StringComparison.CurrentCultureIgnoreCase))
-                {
-                    var parts = input.Split(' ');
-                    if (parts.Length == 3)
-                    {
-                        await _currencyClient.SendCurrencyRequest(parts[1], parts[2]);
-                    }
-                    else
-                    {
-                        ShowMessageBox("Команда /Rate должна быть в формате: {/Rate <FromCurrency> <ToCurrency>}");
-                    }
-                }
-                if (input.StartsWith("/Auth", StringComparison.CurrentCultureIgnoreCase))
-                {
-                    var parts = input.Split(" ");
-                    if (parts.Length == 3)
-                    {
-                        await _currencyClient.SendAuthRequest(parts[1], parts[2]);
-                    }
-                    else
-                    {
-                        ShowMessageBox("Команда /auth должна быть в формате: {/auth <Login> <Password>}");
-                    }
-                }
-                if (input.StartsWith("/Out", StringComparison.CurrentCultureIgnoreCase))
-                {
-                    await _currencyClient.SendCloseSessionRequest();
-                }
-                if (input.StartsWith("/Break", StringComparison.CurrentCultureIgnoreCase))
-                {
-                    _currencyClient.Disconnect();
-                }
+                await _currencyClient.ConnectAsync(ipAddress, port);
+
+                if (_currencyClient.IsConnected)
+                    AddMessage("Server", "Подключение успешно.");
             }
             catch (Exception ex)
             {
-                ShowMessageBox(ex.Message);
+                AddMessage("Server", $"Ошибка подключения: {ex.Message}");
             }
+        }
 
+        public void SelectHint(string hint)
+        {
+            if (!string.IsNullOrWhiteSpace(hint))
+            {
+                NewMessage = hint;
+            }
+        }
+        public string TryCompleteCommand(string text)
+        {
+            if (_commandProcessor.TryCompleteCommand(text, out var completedCommand))
+                return completedCommand;
+
+            return text;
         }
 
         private void UpdateHints()
         {
-            Hints.Clear();
-
-            if (!string.IsNullOrWhiteSpace(NewMessage) && NewMessage.StartsWith('/'))
-            {
-                var allHints = new Dictionary<string, string>
-                {
-                    { "/rate", "/Rate <FromCurrency> <ToCurrency>" },
-                    { "/auth", "/Auth <Login> <Password>" },
-                    { "/out", "/Out" },
-                    { "/break", "/Break" },
-                };
-                string input = NewMessage.ToLower();
-
-                foreach (var hint in allHints)
-                {
-                    int minLenght = Math.Min(input.Length, hint.Key.Length);
-                    for (int i = 0; i < minLenght; i++)
-                    {
-                        if (input[i].Equals(hint.Key[i]))
-                        {
-                            if (i == minLenght - 1)
-                                Hints.Add(hint.Value);
-
-                            continue;
-                        }
-                        break;
-                    }
-                }
-            }
-
+            _commandProcessor.GetHints(NewMessage, Hints);
             AreHintsVisible = Hints.Any();
         }
 
+        private void ShowMessageBox(string message)
+            => Application.Current.Dispatcher.Invoke(() => MessageBox.Show(message, "Информация", MessageBoxButton.OK, MessageBoxImage.Information));
+
+        private void AddMessage(string sender, string message)
+            => Application.Current.Dispatcher.Invoke(() => Messages.Add(new ChatMessage { Sender = sender, Content = message }));
+
+        private bool CanConnect() => !string.IsNullOrWhiteSpace(IpAddress) && int.TryParse(Port, out _) && !_currencyClient.IsConnected;
+
+        private bool CanSendMessage() => !string.IsNullOrWhiteSpace(NewMessage);
 
         protected void OnPropertyChanged(string propertyName) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

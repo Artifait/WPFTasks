@@ -26,6 +26,7 @@ namespace TopNetwork.RequestResponse
         public LogString? Logger { get; set; }
         public ServiceRegistry Context { get; private set; } = new();
         public EndPoint? CurrentEndPoint => _currentEndPoint;
+        public int CountOpenSessions => _sessions.Count;
 
         // Сеттеры для зависимостей
         public RrServer SetEndPoint(IPEndPoint endPoint)
@@ -91,7 +92,7 @@ namespace TopNetwork.RequestResponse
                         Logger?.Invoke($"[Server]: Остановка прослушки.");
                     }
                     catch (Exception ex) {
-                        Logger?.Invoke($"[Server]: Error - {ex.Message}.");
+                        Logger?.Invoke($"[Server]: Ошибка - {ex.Message}.");
                     }
                 }
             }
@@ -152,7 +153,10 @@ namespace TopNetwork.RequestResponse
                 session = _sessionFactory!(topClient, Context, Logger);
 
                 if (session == null)
+                {
+                    topClient.Disconnect();
                     return;
+                }
 
                 if (!_sessions.TryAdd(clientGuid, session))
                 {
@@ -160,14 +164,15 @@ namespace TopNetwork.RequestResponse
                 }
 
                 ClientConnected?.Invoke(topClient);
-                Logger?.Invoke($"[{session.RemoteEndPoint}]: Client Connected...");
-
+                Logger?.Invoke($"[{session.RemoteEndPoint}]: Клиент подключился...");
+                session.logger = Logger;
+                session.OnMessageProcessed += Session_OnMessageProcessed;
                 await session.StartAsync();
             }
             catch (Exception ex)
             {
                 ServerError?.Invoke(ex);
-                Logger?.Invoke($"[Server]: Error handling client [{session?.RemoteEndPoint}] - {ex.Message}");
+                Logger?.Invoke($"[Server]: Ошибка обработки клиента [{session?.RemoteEndPoint}] - {ex.Message}");
             }
             finally
             {
@@ -175,10 +180,16 @@ namespace TopNetwork.RequestResponse
                 {
                     _sessions.TryRemove(clientGuid, out _);
                     session.CloseSession();
+                    session.OnMessageProcessed -= Session_OnMessageProcessed;
+                    Logger?.Invoke($"[{session.RemoteEndPoint}]: Клиент отключился...");
+                    ClientDisconnected?.Invoke(topClient!);
                 }
-
-                ClientDisconnected?.Invoke(topClient!);
             }
+        }
+
+        private void Session_OnMessageProcessed(ClientSession arg1, Message arg2)
+        {
+            Logger?.Invoke($"[Server]: Отправка ответа клиенту [{arg1.RemoteEndPoint}] с типом сообщения: {arg2.MessageType}...");
         }
     }
 }

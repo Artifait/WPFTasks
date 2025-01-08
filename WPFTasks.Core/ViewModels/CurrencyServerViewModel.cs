@@ -22,6 +22,7 @@ namespace WPFTasks.Core.ViewModels
             StartServerCommand = new RelayCommand(async _ => await StartServer(), _ => CanStartServer());
             StopServerCommand = new RelayCommand(async _ => await StopServer(), _ => CanStopServer());
             ClearMessagesCommand = new RelayCommand(_ => ClearMessages());
+            UpdateSessionDurationCommand = new RelayCommand(async _ => await UpdateSessionDuration());
         }
 
         // Привязка консоли
@@ -43,6 +44,42 @@ namespace WPFTasks.Core.ViewModels
         {
             get => _port;
             set => SetProperty(ref _port, value);
+        }
+
+        // MaxSessionDuration
+        private TimeSpan _maxSessionDuration;
+        public TimeSpan MaxSessionDuration
+        {
+            get => _maxSessionDuration;
+            set
+            {
+                _maxSessionDuration = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public ICommand UpdateSessionDurationCommand { get; }
+
+        // MaxConnections
+        public int MaxConnections
+        {
+            get => _server.MaxConnections;
+            set
+            {
+                _server.MaxConnections = value;
+                OnPropertyChanged();
+            }
+        }
+
+        // MaxRequests
+        public int MaxRequests
+        {
+            get => _server.MaxRequests;
+            set
+            {
+                _server.MaxRequests = value;
+                OnPropertyChanged();
+            }
         }
 
         // Команды
@@ -81,6 +118,11 @@ namespace WPFTasks.Core.ViewModels
             {
                 LogMessage($"[Server]: Ошибка остановки сервера: {ex.Message}");
             }
+        }
+
+        private async Task UpdateSessionDuration()
+        {
+            await _server.UpdateSessionDuration(MaxSessionDuration);
         }
 
         // Очистка сообщений
