@@ -149,7 +149,8 @@ namespace WPFTasks.Core.Models.Currency
             }
         }
 
-
+        public void RegisterUser(string login, string password)
+            => _userService.RegisterUser(login, password);
 
         // Свойства Задаваемые юзером
         public string FilePath

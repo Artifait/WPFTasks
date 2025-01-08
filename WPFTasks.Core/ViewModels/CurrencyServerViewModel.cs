@@ -39,6 +39,7 @@ namespace WPFTasks.Core.ViewModels
                 .AddCommand("/GetServerStatus", "/GetServerStatus", GetServerStatusHandler)
                 .AddCommand("/Clear", "/Clear", async _ => { ClearMessages(); await Task.CompletedTask; })
                 .AddCommand("/OpenUserDataFile", "/OpenUserDataFile", OpenUserDataFileHandler)
+                .AddCommand("/RegisterUser", "/RegisterUser <Login> <Password>", RegisterUserHandler)
                 .AddCommand("/SetSessionDuration", "/SetSessionDuration <hh:mm:ss>", SetSessionDurationHandler)
                 .AddCommand("/SetCountMaxConnections", "/SetCountMaxConnections <int>", SetCountMaxConnectionsHandler)
                 .AddCommand("/SetCountMaxRequests", "/SetCountMaxRequests <int>", SetCountMaxRequestsHandler)
@@ -290,6 +291,25 @@ namespace WPFTasks.Core.ViewModels
             }
             else {
                 LogMessage("[/SetTimeWindow]: Неверный формат вызова...");
+            }
+            await Task.CompletedTask;
+        }
+
+        private async Task RegisterUserHandler(string input)
+        {
+            var parts = input.Split(' ');
+            if (parts.Length == 3)
+            {
+                try {
+                    _server.RegisterUser(parts[1], parts[2]);
+                    LogMessage($"[/RegisterUser]: успешно добавлен новый пользователь под логином: {parts[1]}.");
+                }
+                catch (Exception ex) {
+                    LogMessage($"[/RegisterUser]: {ex.Message}");
+                }
+            }
+            else {
+                LogMessage("[/RegisterUser]: Неверный формат вызова...");
             }
             await Task.CompletedTask;
         }
