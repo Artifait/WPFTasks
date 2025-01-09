@@ -6,7 +6,7 @@
       xmlns:local="clr-namespace:WPFTasks.Pages"
       xmlns:vm="clr-namespace:WPFTasks.Core.ViewModels;assembly=WPFTasks.Core"
       mc:Ignorable="d"      
-      d:DesignHeight="450" d:DesignWidth="800"
+      d:DesignHeight="500" d:DesignWidth="850"
       Title="Task1">
     <Border CornerRadius="5" Background="{DynamicResource SecundaryBackgroundColor}"
         BorderBrush="Gray" BorderThickness="2" Padding="10">

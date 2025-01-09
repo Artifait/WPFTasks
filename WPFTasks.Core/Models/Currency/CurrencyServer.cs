@@ -56,15 +56,16 @@ namespace WPFTasks.Core.Models.Currency
                                 .SetPayload("Для использования данной функции нужно авторизироваться...")
                             );
                         }
-                        var user = _authenticationService.GetUserBy(client);
+
                         var requestData = CurrencyRequestMessageBuilder.Parse(msg);
                         var convertData = await _converter.GetExchangeRate(requestData.FromCurrency, requestData.ToCurrency);
-
                         var response = _msgService.BuildMessage<CurrencyResponseMessageBuilder, CurrencyResponseData>(builder => builder
                             .SetFromCurrency(requestData.FromCurrency)
                             .SetToCurrency(requestData.ToCurrency)
                             .SetRate(convertData)
                         );
+
+                        var user = _authenticationService.GetUserBy(client);
                         user.AddCurrencyRequest();
                         _userService.UpdateUser(user);
                         return response;

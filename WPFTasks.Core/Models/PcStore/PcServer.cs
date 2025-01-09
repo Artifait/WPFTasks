@@ -25,6 +25,7 @@ namespace WPFTasks.Core.Models.PcStore
         private readonly Repository<PcUser> _userRepository;
         private readonly UserService<PcUser> _userService;
         private readonly TrackerUserActivityService _activityService;
+        private readonly Repository<PcPart> _pcPartRepository;
         private readonly PcPartsService _pcPartsService;
         private readonly RrServerHandlerBase _handlers;
         private RrServer _server = new();
@@ -42,7 +43,8 @@ namespace WPFTasks.Core.Models.PcStore
             _userService = new(_userRepository, new PasswordService(), data => new(data.login, data.hashPassword));
             _authenticationService = new(_userService, _msgService) { Logger = Logger.LogString };
             _activityService = new(_msgService);
-            _pcPartsService = new(new Repository<PcPart>(pcPartsFilePath ?? "PcParts.json"));
+            _pcPartRepository = new Repository<PcPart>(pcPartsFilePath ?? "PcParts.json");
+            _pcPartsService = new(_pcPartRepository);
 
             if(!_pcPartsService.GetAllParts().Any())
             {
@@ -108,15 +110,26 @@ namespace WPFTasks.Core.Models.PcStore
                             );
                         }
 
+                        var requestData = PcPartInfoRequestMessageBuilder.Parse(msg);
+                        var pcPart = _pcPartsService.SearchPcPart(requestData.Title);
+                        var response = _msgService.BuildMessage<PcPartInfoResponseMessageBuilder, PcPartInfoResponseData> (builder => builder
+                            .SetTitle(pcPart?.Title ?? "Не найдено")
+                            .SetPrice(pcPart?.Price ?? -1)
+                        );
+
+                        var user = _authenticationService.GetUserBy(client);
+                        user.AddPcInfoRequest();
+                        _userService.UpdateUser(user);
+
+                        return response;
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
                         Logger.LogString($"[Server]: Ошибка обработки {PcPartInfoRequestData.MsgType} от [{client.RemoteEndPoint}].\n{ex.Message}");
                         return _msgService.BuildMessage<ErroreMessageBuilder, ErroreData>(builder => builder
                             .SetPayload($"Невозможно обработать {PcPartInfoRequestData.MsgType}.\n{ex.Message}")
                         );
                     }
-                    return _msgService.BuildMessage<EndSessionNotificationMessageBuilder, EndSessionNotificationData>();
                 });
 
             _server.SetSessionFactory(SessionFactory);
@@ -153,14 +166,26 @@ namespace WPFTasks.Core.Models.PcStore
             {
                 logger = logger,
             };
+
             session.OnMessageProcessed += Session_OnMessageProcessed;
+            session.OnMessageHandled += Session_OnMessageHandled;
+            _activityService.UpdateLastActive(client);
 
             return session;
         }
 
+        private void Session_OnMessageHandled(ClientSession arg1, Message arg2)
+        {
+            try { 
+                _activityService.UpdateLastActive(arg1.Client);
+                _server?.Logger?.Invoke($"[Server]: Обработано сообщение типа [{arg2.MessageType}] от [{arg1.RemoteEndPoint}] ");
+            } 
+            catch { }
+        }
+
         private void Session_OnMessageProcessed(ClientSession arg1, Message arg2)
         {
-            if (arg2.MessageType == CurrencyResponseData.MsgType)
+            if (arg2.MessageType == PcPartInfoResponseData.MsgType)
             {
                 if (!_authenticationService.GetUserBy(arg1.Client).IsUserLoginPossibleAsync().Result)
                 {
@@ -176,7 +201,8 @@ namespace WPFTasks.Core.Models.PcStore
             => _userService.RegisterUser(login, password);
 
         // Свойства Задаваемые юзером
-        public string FilePath => _userRepository.FilePath;
+        public string UserFilePath => _userRepository.FilePath;
+        public string PcPartFilePath => _pcPartRepository.FilePath;
 
         public TimeSpan MaxAuthSessionDuration => _authenticationService.MaxSessionDuration;
         public async Task UpdateAuthSessionDuration(TimeSpan newDuration)
@@ -190,15 +216,25 @@ namespace WPFTasks.Core.Models.PcStore
         public bool SetIndividMaxRequests(string login, int newCount)
         {
             var user = _userRepository.Get(user => user.Login == login);
-            if(user != null) user.MaxRequests = newCount;
+            if (user != null)
+            {
+                user.MaxRequests = newCount;
+                _userService.UpdateUser(user);
+            }
 
             return user != null;
         }
 
-        public TimeSpan TimeWindow
+        public bool SetIndividTimeWindow(string login, TimeSpan newTimeWindow)
         {
-            get => PcUser.TimeWindow;
-            set => PcUser.TimeWindow = value;
+            var user = _userRepository.Get(user => user.Login == login);
+            if (user != null)
+            {
+                user.TimeWindow = newTimeWindow;
+                _userService.UpdateUser(user);
+            }
+
+            return user != null;
         }
     }
 }

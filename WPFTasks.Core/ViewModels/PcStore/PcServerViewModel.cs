@@ -31,11 +31,13 @@ namespace WPFTasks.Core.ViewModels.PcStore
                 .AddCommand("/GetServerStatus", "/GetServerStatus", GetServerStatusHandler)
                 .AddCommand("/Clear", "/Clear", async _ => { ClearMessages(); await Task.CompletedTask; })
                 .AddCommand("/OpenUserDataFile", "/OpenUserDataFile", OpenUserDataFileHandler)
+                .AddCommand("/OpenPcPartDataFile", "/OpenPcPartDataFile", OpenPcPartFileHandler)
                 .AddCommand("/RegisterUser", "/RegisterUser <Login> <Password>", RegisterUserHandler)
                 .AddCommand("/SetAuthSessionDuration", "/SetAuthSessionDuration <hh:mm:ss>", SetAuthSessionDurationHandler)
+                .AddCommand("/SetMaxDurationInactive", "/SetMaxDurationInactive <hh:mm:ss>", SetMaxDurationInactiveHandler)
                 .AddCommand("/SetCountMaxConnections", "/SetCountMaxConnections <count>", SetCountMaxConnectionsHandler)
                 .AddCommand("/SetCountMaxRequests", "/SetCountMaxRequests <login> <count>", SetCountMaxRequestsHandler)
-                .AddCommand("/SetTimeWindow", "/SetTimeWindow <hh:mm:ss> - настройка промежутка времени, в котором учитываються запросы.", SetTimeWindowHandler);
+                .AddCommand("/SetTimeWindow", "/SetTimeWindow <login> <hh:mm:ss> - настройка промежутка времени, в котором учитываються запросы.", SetTimeWindowHandler);
         }
         private bool CanSendMessage() => !string.IsNullOrWhiteSpace(NewMessage);
 
@@ -129,13 +131,25 @@ namespace WPFTasks.Core.ViewModels.PcStore
 
         private async Task OpenUserDataFileHandler(string _)
         {
-            if (!System.IO.File.Exists(_server.FilePath))
+            if (!System.IO.File.Exists(_server.UserFilePath))
             {
                 LogMessage("[/OpenUserDataFile]: Файл не найден.");
                 return;
             }
 
-            Process.Start("notepad.exe", _server.FilePath);
+            Process.Start("notepad.exe", _server.UserFilePath);
+            await Task.CompletedTask;
+        }
+
+        private async Task OpenPcPartFileHandler(string _)
+        {
+            if (!System.IO.File.Exists(_server.PcPartFilePath))
+            {
+                LogMessage("[/OpenPcPartFile]: Файл не найден.");
+                return;
+            }
+
+            Process.Start("notepad.exe", _server.PcPartFilePath);
             await Task.CompletedTask;
         }
 
@@ -149,8 +163,8 @@ namespace WPFTasks.Core.ViewModels.PcStore
                 .AppendLine($"    NowConnections: {_server.CountOpenSessions}/{_server.MaxConnections}")
                 .AppendLine($"    MaxAuthSessionDuration: {_server.MaxAuthSessionDuration.TotalMinutes} Мин.")
                 .AppendLine($"    MaxDurationInactive: {_server.MaxDurationInactive.TotalMinutes} Мин.")
-                .AppendLine($"    TimeWindow: {_server.TimeWindow.TotalMinutes}  Мин.")
-                .AppendLine($"    FilePathToUserData: {_server.FilePath}")
+                .AppendLine($"    FilePathToUserData: {_server.UserFilePath}")
+                .AppendLine($"    FilePathToPcPartData: {_server.UserFilePath}")
                 .AppendLine("}");
 
             LogMessage(sb.ToString());
@@ -202,12 +216,12 @@ namespace WPFTasks.Core.ViewModels.PcStore
                 }
                 catch (Exception ex)
                 {
-                    LogMessage($"[/SetSessionDuration]: {ex.Message}");
+                    LogMessage($"[/SetCountMaxConnections]: {ex.Message}");
                 }
             }
             else
             {
-                LogMessage("[/SetSessionDuration]: Неверный формат вызова...");
+                LogMessage("[/SetCountMaxConnections]: Неверный формат вызова...");
             }
             await Task.CompletedTask;
         }
@@ -218,7 +232,12 @@ namespace WPFTasks.Core.ViewModels.PcStore
             if (parts.Length == 3)
             {
                 try {
-                    _server.SetIndividMaxRequests(parts[1], int.Parse(parts[2]));
+                    if(_server.SetIndividMaxRequests(parts[1], int.Parse(parts[2]))) {
+                        LogMessage($"[/SetCountMaxRequests]: Успешно обновлён лимит запросов для {parts[1]}");
+                    }
+                    else {
+                        LogMessage($"[/SetCountMaxRequests]: Не нашли пользователя под логином {parts[1]}");
+                    }
                 }
                 catch (Exception ex) {
                     LogMessage($"[/SetCountMaxRequests]: {ex.Message}");
@@ -233,10 +252,15 @@ namespace WPFTasks.Core.ViewModels.PcStore
         private async Task SetTimeWindowHandler(string input)
         {
             var parts = input.Split(' ');
-            if (parts.Length == 2)
+            if (parts.Length == 3)
             {
                 try {
-                    _server.TimeWindow = TimeSpan.Parse(parts[1]);
+                    if(_server.SetIndividTimeWindow(parts[1], TimeSpan.Parse(parts[2]))) {
+                        LogMessage($"[/SetTimeWindow]: Успешно обновлено временое окно для {parts[1]}");
+                    }
+                    else {
+                        LogMessage($"[/SetTimeWindow]: Не нашли пользователя под логином {parts[1]}");
+                    }
                 }
                 catch (Exception ex) {
                     LogMessage($"[/SetTimeWindow]: {ex.Message}");

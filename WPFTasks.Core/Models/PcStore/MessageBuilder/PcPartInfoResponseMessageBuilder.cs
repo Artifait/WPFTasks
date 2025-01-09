@@ -35,7 +35,11 @@ namespace WPFTasks.Core.Models.PcStore.MessageBuilder
             return new()
             {
                 MessageType = _data.MessageType,
-                Payload = _data.Title
+                Headers =
+                {
+                    { nameof(PcPartInfoResponseData.Title), _data.Title },
+                    { nameof(PcPartInfoResponseData.Price), _data.Price.ToString() }
+                }
             };
         }
 
@@ -46,7 +50,8 @@ namespace WPFTasks.Core.Models.PcStore.MessageBuilder
 
             return new()
             {
-                Title = msg.Payload
+                Title = msg.Headers[nameof(PcPartInfoResponseData.Title)],
+                Price = int.Parse(msg.Headers[nameof(PcPartInfoResponseData.Price)])
             };
         }
     }

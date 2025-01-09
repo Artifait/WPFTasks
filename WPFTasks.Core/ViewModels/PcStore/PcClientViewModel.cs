@@ -61,7 +61,7 @@ namespace WPFTasks.Core.ViewModels.PcStore
 
             _pcClient.OnPcPartInfoResponse += response =>
             {
-                AddMessage("ServerResponse", $"{response.Title} - " + (response.Price == -1 ? "Не найдено" : $"{response.Price} $"));
+                AddMessage("ServerResponse", response.Price == -1 ? response.Title : $"{response.Title} - {response.Price} $");
             };
 
             _pcClient.OnErroreOnClient += error

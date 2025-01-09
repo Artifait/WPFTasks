@@ -40,6 +40,8 @@ namespace WPFTasks.Pages
                 if (DataContext is PcServerViewModel vm && vm.SendMessageCommand.CanExecute(null))
                 {
                     vm.SendMessageCommand.Execute(null);
+                    vm.Hints.Clear();
+                    vm.AreHintsVisible = vm.Hints.Any();
                 }
                 e.Handled = true;
             }
@@ -55,6 +57,7 @@ namespace WPFTasks.Pages
                     CareInputTextBoxToEnd();
                     e.Handled = true;
                 }
+                e.Handled = true;
             }
         }
         // Переместить каретку в конец

@@ -54,7 +54,8 @@ namespace WPFTasks.Core.Models.PcStore.Services
         private void RegisterUser(TopClient client)
         {
             var session = new ClientActivitySession(client, _maxDurationInactive, NotifySessionExpired);
-
+            client.OnConnectionLost += () => CloseSession(client);
+            _trackingConnections[client] = session;
         }
 
         public void CloseSession(TopClient client)
@@ -68,10 +69,20 @@ namespace WPFTasks.Core.Models.PcStore.Services
 
         private async Task NotifySessionExpired(TopClient client)
         {
-            await client.SendMessageAsync(_msgService.BuildMessage<EndSessionNotificationMessageBuilder, EndSessionNotificationData>(builder => builder
-                .SetPayload("Сессия закрыта, из-за неактивности...")));
+            CloseSession(client);
+            if (client.IsConnected)
+            {
+                try { 
+                    await client.SendMessageAsync(_msgService.BuildMessage<EndSessionNotificationMessageBuilder, EndSessionNotificationData>(builder => builder
+                        .SetPayload("Сессия закрыта, из-за неактивности...")));
 
-            Logger?.Invoke($"[TrackerUserActivityService]: Клиент [{client.RemoteEndPoint}] уведомлен об закрытии сессии из-за неактивности.");
+                    Logger?.Invoke($"[TrackerUserActivityService]: Клиент [{client.RemoteEndPoint}] уведомлен об закрытии сессии из-за неактивности.");
+                }
+                catch (Exception ex) {
+                    Logger?.Invoke($"[AuthenticationService]: Errore - {ex.Message}");
+                }
+
+            }
             client.Disconnect();
         }
     }

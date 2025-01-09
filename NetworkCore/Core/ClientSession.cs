@@ -16,8 +16,10 @@ namespace TopNetwork.Core
 
         /// <summary> Обработка сообщения клиента -> Здесь ответ от сервера </summary>
         public event Action<ClientSession, Message>? OnMessageProcessed;
+        public event Action<ClientSession, Message> OnMessageHandled;
         public event Action<ClientSession>? OnSessionStarted;
         public event Action<ClientSession>? OnSessionClosed;
+
 
         public SessionCloseConditionEvaluator PreMsgCloseConditionEvaluator { get; set; } = new();
         public SessionCloseConditionEvaluator PostMsgCloseConditionEvaluator { get; set; } = new();
@@ -123,6 +125,7 @@ namespace TopNetwork.Core
                     ProcessedMessagesCountOfType[message.MessageType] = 1;
 
                 var response = await MessageHandlers.HandleMessage(_client, message, ServerContext);
+                OnMessageHandled?.Invoke(this, message);
 
                 if (response != null)
                 {

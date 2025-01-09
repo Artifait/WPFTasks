@@ -6,7 +6,7 @@ namespace WPFTasks.Core.Models.PcStore.MessageBuilder
 {
     public class PcPartInfoRequestData : IMsgSourceData
     {
-        public string Payload { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
 
         public string MessageType => MsgType;
         public static string MsgType => "PcPartInfoRequest";
@@ -19,7 +19,7 @@ namespace WPFTasks.Core.Models.PcStore.MessageBuilder
         public PcPartInfoRequestMessageBuilder SetPayload(string payload)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(payload);
-            _data.Payload = payload;
+            _data.Title = payload;
 
             return this;
         }
@@ -29,7 +29,7 @@ namespace WPFTasks.Core.Models.PcStore.MessageBuilder
             return new()
             {
                 MessageType = _data.MessageType,
-                Payload = _data.Payload
+                Payload = _data.Title
             };
         }
 
@@ -40,7 +40,7 @@ namespace WPFTasks.Core.Models.PcStore.MessageBuilder
 
             return new()
             {
-                Payload = msg.Payload
+                Title = msg.Payload
             };
         }
     }

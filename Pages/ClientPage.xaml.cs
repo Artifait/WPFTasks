@@ -30,13 +30,15 @@ namespace WPFTasks.Pages
         }
 
 
-        private void TextBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        private void TextBox_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
             {
                 if (DataContext is PcClientViewModel vm && vm.SendMessageCommand.CanExecute(null))
                 {
                     vm.SendMessageCommand.Execute(null);
+                    vm.Hints.Clear();
+                    vm.AreHintsVisible = vm.Hints.Any();
                 }
                 e.Handled = true;
             }
@@ -52,6 +54,7 @@ namespace WPFTasks.Pages
                     CareInputTextBoxToEnd();
                     e.Handled = true;
                 }
+                e.Handled = true;
             }
         }
         // Переместить каретку в конец

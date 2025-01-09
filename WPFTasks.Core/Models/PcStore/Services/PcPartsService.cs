@@ -12,7 +12,7 @@ namespace WPFTasks.Core.Models.PcStore.Services
     public class PcPartsService(IRepository<PcPart> repository)
     {
         private readonly IRepository<PcPart> _repository = repository;
-
+        
         public PcPartsService RegisterPart(string title, int price)
         {
             RegisterPart(new() { Title = title, Price = price });
