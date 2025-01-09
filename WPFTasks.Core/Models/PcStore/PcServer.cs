@@ -172,7 +172,12 @@ namespace WPFTasks.Core.Models.PcStore
             }
         }
 
+        public void RegisterUser(string login, string password)
+            => _userService.RegisterUser(login, password);
+
         // Свойства Задаваемые юзером
+        public string FilePath => _userRepository.FilePath;
+
         public TimeSpan MaxAuthSessionDuration => _authenticationService.MaxSessionDuration;
         public async Task UpdateAuthSessionDuration(TimeSpan newDuration)
             => await _authenticationService.UpdateSessionDuration(newDuration);
@@ -182,16 +187,12 @@ namespace WPFTasks.Core.Models.PcStore
             => await _activityService.UpdateMaxDurationInactive(newDuration);
 
         public int MaxConnections { get; set; } = 3;
-        public int MaxRequests
+        public bool SetIndividMaxRequests(string login, int newCount)
         {
-            get => PcUser.MaxRequests;
-            set => PcUser.MaxRequests = value;
-        }
+            var user = _userRepository.Get(user => user.Login == login);
+            if(user != null) user.MaxRequests = newCount;
 
-        public TimeSpan Cooldown
-        {
-            get => PcUser.Cooldown;
-            set => PcUser.Cooldown = value;
+            return user != null;
         }
 
         public TimeSpan TimeWindow

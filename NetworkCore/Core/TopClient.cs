@@ -28,6 +28,7 @@ namespace TopNetwork.Core
         public bool IsConnected => _client?.Connected ?? false;
         public bool IsInitialized { get; private set; }
         public EndPoint? RemoteEndPoint => _client?.Client?.RemoteEndPoint;
+        public EndPoint? LastUseEndPoint {  get; private set; }
         public NetworkStream? ReadStream => _stream;
         public readonly SemaphoreSlim ReadSemaphore = new(1, 1);
 
@@ -56,7 +57,7 @@ namespace TopNetwork.Core
             IsInitialized = true;
 
             OnConnected?.Invoke();
-
+            LastUseEndPoint = _client.Client.RemoteEndPoint;
             return this;
         }
 
@@ -68,7 +69,7 @@ namespace TopNetwork.Core
             IsInitialized = true;
 
             OnConnected?.Invoke();
-
+            LastUseEndPoint = _client.Client.RemoteEndPoint;
             return this;
         }
 
@@ -164,7 +165,7 @@ namespace TopNetwork.Core
 
         // Equality Members
         public override int GetHashCode()
-            => RemoteEndPoint?.ToString()?.GetHashCode() ?? 0;
+            => LastUseEndPoint?.ToString()?.GetHashCode() ?? 0;
 
         public override bool Equals(object? obj)
             => Equals(obj as TopClient);
@@ -172,7 +173,7 @@ namespace TopNetwork.Core
         public bool Equals(TopClient? other) =>
             other != null &&
             IsInitialized == other.IsInitialized &&
-            RemoteEndPoint?.Equals(other.RemoteEndPoint) == true;
+            LastUseEndPoint?.Equals(other.LastUseEndPoint) == true;
 
         public static bool operator ==(TopClient? left, TopClient? right)
             => ReferenceEquals(left, right) || (left?.Equals(right) ?? false);

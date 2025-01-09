@@ -2,7 +2,6 @@
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Input;
-using WPFTasks.Core.Models.Currency;
 using WPFTasks.Core.Models.PcStore;
 using WPFTasks.ViewModels;
 
@@ -42,7 +41,7 @@ namespace WPFTasks.Core.ViewModels.PcStore
             _pcClient = new PcClient();
 
             _commandProcessor!
-                .AddCommand("/GetPcPartPrice", "/GetPcPartPrice <PcPart>", HandleGetCurrencyRate)
+                .AddCommand("/GetPcPartPrice", "/GetPcPartPrice <PcPart>", HandleGetPcPartPrice)
                 .AddCommand("/Authentication", "/Authentication <Login> <Password>", HandleAuthentication)
                 .AddCommand("/SignOut", "/SignOut", HandleSignOut)
                 .AddCommand("/Disconnect", "/Disconnect", HandleDisconnect)
@@ -62,7 +61,7 @@ namespace WPFTasks.Core.ViewModels.PcStore
 
             _pcClient.OnPcPartInfoResponse += response =>
             {
-                AddMessage("ServerResponse", $"));
+                AddMessage("ServerResponse", $"{response.Title} - " + (response.Price == -1 ? "Не найдено" : $"{response.Price} $"));
             };
 
             _pcClient.OnErroreOnClient += error
@@ -95,16 +94,16 @@ namespace WPFTasks.Core.ViewModels.PcStore
             }
         }
 
-        private async Task HandleGetCurrencyRate(string input)
+        private async Task HandleGetPcPartPrice(string input)
         {
             var parts = input.Split(' ');
-            if (parts.Length == 3)
+            if (parts.Length == 2)
             {
-                await _pcClient.SendCurrencyRequest(parts[1], parts[2]);
+                await _pcClient.SendPcPartInfoRequest(parts[1]);
             }
             else
             {
-                ShowMessageBox("Команда /GetCurrencyRate должна быть в формате: { /GetCurrencyRate <FromCurrency> <ToCurrency> }");
+                ShowMessageBox("Команда /GetPcPartPrice должна быть в формате: { /GetPcPartPrice <TitleOfPart> }");
             }
         }
 

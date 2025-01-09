@@ -1,7 +1,7 @@
 ﻿
 using System.Windows.Controls;
 using System.Windows.Input;
-using WPFTasks.Core.ViewModels.Currency;
+using WPFTasks.Core.ViewModels.PcStore;
 
 namespace WPFTasks.Pages
 {
@@ -10,7 +10,7 @@ namespace WPFTasks.Pages
     /// </summary>
     public partial class ServerPage : Page
     {
-        private static CurrencyServerViewModel Instance = new();
+        private static PcServerViewModel Instance = new();
 
         public ServerPage()
         {
@@ -22,7 +22,7 @@ namespace WPFTasks.Pages
         {
             if (sender is ListBox listBox && listBox.SelectedItem is string selectedHint)
             {
-                var viewModel = DataContext as CurrencyServerViewModel;
+                var viewModel = DataContext as PcServerViewModel;
                 int index = selectedHint.IndexOf(' ');
                 index = index == -1 ? selectedHint.Length : index;
                 viewModel?.SelectHint(selectedHint[..index]);
@@ -37,7 +37,7 @@ namespace WPFTasks.Pages
         {
             if (e.Key == Key.Enter)
             {
-                if (DataContext is CurrencyServerViewModel vm && vm.SendMessageCommand.CanExecute(null))
+                if (DataContext is PcServerViewModel vm && vm.SendMessageCommand.CanExecute(null))
                 {
                     vm.SendMessageCommand.Execute(null);
                 }
@@ -45,7 +45,7 @@ namespace WPFTasks.Pages
             }
             if (e.Key == Key.Tab)
             {
-                if (DataContext is CurrencyServerViewModel vm)
+                if (DataContext is PcServerViewModel vm)
                 {
                     int index = InputTextBox.Text.LastIndexOf('/');
                     if (index == -1) return;

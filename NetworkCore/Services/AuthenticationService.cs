@@ -34,7 +34,7 @@ namespace TopNetwork.Services
             {
                 if (!await user.IsUserLoginPossibleAsync())
                 {
-                    Logger?.Invoke($"[AuthenticationService]: Клиент [{client.RemoteEndPoint}] не может использовать логин {requestData.Login}.");
+                    Logger?.Invoke($"[AuthenticationService]: Клиент [{client.LastUseEndPoint}] не может использовать логин {requestData.Login}.");
                     return BuildFailedAuthResponse("Невозможно авторизоваться под этим логином.");
                 }
                 
@@ -45,12 +45,14 @@ namespace TopNetwork.Services
                 }
 
                 var session = new ClientTimerSession<UserT>(client, user, _maxSessionDuration, NotifySessionExpired);
+                client.OnConnectionLost += () => CloseSession(client);
+
                 _authenticatedSessions[client] = session;
-                Logger?.Invoke($"[AuthenticationService]: Клиент [{client.RemoteEndPoint}] успешно авторизован на {_maxSessionDuration.TotalMinutes} минут.");
+                Logger?.Invoke($"[AuthenticationService]: Клиент [{client.LastUseEndPoint}] успешно авторизован на {_maxSessionDuration.TotalMinutes} минут.");
                 return BuildSuccessAuthResponse();
             }
 
-            Logger?.Invoke($"[AuthenticationService]: Неверный логин или пароль от клиента [{client.RemoteEndPoint}].");
+            Logger?.Invoke($"[AuthenticationService]: Неверный логин или пароль от клиента [{client.LastUseEndPoint}].");
             return BuildFailedAuthResponse("Неверный логин или пароль.");
         }
 
@@ -59,16 +61,28 @@ namespace TopNetwork.Services
             if (_authenticatedSessions.TryRemove(client, out var session))
             {
                 session.Dispose();
-                Logger?.Invoke($"[AuthenticationService]: Сессия клиента [{client.RemoteEndPoint}] закрыта.");
+                Logger?.Invoke($"[AuthenticationService]: Сессия клиента [{client.LastUseEndPoint}] закрыта.");
             }
         }
 
         private async Task NotifySessionExpired(TopClient client)
         {
             CloseSession(client);
-            await client.SendMessageAsync(_msgService.BuildMessage<EndSessionNotificationMessageBuilder, EndSessionNotificationData>(builder => builder
-                .SetPayload("Ваша сессия истекла.")));
-            Logger?.Invoke($"[AuthenticationService]: Клиент [{client.RemoteEndPoint}] уведомлен об истечении сессии.");
+            if(client.IsConnected)
+            {
+                try
+                {
+                    await client.SendMessageAsync(_msgService.BuildMessage<EndSessionNotificationMessageBuilder, EndSessionNotificationData>(builder => builder
+                        .SetPayload("Ваша сессия истекла.")));
+                    Logger?.Invoke($"[AuthenticationService]: Клиент [{client.RemoteEndPoint}] уведомлен об истечении сессии.");
+                }
+                catch (Exception ex)
+                {
+                    Logger?.Invoke($"[AuthenticationService]: Errore - {ex.Message}");
+                }
+
+            }
+
             client.Disconnect();
         }
 
