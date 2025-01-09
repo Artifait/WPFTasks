@@ -152,7 +152,7 @@ namespace TopNetwork.Services
                 // Вычисляем прошедшее время
                 var elapsedTime = DateTime.UtcNow - _startTime;
 
-                if (elapsedTime >= _remainingDuration)
+                if (elapsedTime >= newDuration)
                 {
                     // Таймер уже истёк или истечёт немедленно
                     TriggerExpiration();
