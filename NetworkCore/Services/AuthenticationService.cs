@@ -34,10 +34,10 @@ namespace TopNetwork.Services
             {
                 if (!await user.IsUserLoginPossibleAsync())
                 {
-                    Logger?.Invoke($"[AuthenticationService]: Клиент [{client.RemoteEndPoint}] не может использовать логин {requestData.Login}.");
+                    Logger?.Invoke($"[AuthenticationService]: Клиент [{client.LastUseEndPoint}] не может использовать логин {requestData.Login}.");
                     return BuildFailedAuthResponse("Невозможно авторизоваться под этим логином.");
                 }
-                
+
                 if (_authenticatedSessions.Values.Any(s => s.Login == requestData.Login))
                 {
                     Logger?.Invoke($"[AuthenticationService]: Логин {requestData.Login} уже используется другим пользователем.");
@@ -45,12 +45,14 @@ namespace TopNetwork.Services
                 }
 
                 var session = new ClientTimerSession<UserT>(client, user, _maxSessionDuration, NotifySessionExpired);
+                client.OnConnectionLost += () => CloseSession(client);
+
                 _authenticatedSessions[client] = session;
-                Logger?.Invoke($"[AuthenticationService]: Клиент [{client.RemoteEndPoint}] успешно авторизован на {_maxSessionDuration.TotalMinutes} минут.");
+                Logger?.Invoke($"[AuthenticationService]: Клиент [{client.LastUseEndPoint}] успешно авторизован на {_maxSessionDuration.TotalMinutes} минут.");
                 return BuildSuccessAuthResponse();
             }
 
-            Logger?.Invoke($"[AuthenticationService]: Неверный логин или пароль от клиента [{client.RemoteEndPoint}].");
+            Logger?.Invoke($"[AuthenticationService]: Неверный логин или пароль от клиента [{client.LastUseEndPoint}].");
             return BuildFailedAuthResponse("Неверный логин или пароль.");
         }
 
@@ -59,16 +61,28 @@ namespace TopNetwork.Services
             if (_authenticatedSessions.TryRemove(client, out var session))
             {
                 session.Dispose();
-                Logger?.Invoke($"[AuthenticationService]: Сессия клиента [{client.RemoteEndPoint}] закрыта.");
+                Logger?.Invoke($"[AuthenticationService]: Сессия клиента [{client.LastUseEndPoint}] закрыта.");
             }
         }
 
         private async Task NotifySessionExpired(TopClient client)
         {
             CloseSession(client);
-            await client.SendMessageAsync(_msgService.BuildMessage<EndSessionNotificationMessageBuilder, EndSessionNotificationData>(builder => builder
-                .SetPayload("Ваша сессия истекла.")));
-            Logger?.Invoke($"[AuthenticationService]: Клиент [{client.RemoteEndPoint}] уведомлен об истечении сессии.");
+            if (client.IsConnected)
+            {
+                try
+                {
+                    await client.SendMessageAsync(_msgService.BuildMessage<EndSessionNotificationMessageBuilder, EndSessionNotificationData>(builder => builder
+                        .SetPayload("Ваша сессия истекла.")));
+                    Logger?.Invoke($"[AuthenticationService]: Клиент [{client.RemoteEndPoint}] уведомлен об истечении сессии.");
+                }
+                catch (Exception ex)
+                {
+                    Logger?.Invoke($"[AuthenticationService]: Errore - {ex.Message}");
+                }
+
+            }
+
             client.Disconnect();
         }
 
@@ -107,31 +121,81 @@ namespace TopNetwork.Services
         private readonly TopClient _client;
         private readonly Timer _timer;
         private readonly Func<TopClient, Task> _onSessionExpired;
+        private readonly object _lock = new(); // Для потокобезопасности
+
+        private DateTime _startTime; // Время последнего обновления
+        private TimeSpan _remainingDuration; // Оставшееся время
+        private bool _isDisposed; // Флаг для проверки состояния сессии
 
         public string Login => User.Login;
         public readonly UserT User;
+
         public ClientTimerSession(TopClient client, UserT user, TimeSpan duration, Func<TopClient, Task> onSessionExpired)
         {
             _client = client;
             User = user;
 
             _onSessionExpired = onSessionExpired;
+            _remainingDuration = duration;
+            _startTime = DateTime.UtcNow;
+
             _timer = new Timer(OnTimerElapsed, null, duration, Timeout.InfiniteTimeSpan);
         }
 
         public void UpdateDuration(TimeSpan newDuration)
         {
-            _timer.Change(newDuration, Timeout.InfiniteTimeSpan);
+            lock (_lock)
+            {
+                if (_isDisposed)
+                    return;
+
+                // Вычисляем прошедшее время
+                var elapsedTime = DateTime.UtcNow - _startTime;
+
+                if (elapsedTime >= newDuration)
+                {
+                    // Таймер уже истёк или истечёт немедленно
+                    TriggerExpiration();
+                }
+                else
+                {
+                    // Обновляем оставшееся время и перезапускаем таймер
+                    _remainingDuration = newDuration - elapsedTime;
+                    _startTime = DateTime.UtcNow;
+                    _timer.Change(_remainingDuration, Timeout.InfiniteTimeSpan);
+                }
+            }
+        }
+
+        private void TriggerExpiration()
+        {
+            // Ручной вызов истечения таймера
+            Dispose();
+            _ = _onSessionExpired(_client);
         }
 
         private async void OnTimerElapsed(object? state)
         {
+            lock (_lock)
+            {
+                if (_isDisposed)
+                    return;
+                _isDisposed = true; // Защищаем от повторного вызова
+            }
+
             await _onSessionExpired(_client);
         }
 
         public void Dispose()
         {
-            _timer.Dispose();
+            lock (_lock)
+            {
+                if (_isDisposed)
+                    return;
+
+                _isDisposed = true;
+                _timer.Dispose();
+            }
         }
     }
 }
