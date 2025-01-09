@@ -107,31 +107,81 @@ namespace TopNetwork.Services
         private readonly TopClient _client;
         private readonly Timer _timer;
         private readonly Func<TopClient, Task> _onSessionExpired;
+        private readonly object _lock = new(); // Для потокобезопасности
+
+        private DateTime _startTime; // Время последнего обновления
+        private TimeSpan _remainingDuration; // Оставшееся время
+        private bool _isDisposed; // Флаг для проверки состояния сессии
 
         public string Login => User.Login;
         public readonly UserT User;
+
         public ClientTimerSession(TopClient client, UserT user, TimeSpan duration, Func<TopClient, Task> onSessionExpired)
         {
             _client = client;
             User = user;
 
             _onSessionExpired = onSessionExpired;
+            _remainingDuration = duration;
+            _startTime = DateTime.UtcNow;
+
             _timer = new Timer(OnTimerElapsed, null, duration, Timeout.InfiniteTimeSpan);
         }
 
         public void UpdateDuration(TimeSpan newDuration)
         {
-            _timer.Change(newDuration, Timeout.InfiniteTimeSpan);
+            lock (_lock)
+            {
+                if (_isDisposed)
+                    return;
+
+                // Вычисляем прошедшее время
+                var elapsedTime = DateTime.UtcNow - _startTime;
+
+                if (elapsedTime >= _remainingDuration)
+                {
+                    // Таймер уже истёк или истечёт немедленно
+                    TriggerExpiration();
+                }
+                else
+                {
+                    // Обновляем оставшееся время и перезапускаем таймер
+                    _remainingDuration = newDuration - elapsedTime;
+                    _startTime = DateTime.UtcNow;
+                    _timer.Change(_remainingDuration, Timeout.InfiniteTimeSpan);
+                }
+            }
+        }
+
+        private void TriggerExpiration()
+        {
+            // Ручной вызов истечения таймера
+            Dispose();
+            _ = _onSessionExpired(_client);
         }
 
         private async void OnTimerElapsed(object? state)
         {
+            lock (_lock)
+            {
+                if (_isDisposed)
+                    return;
+                _isDisposed = true; // Защищаем от повторного вызова
+            }
+
             await _onSessionExpired(_client);
         }
 
         public void Dispose()
         {
-            _timer.Dispose();
+            lock (_lock)
+            {
+                if (_isDisposed)
+                    return;
+
+                _isDisposed = true;
+                _timer.Dispose();
+            }
         }
     }
 }

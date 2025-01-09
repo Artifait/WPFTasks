@@ -1,8 +1,7 @@
 ﻿
 using TopNetwork.Core;
-using TopNetwork.Services.MessageBuilder;
 
-namespace WPFTasks.Core.Models.Currency.MessageBuilder
+namespace TopNetwork.Services.MessageBuilder
 {
     public class ServerOverloadedNotificationData : IMsgSourceData
     {

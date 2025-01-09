@@ -1,29 +1,21 @@
 ﻿
-using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Net;
 using System.Text;
 using System.Windows.Input;
-using WPFTasks.Core.Models;
 using WPFTasks.Core.Models.Currency;
 using WPFTasks.ViewModels;
 
-namespace WPFTasks.Core.ViewModels
+namespace WPFTasks.Core.ViewModels.Currency
 {
-    public class CurrencyServerViewModel : BaseViewModel
+    public class CurrencyServerViewModel : HintOnMessageInputBoxBaseVm
     {
         private static readonly CurrencyServer _server = new();
-        private readonly ChatCommandProcessor _commandProcessor = new();
 
         private CancellationTokenSource _cancellationTokenSource;
         private string _content;
         private string _ipAddress = "127.0.0.1";
         private int _port = 18080;
-        private string _newMessage;
-
-        // Состояние
-        private bool _areHintsVisible;
-        private ObservableCollection<string> _hints = [];
 
         public CurrencyServerViewModel()
         {
@@ -61,27 +53,6 @@ namespace WPFTasks.Core.ViewModels
             get => _ipAddress;
             set => SetProperty(ref _ipAddress, value);
         }
-        public string NewMessage
-        {
-            get => _newMessage;
-            set
-            {
-                _newMessage = value;
-                UpdateHints();
-                OnPropertyChanged(nameof(NewMessage));
-            }
-        }
-        public bool AreHintsVisible
-        {
-            get => _areHintsVisible;
-            set { _areHintsVisible = value; OnPropertyChanged(nameof(AreHintsVisible)); }
-        }
-
-        public ObservableCollection<string> Hints
-        {
-            get => _hints;
-            set { _hints = value; OnPropertyChanged(nameof(Hints)); }
-        }
 
         // Порт
         public int Port
@@ -103,10 +74,12 @@ namespace WPFTasks.Core.ViewModels
             LogMessage("[Root]: " + NewMessage);
             NewMessage = string.Empty;
 
-            try {
+            try
+            {
                 await _commandProcessor.ExecuteCommand(input);
             }
-            catch (Exception ex) {
+            catch (Exception ex)
+            {
                 LogMessage("[CommandProcessor]: " + ex.Message);
             }
         }
@@ -155,22 +128,6 @@ namespace WPFTasks.Core.ViewModels
             }
         }
 
-        public string TryCompleteCommand(string text)
-        {
-            if (_commandProcessor.TryCompleteCommand(text, out var completedCommand))
-                return completedCommand;
-
-            return text;
-        }
-
-        public void SelectHint(string hint)
-        {
-            if (!string.IsNullOrWhiteSpace(hint))
-            {
-                NewMessage = hint;
-            }
-        }
-
         private async Task OpenUserDataFileHandler(string _)
         {
             if (!System.IO.File.Exists(_server.FilePath))
@@ -205,16 +162,19 @@ namespace WPFTasks.Core.ViewModels
         private async Task SetSessionDurationHandler(string input)
         {
             var parts = input.Split(' ');
-            if(parts.Length == 2) 
+            if (parts.Length == 2)
             {
-                try {
+                try
+                {
                     await _server.UpdateSessionDuration(TimeSpan.Parse(parts[1]));
                 }
-                catch(Exception ex) {
+                catch (Exception ex)
+                {
                     LogMessage($"[/SetSessionDuration]: {ex.Message}");
                 }
             }
-            else {
+            else
+            {
                 LogMessage("[/SetSessionDuration]: Неверный формат вызова...");
             }
         }
@@ -224,10 +184,12 @@ namespace WPFTasks.Core.ViewModels
             var parts = input.Split(' ');
             if (parts.Length == 2)
             {
-                try {
+                try
+                {
                     _server.MaxConnections = int.Parse(parts[1]);
                 }
-                catch (Exception ex) {
+                catch (Exception ex)
+                {
                     LogMessage($"[/SetSessionDuration]: {ex.Message}");
                 }
             }
@@ -264,14 +226,17 @@ namespace WPFTasks.Core.ViewModels
             var parts = input.Split(' ');
             if (parts.Length == 2)
             {
-                try {
+                try
+                {
                     _server.Cooldown = TimeSpan.Parse(parts[1]);
                 }
-                catch (Exception ex) {
+                catch (Exception ex)
+                {
                     LogMessage($"[/SetCooldown]: {ex.Message}");
                 }
             }
-            else {
+            else
+            {
                 LogMessage("[/SetCooldown]: Неверный формат вызова...");
             }
             await Task.CompletedTask;
@@ -282,14 +247,17 @@ namespace WPFTasks.Core.ViewModels
             var parts = input.Split(' ');
             if (parts.Length == 2)
             {
-                try {
+                try
+                {
                     _server.TimeWindow = TimeSpan.Parse(parts[1]);
                 }
-                catch (Exception ex) {
+                catch (Exception ex)
+                {
                     LogMessage($"[/SetTimeWindow]: {ex.Message}");
                 }
             }
-            else {
+            else
+            {
                 LogMessage("[/SetTimeWindow]: Неверный формат вызова...");
             }
             await Task.CompletedTask;
@@ -300,15 +268,18 @@ namespace WPFTasks.Core.ViewModels
             var parts = input.Split(' ');
             if (parts.Length == 3)
             {
-                try {
+                try
+                {
                     _server.RegisterUser(parts[1], parts[2]);
                     LogMessage($"[/RegisterUser]: успешно добавлен новый пользователь под логином: {parts[1]}.");
                 }
-                catch (Exception ex) {
+                catch (Exception ex)
+                {
                     LogMessage($"[/RegisterUser]: {ex.Message}");
                 }
             }
-            else {
+            else
+            {
                 LogMessage("[/RegisterUser]: Неверный формат вызова...");
             }
             await Task.CompletedTask;
@@ -316,19 +287,11 @@ namespace WPFTasks.Core.ViewModels
         // Очистка сообщений
         private void ClearMessages()
             => Content = string.Empty;
-        private void UpdateHints()
-        {
-            int index = NewMessage.LastIndexOf('/');
-            if (index == -1) { AreHintsVisible = false; return; }
-            string text = NewMessage[index..];
-            _commandProcessor.GetHints(text, Hints);
-            AreHintsVisible = Hints.Any();
-        }
 
         // Обработчик сообщений лога
         private void OnLogMessage(string message)
             => LogMessage(message);
-            
+
         private void LogMessage(string message)
             => Content += $"[{DateTime.UtcNow.ToString("HH:mm:ss.ffff")}]{message}\n";
     }

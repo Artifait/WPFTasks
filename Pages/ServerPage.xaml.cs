@@ -1,7 +1,7 @@
 ﻿
 using System.Windows.Controls;
 using System.Windows.Input;
-using WPFTasks.Core.ViewModels;
+using WPFTasks.Core.ViewModels.Currency;
 
 namespace WPFTasks.Pages
 {

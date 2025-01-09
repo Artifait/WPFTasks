@@ -1,33 +1,19 @@
 ﻿
 using System.Collections.ObjectModel;
 using WPFTasks.Core.Models.Currency;
-using System.ComponentModel;
 using System.Windows.Input;
-using WPFTasks.Core.Models;
 using WPFTasks.ViewModels;
 using System.Windows;
 
-namespace WPFTasks.Core.ViewModels
-{
-    public class ChatMessage
-    {
-        public string Sender { get; set; }
-        public string Content { get; set; }
-    }
-
-    public class CurrencyClientViewModel : INotifyPropertyChanged
+namespace WPFTasks.Core.ViewModels.Currency
+{ 
+    public class CurrencyClientViewModel : HintOnMessageInputBoxBaseVm
     {
         private readonly CurrencyClient _currencyClient;
-        private readonly ChatCommandProcessor _commandProcessor;
 
         // Поля для подключения
         private string _ipAddress = "127.0.0.1";
         private string _port = "18080";
-        private string _newMessage;
-
-        // Состояние
-        private bool _areHintsVisible;
-        private ObservableCollection<string> _hints = new();
 
         // Чат и сообщения
         public ObservableCollection<ChatMessage> Messages { get; } = new();
@@ -36,51 +22,25 @@ namespace WPFTasks.Core.ViewModels
         public string IpAddress
         {
             get => _ipAddress;
-            set { _ipAddress = value; OnPropertyChanged(nameof(IpAddress)); }
+            set => SetProperty(ref _ipAddress, value);
         }
 
         public string Port
         {
             get => _port;
-            set { _port = value; OnPropertyChanged(nameof(Port)); }
-        }
-
-        public string NewMessage
-        {
-            get => _newMessage;
-            set
-            {
-                _newMessage = value;
-                UpdateHints();
-                OnPropertyChanged(nameof(NewMessage));
-            }
-        }
-
-        public bool AreHintsVisible
-        {
-            get => _areHintsVisible;
-            set { _areHintsVisible = value; OnPropertyChanged(nameof(AreHintsVisible)); }
-        }
-
-        public ObservableCollection<string> Hints
-        {
-            get => _hints;
-            set { _hints = value; OnPropertyChanged(nameof(Hints)); }
+            set => SetProperty<string>(ref _port, value);
         }
 
         // Команды
         public ICommand ConnectCommand { get; }
         public ICommand SendMessageCommand { get; }
-        public event Action OnUpdateMessages;
+        public event Action? OnUpdateMessages;
 
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        public CurrencyClientViewModel()
+        public CurrencyClientViewModel() : base()
         {
             _currencyClient = new CurrencyClient();
-            _commandProcessor = new();
 
-            _commandProcessor
+            _commandProcessor!
                 .AddCommand("/GetCurrencyRate", "/GetCurrencyRate <FromCurrency> <ToCurrency>", HandleGetCurrencyRate)
                 .AddCommand("/Authentication", "/Authentication <Login> <Password>", HandleAuthentication)
                 .AddCommand("/SignOut", "/SignOut", HandleSignOut)
@@ -99,7 +59,7 @@ namespace WPFTasks.Core.ViewModels
             _currencyClient.OnAuthenticationResponse += response
                 => AddMessage("ServerResponse", response.Payload);
 
-            _currencyClient.OnCurrencyResponse += response => 
+            _currencyClient.OnCurrencyResponse += response =>
             {
                 AddMessage("ServerResponse", $"Курс валют: {response.FromCurrency} → {response.ToCurrency}: " +
                     (response.Rate == -1 ? "Не найдено..." : response.Rate.ToString()));
@@ -125,10 +85,12 @@ namespace WPFTasks.Core.ViewModels
             AddMessage("Вы", NewMessage);
             NewMessage = string.Empty;
 
-            try {
+            try
+            {
                 await _commandProcessor.ExecuteCommand(input);
             }
-            catch (Exception ex) {
+            catch (Exception ex)
+            {
                 AddMessage("_commandProcessor", ex.Message);
             }
         }
@@ -188,7 +150,7 @@ namespace WPFTasks.Core.ViewModels
         private async Task HandleDelay(string input)
         {
             var parts = input.Split(" ");
-            if(parts.Length == 2)
+            if (parts.Length == 2)
                 await Task.Delay(int.Parse(parts[1]));
             else
             {
@@ -223,30 +185,6 @@ namespace WPFTasks.Core.ViewModels
             }
         }
 
-        public void SelectHint(string hint)
-        {
-            if (!string.IsNullOrWhiteSpace(hint))
-            {
-                NewMessage = hint;
-            }
-        }
-        public string TryCompleteCommand(string text)
-        {
-            if (_commandProcessor.TryCompleteCommand(text, out var completedCommand))
-                return completedCommand;
-
-            return text;
-        }
-
-        private void UpdateHints()
-        {
-            int index = NewMessage.LastIndexOf('/');
-            if (index == -1) return;
-            string text = NewMessage[index..];
-            _commandProcessor.GetHints(text, Hints);
-            AreHintsVisible = Hints.Any();
-        }
-
         private void ShowMessageBox(string message)
             => Application.Current.Dispatcher.Invoke(() => MessageBox.Show(message, "Информация", MessageBoxButton.OK, MessageBoxImage.Information));
 
@@ -256,8 +194,5 @@ namespace WPFTasks.Core.ViewModels
         private bool CanConnect() => !string.IsNullOrWhiteSpace(IpAddress) && int.TryParse(Port, out _) && !_currencyClient.IsConnected;
 
         private bool CanSendMessage() => !string.IsNullOrWhiteSpace(NewMessage);
-
-        protected void OnPropertyChanged(string propertyName) =>
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 }

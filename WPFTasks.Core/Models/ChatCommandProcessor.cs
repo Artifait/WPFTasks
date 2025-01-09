@@ -33,6 +33,13 @@ namespace WPFTasks.Core.Models
             return this;
         }
 
+        public ChatCommandProcessor AddCommandsFrom(CommandPack pack)
+        {
+            foreach (var command in pack.Commands)
+                AddCommand(command.Key, command.Value.Description, command.Value.Handler);
+
+            return this;
+        }
         public bool RemoveCommand(string command)
         {
             ArgumentNullException.ThrowIfNull(command);

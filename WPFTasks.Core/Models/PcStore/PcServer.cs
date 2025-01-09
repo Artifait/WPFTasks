@@ -4,25 +4,29 @@ using TopNetwork.Core;
 using TopNetwork.RequestResponse;
 using TopNetwork.Services;
 using TopNetwork.Services.MessageBuilder;
+using WPFTasks.Core.Models.Currency;
 using WPFTasks.Core.Models.Currency.MessageBuilder;
+using WPFTasks.Core.Models.PcStore.MessageBuilder;
+using WPFTasks.Core.Models.PcStore.Services;
 
-namespace WPFTasks.Core.Models.Currency
+namespace WPFTasks.Core.Models.PcStore
 {
-    public class CurrencyServer
-    { 
+    public class PcServer
+    {
         // Регистрация всех фабрик для типов сообщений отправляемых сервером 
         private static readonly MessageBuilderService _msgService = new MessageBuilderService()
                     .Register(() => new AuthenticationResponseMessageBuilder())
-                    .Register(() => new CurrencyResponseMessageBuilder())
-                    .Register(() => new ErroreMessageBuilder())    
+                    .Register(() => new PcPartInfoResponseMessageBuilder())
+                    .Register(() => new ErroreMessageBuilder())
                     .Register(() => new EndSessionNotificationMessageBuilder())
                     .Register(() => new ServerOverloadedNotificationMessageBuilder());
 
-        private readonly AuthenticationService<CurrencyUser> _authenticationService;
-        private readonly Repository<CurrencyUser> _userRepository;
-        private readonly UserService<CurrencyUser> _userService;
+        private readonly AuthenticationService<PcUser> _authenticationService;
+        private readonly Repository<PcUser> _userRepository;
+        private readonly UserService<PcUser> _userService;
+        private readonly TrackerUserActivityService _activityService;
+        private readonly PcPartsService _pcPartsService;
         private readonly RrServerHandlerBase _handlers;
-        private readonly CurrencyConverter _converter;
         private RrServer _server = new();
 
         public Logger Logger { get; private set; } = new();
@@ -30,56 +34,53 @@ namespace WPFTasks.Core.Models.Currency
         public bool IsRunning => _server.IsRunning;
         public int CountOpenSessions => _server.CountOpenSessions;
 
-        public CurrencyServer(string? filePath = null)
+        public PcServer(string? userFilePath = null, string? pcPartsFilePath = null)
         {
-            _converter = new(Logger.LogString);
             _server.Logger = Logger.LogString;
 
-            _userRepository = new(filePath ?? "CurrencyUsers.json");
+            _userRepository = new(userFilePath ?? "PcUsers.json");
             _userService = new(_userRepository, new PasswordService(), data => new(data.login, data.hashPassword));
             _authenticationService = new(_userService, _msgService) { Logger = Logger.LogString };
+            _activityService = new(_msgService);
+            _pcPartsService = new(new Repository<PcPart>(pcPartsFilePath ?? "PcParts.json"));
+
+            if(!_pcPartsService.GetAllParts().Any())
+            {
+                _pcPartsService
+                    .RegisterPart("Intel Core i7-13700K Processor", 400)
+                    .RegisterPart("AMD Ryzen 7 7800X3D Processor", 450)
+                    .RegisterPart("NVIDIA GeForce RTX 4090 Graphics Card", 1600)
+                    .RegisterPart("AMD Radeon RX 7900 XT Graphics Card", 900)
+                    .RegisterPart("Corsair Vengeance RGB 32GB DDR5 RAM", 180)
+                    .RegisterPart("Kingston Fury Beast 16GB DDR4 RAM", 75)
+                    .RegisterPart("Samsung 980 Pro 1TB NVMe SSD", 120)
+                    .RegisterPart("Western Digital Black 2TB HDD", 100)
+                    .RegisterPart("MSI MPG B650 TOMAHAWK WiFi Motherboard", 200)
+                    .RegisterPart("ASUS ROG STRIX Z790-E Gaming Motherboard", 450)
+                    .RegisterPart("Corsair RM850x 850W Power Supply", 150)
+                    .RegisterPart("Cooler Master MasterBox TD500 Mesh Case", 100)
+                    .RegisterPart("Noctua NH-D15 CPU Cooler", 100)
+                    .RegisterPart("Arctic MX-4 Thermal Paste", 10)
+                    .RegisterPart("Logitech MX Master 3S Wireless Mouse", 100)
+                    .RegisterPart("Razer Huntsman V2 Gaming Keyboard", 200)
+                    .RegisterPart("Dell UltraSharp U2723QE 27-inch Monitor", 650)
+                    .RegisterPart("LG UltraGear 27GP850-B Gaming Monitor", 450)
+                    .RegisterPart("Elgato Wave:3 USB Microphone", 150)
+                    .RegisterPart("HyperX Cloud II Gaming Headset", 100);
+            }
 
             _server
                 .RegisterService(_msgService)
                 .RegisterService(_userRepository)
                 .RegisterService(_userService)
-                .RegisterService(_authenticationService);
+                .RegisterService(_authenticationService)
+                .RegisterService(_activityService);
 
             _handlers = new RrServerHandlerBase()
-                .AddHandlerForMessageType(CurrencyRequestData.MsgType, async (client, msg, context) =>
+                .AddHandlerForMessageType(AuthenticationRequestData.MsgType, async (client, msg, context) =>
                 {
                     try
                     {
-                        if(!_authenticationService.IsAuthClient(client))
-                        {
-                            return _msgService.BuildMessage<ErroreMessageBuilder, ErroreData>(builder => builder
-                                .SetPayload("Для использования данной функции нужно авторизироваться...")
-                            );
-                        }
-                        var user = _authenticationService.GetUserBy(client);
-                        var requestData = CurrencyRequestMessageBuilder.Parse(msg);
-                        var convertData = await _converter.GetExchangeRate(requestData.FromCurrency, requestData.ToCurrency);
-
-                        var response = _msgService.BuildMessage<CurrencyResponseMessageBuilder, CurrencyResponseData>(builder => builder
-                            .SetFromCurrency(requestData.FromCurrency)
-                            .SetToCurrency(requestData.ToCurrency)
-                            .SetRate(convertData)
-                        );
-                        user.AddCurrencyRequest();
-                        _userService.UpdateUser(user);
-                        return response;
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.LogString($"[Server]: Ошибка обработки {CurrencyRequestData.MsgType} от [{client.RemoteEndPoint}].\n{ex.Message}");
-                        return _msgService.BuildMessage<ErroreMessageBuilder, ErroreData>(builder => builder
-                            .SetPayload($"Невозможно обработать {CurrencyRequestData.MsgType}.\n{ex.Message}")
-                        );
-                    }
-                })
-                .AddHandlerForMessageType(AuthenticationRequestData.MsgType, async (client, msg, context) =>
-                {
-                    try {
                         var requestData = AuthenticationRequestMessageBuilder.Parse(msg);
                         return await _authenticationService.AuthenticateClient(client, requestData);
                     }
@@ -95,10 +96,32 @@ namespace WPFTasks.Core.Models.Currency
                 {
                     _authenticationService.CloseSession(client);
                     return _msgService.BuildMessage<EndSessionNotificationMessageBuilder, EndSessionNotificationData>();
+                })
+                .AddHandlerForMessageType(PcPartInfoRequestData.MsgType, async (client, msg, context) =>
+                {
+                    try
+                    {
+                        if (!_authenticationService.IsAuthClient(client))
+                        {
+                            return _msgService.BuildMessage<ErroreMessageBuilder, ErroreData>(builder => builder
+                                .SetPayload("Для использования данной функции нужно авторизироваться...")
+                            );
+                        }
+
+                    }
+                    catch(Exception ex)
+                    {
+                        Logger.LogString($"[Server]: Ошибка обработки {PcPartInfoRequestData.MsgType} от [{client.RemoteEndPoint}].\n{ex.Message}");
+                        return _msgService.BuildMessage<ErroreMessageBuilder, ErroreData>(builder => builder
+                            .SetPayload($"Невозможно обработать {PcPartInfoRequestData.MsgType}.\n{ex.Message}")
+                        );
+                    }
+                    return _msgService.BuildMessage<EndSessionNotificationMessageBuilder, EndSessionNotificationData>();
                 });
 
             _server.SetSessionFactory(SessionFactory);
         }
+
 
         public void SetEndPoint(IPEndPoint endPoint)
             => _server.SetEndPoint(endPoint);
@@ -111,15 +134,17 @@ namespace WPFTasks.Core.Models.Currency
 
         private async Task<ClientSession?> SessionFactory(TopClient client, ServiceRegistry context, LogString? logger)
         {
-            
+
             if (_server.CountOpenSessions >= MaxConnections)
             {
-                try {
+                try
+                {
                     client.SendMessageAsync(_msgService.BuildMessage<ServerOverloadedNotificationMessageBuilder, ServerOverloadedNotificationData>(null)).Wait();
                     logger?.Invoke($"[SessionFactory]: Отвергнуто подключение с [{client.RemoteEndPoint}], из-за перегрузки сервера...");
                     return null;
                 }
-                catch (Exception ex) {
+                catch (Exception ex)
+                {
                     logger?.Invoke($"[SessionFactory]: {ex.Message}.");
                 }
             }
@@ -135,9 +160,9 @@ namespace WPFTasks.Core.Models.Currency
 
         private void Session_OnMessageProcessed(ClientSession arg1, Message arg2)
         {
-            if(arg2.MessageType == CurrencyResponseData.MsgType)
+            if (arg2.MessageType == CurrencyResponseData.MsgType)
             {
-                if(!_authenticationService.GetUserBy(arg1.Client).IsUserLoginPossibleAsync().Result)
+                if (!_authenticationService.GetUserBy(arg1.Client).IsUserLoginPossibleAsync().Result)
                 {
                     arg1.SendMessage(_msgService.BuildMessage<EndSessionNotificationMessageBuilder, EndSessionNotificationData>(builder => builder
                         .SetPayload($"Вы сделали максимальное количество запросов...\nЧерез {CurrencyUser.Cooldown.TotalMinutes} минут вы снова сможете отправлять запросы."))).Wait();
@@ -147,37 +172,32 @@ namespace WPFTasks.Core.Models.Currency
             }
         }
 
-        public void RegisterUser(string login, string password)
-            => _userService.RegisterUser(login, password);
-
         // Свойства Задаваемые юзером
-        public string FilePath
-        {
-            get => _userRepository.FilePath;
-            set => _userRepository.SetFilePath(value);
-        }
-
-        public TimeSpan MaxSessionDuration => _authenticationService.MaxSessionDuration;
-        public async Task UpdateSessionDuration(TimeSpan newDuration)
+        public TimeSpan MaxAuthSessionDuration => _authenticationService.MaxSessionDuration;
+        public async Task UpdateAuthSessionDuration(TimeSpan newDuration)
             => await _authenticationService.UpdateSessionDuration(newDuration);
+
+        public TimeSpan MaxDurationInactive => _activityService.MaxDurationInactive;
+        public async Task UpdateMaxDurationInactive(TimeSpan newDuration)
+            => await _activityService.UpdateMaxDurationInactive(newDuration);
 
         public int MaxConnections { get; set; } = 3;
         public int MaxRequests
         {
-            get => CurrencyUser.MaxRequests;
-            set => CurrencyUser.MaxRequests = value;
+            get => PcUser.MaxRequests;
+            set => PcUser.MaxRequests = value;
         }
 
         public TimeSpan Cooldown
         {
-            get => CurrencyUser.Cooldown;
-            set => CurrencyUser.Cooldown = value;
+            get => PcUser.Cooldown;
+            set => PcUser.Cooldown = value;
         }
 
         public TimeSpan TimeWindow
         {
-            get => CurrencyUser.TimeWindow;
-            set => CurrencyUser.TimeWindow = value;
+            get => PcUser.TimeWindow;
+            set => PcUser.TimeWindow = value;
         }
     }
 }

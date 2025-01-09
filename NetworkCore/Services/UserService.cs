@@ -116,7 +116,6 @@ namespace TopNetwork.Services
             _repository = repository;
             _passwordService = passwordService;
             _userFactory = userFactory;
-            _userFactory.Invoke(("fdf", "fdfds"));
         }
 
         public UserService<UserT> RegisterUser(string login, string password)
