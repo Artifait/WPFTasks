@@ -12,8 +12,8 @@ namespace WPFTasks.Pages
         public ClientPage()
         {
             InitializeComponent();
-            DataContext = Instance;
             Instance.OnUpdateMessages += ScrollToEnd;
+            DataContext = Instance;
         }
 
         private void HintsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)

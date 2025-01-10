@@ -11,11 +11,8 @@ namespace WPFTasks.Core.Models.PcStore
         public event Action<AuthenticationResponseData>? OnAuthenticationResponse;
         public event Action<PcPartInfoResponseData>? OnPcPartInfoResponse;
 
-        public PcClient() : base() 
-        {
-            RegisterMessageBuilders();
-            RegisterMessageHandlers();
-        }
+        public PcClient() : base() { }
+
 
         protected override void RegisterMessageBuilders()
         {
