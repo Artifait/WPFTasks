@@ -1,6 +1,7 @@
 ﻿
 using System.Windows.Controls;
 using System.Windows.Input;
+using WPFTasks.Core.ViewModels.Chat;
 using WPFTasks.Core.ViewModels.Core;
 using WPFTasks.Core.ViewModels.PcStore;
 
@@ -8,7 +9,7 @@ namespace WPFTasks.Pages
 {
     public partial class ClientPage : Page
     {
-        private static PcClientViewModel Instance = new();
+        private static ChatClientViewModel Instance = new();
         public ClientPage()
         {
             InitializeComponent();
@@ -35,7 +36,7 @@ namespace WPFTasks.Pages
         {
             if (e.Key == Key.Enter)
             {
-                if (DataContext is PcClientViewModel vm && vm.SendMessageCommand.CanExecute(null))
+                if (DataContext is ClientViewModel vm && vm.SendMessageCommand.CanExecute(null))
                 {
                     vm.SendMessageCommand.Execute(null);
                     vm.Hints.Clear();

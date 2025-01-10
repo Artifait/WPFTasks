@@ -4,7 +4,7 @@ using TopNetwork.Core;
 using TopNetwork.RequestResponse;
 using TopNetwork.Services.MessageBuilder;
 
-namespace WPFTasks.Core.Models.PcStore.Services
+namespace TopNetwork.Services
 {
     public class TrackerUserActivityService
     {
@@ -131,7 +131,7 @@ namespace WPFTasks.Core.Models.PcStore.Services
 
                 var elapsedTime = DateTime.UtcNow - _startTime;
 
-                if (elapsedTime >= _remainingDuration)
+                if (elapsedTime >= newDuration)
                 {
                     TriggerExpiration();
                 }

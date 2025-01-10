@@ -25,8 +25,16 @@ namespace TopNetwork.Services
         }
 
         public bool IsAuthClient(TopClient client) => _authenticatedSessions.ContainsKey(client);
-        public UserT GetUserBy(TopClient client) => _authenticatedSessions[client].User;
+        public UserT? GetUserBy(TopClient client) => _authenticatedSessions[client].User;
+        public TopClient? GetTopClientBy(string login)
+        {
+            var res = _authenticatedSessions.Where(s => s.Value.Login == login);
 
+            if(res.Any())
+                return res.First().Key;
+
+            return null;
+        }
         public async Task<Message?> AuthenticateClient(TopClient client, AuthenticationRequestData requestData)
         {
             var user = _userService.Authenticate(requestData.Login, requestData.Password);

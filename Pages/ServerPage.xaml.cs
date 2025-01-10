@@ -1,6 +1,7 @@
 ﻿
 using System.Windows.Controls;
 using System.Windows.Input;
+using WPFTasks.Core.ViewModels.Chat;
 using WPFTasks.Core.ViewModels.Core;
 using WPFTasks.Core.ViewModels.PcStore;
 
@@ -11,7 +12,7 @@ namespace WPFTasks.Pages
     /// </summary>
     public partial class ServerPage : Page
     {
-        private static PcServerViewModel Instance = new();
+        private static ChatServerViewModel Instance = new();
 
         public ServerPage()
         {

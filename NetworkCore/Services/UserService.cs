@@ -152,6 +152,9 @@ namespace TopNetwork.Services
             _repository.Remove(u => u.Login == login);
         }
 
+        public UserT? GetUserByLogin(string login)
+            => _repository.Get(user => user.Login == login);
+
         public List<UserT> GetAllUsers()
         {
             return _repository.GetAll();
