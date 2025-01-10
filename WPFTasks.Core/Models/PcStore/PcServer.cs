@@ -4,8 +4,8 @@ using TopNetwork.Core;
 using TopNetwork.RequestResponse;
 using TopNetwork.Services;
 using TopNetwork.Services.MessageBuilder;
+using WPFTasks.Core.Models.Core;
 using WPFTasks.Core.Models.Currency;
-using WPFTasks.Core.Models.Currency.MessageBuilder;
 using WPFTasks.Core.Models.PcStore.MessageBuilder;
 using WPFTasks.Core.Models.PcStore.Services;
 

@@ -4,7 +4,7 @@ using System.Net;
 using System.Text;
 using System.Windows.Input;
 using WPFTasks.Core.Models.Currency;
-using WPFTasks.ViewModels;
+using WPFTasks.Core.ViewModels.Core;
 
 namespace WPFTasks.Core.ViewModels.Currency
 {

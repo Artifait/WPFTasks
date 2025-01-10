@@ -2,7 +2,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
-namespace WPFTasks.Core.ViewModels
+namespace WPFTasks.Core.ViewModels.Core
 {
     public class BaseViewModel : INotifyPropertyChanged
     {

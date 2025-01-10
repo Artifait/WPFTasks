@@ -2,34 +2,22 @@
 using System.Diagnostics;
 using System.Net;
 using System.Text;
-using System.Windows.Input;
 using WPFTasks.Core.Models.PcStore;
-using WPFTasks.ViewModels;
+using WPFTasks.Core.ViewModels.Core;
 
 namespace WPFTasks.Core.ViewModels.PcStore
 {
-    public class PcServerViewModel : HintOnMessageInputBoxBaseVm
+    public class PcServerViewModel : ServerViewModel
     {
         private static readonly PcServer _server = new();
-
-        private CancellationTokenSource _cancellationTokenSource;
-        private string _content;
-        private string _ipAddress = "127.0.0.1";
-        private int _port = 18080;
 
         public PcServerViewModel()
         {
             _server.Logger.OnLogged += OnLogMessage;
-            Content = _server.Logger.Log;
-
-            StartServerCommand = new RelayCommand(async _ => await StartServer(), _ => CanStartServer());
-            StopServerCommand = new RelayCommand(async _ => await StopServer(), _ => CanStopServer());
-            ClearMessagesCommand = new RelayCommand(_ => ClearMessages());
-            SendMessageCommand = new RelayCommand(async _ => await SendMessageAsync(), _ => CanSendMessage());
 
             _commandProcessor
                 .AddCommand("/GetServerStatus", "/GetServerStatus", GetServerStatusHandler)
-                .AddCommand("/Clear", "/Clear", async _ => { ClearMessages(); await Task.CompletedTask; })
+                .AddCommand("/Clear", "/Clear", async _ => ClearMessages())
                 .AddCommand("/OpenUserDataFile", "/OpenUserDataFile", OpenUserDataFileHandler)
                 .AddCommand("/OpenPcPartDataFile", "/OpenPcPartDataFile", OpenPcPartFileHandler)
                 .AddCommand("/RegisterUser", "/RegisterUser <Login> <Password>", RegisterUserHandler)
@@ -37,97 +25,23 @@ namespace WPFTasks.Core.ViewModels.PcStore
                 .AddCommand("/SetMaxDurationInactive", "/SetMaxDurationInactive <hh:mm:ss>", SetMaxDurationInactiveHandler)
                 .AddCommand("/SetCountMaxConnections", "/SetCountMaxConnections <count>", SetCountMaxConnectionsHandler)
                 .AddCommand("/SetCountMaxRequests", "/SetCountMaxRequests <login> <count>", SetCountMaxRequestsHandler)
-                .AddCommand("/SetTimeWindow", "/SetTimeWindow <login> <hh:mm:ss> - настройка промежутка времени, в котором учитываються запросы.", SetTimeWindowHandler);
+                .AddCommand("/SetTimeWindow", "/SetTimeWindow <login> <hh:mm:ss>", SetTimeWindowHandler);
         }
-        private bool CanSendMessage() => !string.IsNullOrWhiteSpace(NewMessage);
 
-        // Привязка консоли
-        public string Content
+        protected override async Task StartServerImplementationAsync()
         {
-            get => _content;
-            set => SetProperty(ref _content, value);
+            _server.SetEndPoint(new IPEndPoint(IPAddress.Parse(IpAddress), Port));
+            await _server.StartServer(_cancellationTokenSource.Token);
         }
 
-        // IP-адрес
-        public string IpAddress
-        {
-            get => _ipAddress;
-            set => SetProperty(ref _ipAddress, value);
-        }
+        protected override async Task StopServerImplementationAsync()
+            => await _server.StopServer();
 
-        // Порт
-        public int Port
-        {
-            get => _port;
-            set => SetProperty(ref _port, value);
-        }
+        protected override async Task ProcessCommandAsync(string command)
+            => await _commandProcessor.ExecuteCommand(command);
 
-        // Команды
-        public ICommand StartServerCommand { get; }
-        public ICommand StopServerCommand { get; }
-        public ICommand ClearMessagesCommand { get; }
-        public ICommand SendMessageCommand { get; }
-
-
-        private async Task SendMessageAsync()
-        {
-            string input = NewMessage.TrimEnd();
-            LogMessage("[Root]: " + NewMessage);
-            NewMessage = string.Empty;
-
-            try
-            {
-                await _commandProcessor.ExecuteCommand(input);
-            }
-            catch (Exception ex)
-            {
-                LogMessage("[CommandProcessor]: " + ex.Message);
-            }
-        }
-
-        // Запуск сервера
-        private bool CanStartServer() => _cancellationTokenSource == null || _cancellationTokenSource.IsCancellationRequested;
-        private async Task StartServer()
-        {
-            try
-            {
-                if (!CanStartServer())
-                {
-                    LogMessage($"[Server]: Я уже запущен...");
-                    return;
-                }
-
-                _server.SetEndPoint(new IPEndPoint(IPAddress.Parse(IpAddress), Port));
-                _cancellationTokenSource = new CancellationTokenSource();
-                await _server.StartServer(_cancellationTokenSource.Token);
-
-                //LogMessage("[Server]: Сервер запущен.");
-            }
-            catch (Exception ex)
-            {
-                LogMessage($"[Server]: Ошибка запуска сервера: {ex.Message}");
-            }
-        }
-
-        // Остановка сервера
-        private bool CanStopServer() => _cancellationTokenSource != null && !_cancellationTokenSource.IsCancellationRequested;
-        private async Task StopServer()
-        {
-            try
-            {
-                if (!CanStopServer())
-                {
-                    LogMessage($"[Server]: Запусти сначало...");
-                    return;
-                }
-                _cancellationTokenSource?.Cancel();
-                await _server.StopServer();
-            }
-            catch (Exception ex)
-            {
-                LogMessage($"[Server]: Ошибка остановки сервера: {ex.Message}");
-            }
-        }
+        private void OnLogMessage(string message) 
+            => LogMessage(message);
 
         private async Task OpenUserDataFileHandler(string _)
         {
@@ -290,15 +204,5 @@ namespace WPFTasks.Core.ViewModels.PcStore
             }
             await Task.CompletedTask;
         }
-        // Очистка сообщений
-        private void ClearMessages()
-            => Content = string.Empty;
-
-        // Обработчик сообщений лога
-        private void OnLogMessage(string message)
-            => LogMessage(message);
-
-        private void LogMessage(string message)
-            => Content += $"[{DateTime.UtcNow.ToString("HH:mm:ss.ffff")}]{message}\n";
     }
 }

@@ -1,8 +1,8 @@
 ﻿
 using System.Collections.ObjectModel;
-using WPFTasks.Core.Models;
+using WPFTasks.Core.Models.Core;
 
-namespace WPFTasks.Core.ViewModels
+namespace WPFTasks.Core.ViewModels.Core
 {
     public class HintOnMessageInputBoxBaseVm : BaseViewModel
     {

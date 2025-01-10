@@ -1,143 +1,106 @@
 ﻿
-using TopNetwork.RequestResponse;
 using TopNetwork.Services.MessageBuilder;
+using WPFTasks.Core.Models.Core;
 using WPFTasks.Core.Models.PcStore.MessageBuilder;
 
 namespace WPFTasks.Core.Models.PcStore
 {
-    public class PcClient
+    public class PcClient : BaseClient
     {
-        // Регистрация всех фабрик для типов сообщений отправляемых клиентом 
-        private static MessageBuilderService _msgService = new MessageBuilderService()
-                    .Register(() => new PcPartInfoRequestMessageBuilder())
-                    .Register(() => new AuthenticationRequestMessageBuilder())
-                    .Register(() => new CloseSessionRequestMessageBuilder());
+        public event Action<EndSessionNotificationData>? OnEndSession;
+        public event Action<AuthenticationResponseData>? OnAuthenticationResponse;
+        public event Action<PcPartInfoResponseData>? OnPcPartInfoResponse;
 
-
-        private RrClientHandlerBase _handlers;
-        private RrClient _client;
-
-        public event Action<EndSessionNotificationData> OnEndSession;
-        public event Action OnConnectionLost;
-        public event Action<AuthenticationResponseData> OnAuthenticationResponse;
-        public event Action<PcPartInfoResponseData> OnPcPartInfoResponse;
-        public event Action<string> OnErroreOnClient;
-        public event Action<ErroreData> OnErroreFromServer;
-        public event Action OnServerOverloaded;
-
-        public bool IsInitialized => _client?.IsInitialized ?? false;
-        public bool IsConnected => _client?.IsConnected ?? false;
-
-        public PcClient()
+        public PcClient() : base() 
         {
-            _handlers = new RrClientHandlerBase()
+            RegisterMessageBuilders();
+            RegisterMessageHandlers();
+        }
+
+        protected override void RegisterMessageBuilders()
+        {
+            MessageBuilderService
+                .Register(() => new PcPartInfoRequestMessageBuilder())
+                .Register(() => new AuthenticationRequestMessageBuilder())
+                .Register(() => new CloseSessionRequestMessageBuilder());
+        }
+
+        protected override void RegisterMessageHandlers()
+        {
+            Handlers
                 .AddHandlerForMessageType(PcPartInfoResponseData.MsgType, async msg =>
                 {
                     try
                     {
                         OnPcPartInfoResponse?.Invoke(PcPartInfoResponseMessageBuilder.Parse(msg));
                     }
-                    catch (Exception ex)
+                    catch
                     {
-                        OnErroreOnClient?.Invoke($"Ошибка при парсинге ответа: {msg}");
+                        InvokeOnErroreOnClient($"Error parsing response: {msg}");
                     }
-
                     return null;
                 })
                 .AddHandlerForMessageType(EndSessionNotificationData.MsgType, async msg =>
                 {
-                    _client?.Disconnect();
-
+                    Disconnect();
                     try
                     {
                         OnEndSession?.Invoke(EndSessionNotificationMessageBuilder.Parse(msg));
                     }
-                    catch (Exception ex)
+                    catch
                     {
-                        OnErroreOnClient?.Invoke($"Ошибка при парсинге ответа: {msg}");
+                        InvokeOnErroreOnClient($"Error parsing response: {msg}");
                     }
-
                     return null;
                 })
                 .AddHandlerForMessageType(AuthenticationResponseData.MsgType, async msg =>
                 {
                     try
                     {
-                        var response = AuthenticationResponseMessageBuilder.Parse(msg);
-
-                        OnAuthenticationResponse?.Invoke(response);
+                        OnAuthenticationResponse?.Invoke(AuthenticationResponseMessageBuilder.Parse(msg));
                     }
-                    catch (Exception ex)
+                    catch
                     {
-                        OnErroreOnClient?.Invoke($"Ошибка при парсинге ответа: {msg}");
+                        InvokeOnErroreOnClient($"Error parsing response: {msg}");
                     }
-
                     return null;
                 })
                 .AddHandlerForMessageType(ErroreData.MsgType, async msg =>
                 {
                     try
                     {
-                        OnErroreFromServer?.Invoke(ErroreMessageBuilder.Parse(msg));
+                        InvokeOnErroreFromServer(ErroreMessageBuilder.Parse(msg));
                     }
-                    catch (Exception ex)
+                    catch
                     {
-                        OnErroreOnClient?.Invoke($"Ошибка при парсинге ответа: {msg}");
+                        InvokeOnErroreOnClient($"Error parsing response: {msg}");
                     }
-
                     return null;
                 })
                 .AddHandlerForMessageType(ServerOverloadedNotificationData.MsgType, async msg =>
                 {
-                    OnServerOverloaded?.Invoke();
+                    InvokeOnServerOverloaded();
                     return null;
                 });
-
-            _client = new RrClient(_handlers);
-
-            _client.ServiceRegistry
-                .Register(_msgService);
-
-            _client.OnConnectionLost += () => OnConnectionLost?.Invoke();
         }
 
-        #region Requests
         public async Task SendAuthRequest(string login, string password)
         {
-            var msg = _msgService
-                .BuildMessage<AuthenticationRequestMessageBuilder, AuthenticationRequestData>(
-                    builder => builder
-                        .SetLogin(login)
-                        .SetPassword(password)
-                );
-
-            await _client.SendMessageWithoutResponseAsync(msg);
+            await SendMessageAsync<AuthenticationRequestMessageBuilder, AuthenticationRequestData>(
+                builder => builder.SetLogin(login).SetPassword(password)
+            );
         }
 
         public async Task SendPcPartInfoRequest(string titleOfPart)
         {
-            var msg = _msgService
-                .BuildMessage<PcPartInfoRequestMessageBuilder, PcPartInfoRequestData>(
-                    builder => builder
-                        .SetPayload(titleOfPart)
-                );
-
-            await _client.SendMessageWithoutResponseAsync(msg);
+            await SendMessageAsync<PcPartInfoRequestMessageBuilder, PcPartInfoRequestData>(
+                builder => builder.SetPayload(titleOfPart)
+            );
         }
 
         public async Task SendCloseSessionRequest()
         {
-            var msg = _msgService.BuildMessage<CloseSessionRequestMessageBuilder, CloseSessionRequestData>(null);
-
-            await _client.SendMessageWithoutResponseAsync(msg);
+            await SendMessageAsync<CloseSessionRequestMessageBuilder, CloseSessionRequestData>();
         }
-        #endregion
-        public void Connect(string IpServer, int port)
-            => _client.Connect(IpServer, port);
-        public async Task ConnectAsync(string IpServer, int port)
-            => await _client.ConnectAsync(IpServer, port);
-
-        public void Disconnect()
-            => _client.Disconnect();
     }
 }

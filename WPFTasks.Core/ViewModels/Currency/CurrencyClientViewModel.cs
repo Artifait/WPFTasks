@@ -2,11 +2,11 @@
 using System.Collections.ObjectModel;
 using WPFTasks.Core.Models.Currency;
 using System.Windows.Input;
-using WPFTasks.ViewModels;
 using System.Windows;
+using WPFTasks.Core.ViewModels.Core;
 
 namespace WPFTasks.Core.ViewModels.Currency
-{ 
+{
     public class CurrencyClientViewModel : HintOnMessageInputBoxBaseVm
     {
         private readonly CurrencyClient _currencyClient;

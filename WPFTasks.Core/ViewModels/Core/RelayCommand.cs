@@ -1,7 +1,7 @@
 ﻿
 using System.Windows.Input;
 
-namespace WPFTasks.ViewModels
+namespace WPFTasks.Core.ViewModels.Core
 {
     public class RelayCommand : ICommand
     {

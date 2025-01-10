@@ -4,6 +4,7 @@ using TopNetwork.Core;
 using TopNetwork.RequestResponse;
 using TopNetwork.Services;
 using TopNetwork.Services.MessageBuilder;
+using WPFTasks.Core.Models.Core;
 using WPFTasks.Core.Models.Currency.MessageBuilder;
 
 namespace WPFTasks.Core.Models.Currency

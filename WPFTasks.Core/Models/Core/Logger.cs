@@ -1,7 +1,7 @@
 ﻿
 using System.Text;
 
-namespace WPFTasks.Core.Models
+namespace WPFTasks.Core.Models.Core
 {
     public class Logger
     {

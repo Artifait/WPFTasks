@@ -1,5 +1,4 @@
-﻿
-namespace WPFTasks.Core.ViewModels
+﻿namespace WPFTasks.Core.ViewModels.Core
 {
     public class ChatMessage
     {

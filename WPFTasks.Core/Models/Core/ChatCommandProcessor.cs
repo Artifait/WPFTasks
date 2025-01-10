@@ -2,9 +2,27 @@
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 
-namespace WPFTasks.Core.Models
+namespace WPFTasks.Core.Models.Core
 {
 
+    public class CommandPack
+    {
+        public Dictionary<string, (string Description, Func<string, Task> Handler)> Commands { get; set; } = [];
+        public CommandPack AddCommand(string command, string description, Func<string, Task> handler)
+        {
+            ArgumentNullException.ThrowIfNull(command);
+            ArgumentNullException.ThrowIfNull(description);
+            ArgumentNullException.ThrowIfNull(handler);
+
+            if (string.IsNullOrWhiteSpace(command) || !command.StartsWith('/'))
+                throw new ArgumentException("Команда должна начинаться с '/' и не быть пустой.", nameof(command));
+
+            if (!Commands.TryAdd(command, (description, handler)))
+                throw new ArgumentException($"Команда '{command}' уже существует.");
+
+            return this;
+        }
+    }
 
     public class ChatCommandProcessor
     {
@@ -125,11 +143,13 @@ namespace WPFTasks.Core.Models
                 {
                     if (commandInput.StartsWith(command.Key, StringComparison.OrdinalIgnoreCase))
                     {
-                        try {
+                        try
+                        {
                             await command.Value.Handler(commandInput);
                             executed = true;
                         }
-                        catch{
+                        catch
+                        {
                             executed = false;
                         }
                         break;

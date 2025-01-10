@@ -1,6 +1,7 @@
 ﻿
 using System.Windows.Controls;
 using System.Windows.Input;
+using WPFTasks.Core.ViewModels.Core;
 using WPFTasks.Core.ViewModels.PcStore;
 
 namespace WPFTasks.Pages
@@ -22,7 +23,7 @@ namespace WPFTasks.Pages
         {
             if (sender is ListBox listBox && listBox.SelectedItem is string selectedHint)
             {
-                var viewModel = DataContext as PcServerViewModel;
+                var viewModel = DataContext as HintOnMessageInputBoxBaseVm;
                 int index = selectedHint.IndexOf(' ');
                 index = index == -1 ? selectedHint.Length : index;
                 viewModel?.SelectHint(selectedHint[..index]);
@@ -37,7 +38,7 @@ namespace WPFTasks.Pages
         {
             if (e.Key == Key.Enter)
             {
-                if (DataContext is PcServerViewModel vm && vm.SendMessageCommand.CanExecute(null))
+                if (DataContext is ServerViewModel vm && vm.SendMessageCommand.CanExecute(null))
                 {
                     vm.SendMessageCommand.Execute(null);
                     vm.Hints.Clear();
@@ -47,7 +48,7 @@ namespace WPFTasks.Pages
             }
             if (e.Key == Key.Tab)
             {
-                if (DataContext is PcServerViewModel vm)
+                if (DataContext is HintOnMessageInputBoxBaseVm vm)
                 {
                     int index = InputTextBox.Text.LastIndexOf('/');
                     if (index == -1) return;
