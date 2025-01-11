@@ -7,7 +7,7 @@ namespace WPFTasks.Core.Models.TicTacToe.MessageBuilder
 {
     public class UpdateGameBoardData : IMsgSourceData
     {
-        public char[,] Board = new char[3,3];
+        public char[,] Board { get; set; } = new char[3, 3];
         public string MessageType => MsgType;
         public static string MsgType => "UpdateGameBoard";
     }

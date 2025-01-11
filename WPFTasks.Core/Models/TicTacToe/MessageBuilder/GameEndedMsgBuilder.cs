@@ -4,22 +4,22 @@ using TopNetwork.Services.MessageBuilder;
 
 namespace WPFTasks.Core.Models.TicTacToe.MessageBuilder
 {
-    public class GameEndedNotificationData : IMsgSourceData
+    public class GameEndedData : IMsgSourceData
     {
-        public string YourStatus {  get; set; } = string.Empty;
+        public string GameStatus {  get; set; } = string.Empty;
         
         public string MessageType => MsgType;
         public static string MsgType => "GameEndedNotification";
     }
 
-    public class GameEndedNotificationMsgBuilder : IMessageBuilder<GameEndedNotificationData>
+    public class GameEndedMsgBuilder : IMessageBuilder<GameEndedData>
     {
-        private GameEndedNotificationData _data = new();
+        private GameEndedData _data = new();
 
-        public GameEndedNotificationMsgBuilder SetUserStatus(string status)
+        public GameEndedMsgBuilder SetGameStatus(string status)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(status, nameof(status));
-            _data.YourStatus = status;
+            _data.GameStatus = status;
 
             return this;
         }
@@ -29,18 +29,18 @@ namespace WPFTasks.Core.Models.TicTacToe.MessageBuilder
             return new()
             {
                 MessageType = _data.MessageType,
-                Payload = _data.YourStatus
+                Payload = _data.GameStatus
             };
         }
 
-        public static GameEndedNotificationData Parse(Message msg)
+        public static GameEndedData Parse(Message msg)
         {
-            if (msg.MessageType != GameEndedNotificationData.MsgType)
+            if (msg.MessageType != GameEndedData.MsgType)
                 throw new InvalidOperationException("Incorrect message type.");
 
             return new()
             {
-                YourStatus = msg.Payload
+                GameStatus = msg.Payload
             };
         }
     }
