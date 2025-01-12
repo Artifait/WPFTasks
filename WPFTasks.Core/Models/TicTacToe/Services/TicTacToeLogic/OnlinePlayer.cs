@@ -57,12 +57,15 @@ namespace WPFTasks.Core.Models.TicTacToe.Services.TicTacToeLogic
             }
         }
 
-        public override async Task OnGameEnded(string status)
+        public override async Task OnGameEnded(string status, char[,] board)
         {
             try
             {
+                Client.OnMessageReceived -= Client_OnMessageReceived;
+
                 var response = _msgService.BuildMessage<GameEndedMsgBuilder, GameEndedData>(builder => builder
                     .SetGameStatus(status)
+                    .SetBoard(board)
                 );
                 await Client.SendMessageAsync(response);
             }
@@ -76,7 +79,7 @@ namespace WPFTasks.Core.Models.TicTacToe.Services.TicTacToeLogic
         {
             try
             {
-                var response = _msgService.BuildMessage<GameStartedMsgBuilder, GameStartedData>();
+                var response = _msgService.BuildMessage<GameStartedMsgBuilder, GameStartedData>(builder => builder.SetUserSymbol(Symbol));
                 await Client.SendMessageAsync(response);
             }
             catch (Exception ex)
@@ -107,6 +110,7 @@ namespace WPFTasks.Core.Models.TicTacToe.Services.TicTacToeLogic
             {
                 var notification = _msgService.BuildMessage<UpdateGameBoardMsgBuilder, UpdateGameBoardData>(builder => builder
                     .SetBoard(board.GetState())
+                    .SetTurnSymbol(Symbol == 'X' ? 'O' : 'X')
                 );
 
                 await Client.SendMessageAsync(notification);

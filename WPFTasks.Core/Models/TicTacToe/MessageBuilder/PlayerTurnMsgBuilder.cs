@@ -42,7 +42,6 @@ namespace WPFTasks.Core.Models.TicTacToe.MessageBuilder
             { 
                 Board = UpdateGameBoardMsgBuilder.StringToArray(msg.Payload)
             };
-
         }
     }
 }

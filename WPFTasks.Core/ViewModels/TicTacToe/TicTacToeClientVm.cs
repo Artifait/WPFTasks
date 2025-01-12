@@ -3,7 +3,6 @@ using System.Windows;
 using WPFTasks.Core.Models.TicTacToe;
 using WPFTasks.Core.ViewModels.Core;
 using WPFTasks.Core.Models.TicTacToe.Services.TicTacToeLogic;
-using System.Text;
 
 namespace WPFTasks.Core.ViewModels.TicTacToe
 {
@@ -11,6 +10,7 @@ namespace WPFTasks.Core.ViewModels.TicTacToe
     {
         private readonly TicTacToeClient _client;
         private string _lastStateBoard = "Покачто нету...";
+        private string _lastYourSymbol = "Покачто нету...";
         public TicTacToeClientVm() : base(new TicTacToeClient())
         {
             _client = (TicTacToeClient)Client;
@@ -22,27 +22,39 @@ namespace WPFTasks.Core.ViewModels.TicTacToe
                 .AddCommand("/Delay", "/Delay <milliseconds: int>", HandleDelay)
                 .AddCommand("/FindGame", "/FindGame <Type: int> 0 -> Human-Human; 1 -> Human-Pc; 2 -> Pc-Pc", HandleFindGame)
                 .AddCommand("/SendMove", "/SendMove <CellNumber: int>", HandleSendMove)
-                .AddCommand("/GetLastBoardState", "/GetLastBoardState", HandleGetLastBoardState);
+                .AddCommand("/GetLastBoardState", "/GetLastBoardState", HandleGetLastBoardState)
+                .AddCommand("/GiveUp", "/GiveUp - Сдаться", HandleGiveUp)
+                .AddCommand("/SuggestDraw", "/SuggestDraw - Предложить ничью", HandleSuggestTie)
+                .AddCommand("/GetMySymbol", "/GetMySymbol - посмотреть за кого вы играли/играете", async _ => AddMessage("Save", _lastYourSymbol));
+
+            _client.OnFindGameResponse += data
+                => AddMessage("Server", data.SearchState);
 
             _client.OnEndSession += data
                 => AddMessage("Server", data.Payload);
 
-            _client.OnGameStarted += data 
-                => AddMessage("Server", "Игра началась!");
-
             _client.OnGameEnded += data
-                => AddMessage("Server", $"Игра закончилась!!!\n{data.GameStatus}");
+                => AddMessage("Server", $"Игра закончилась!!!\n{BoardToString(data.Board)}\n{data.GameStatus}");
+
+            _client.OnTieOffered += ()
+                => AddMessage("Server", "Второй игрок предлогает ничью. Чтоб согласиться -> /SuggestDraw");
+
+            _client.OnGameStarted += data =>
+            {
+                _lastYourSymbol = $"Ты играешь за {data.YourSymbol}";
+                AddMessage("Server", $"Игра началась!\n{(data.YourSymbol == 'O' ? BoardToString(new char[3, 3]) + '\n' : string.Empty)}Ты играешь за {data.YourSymbol}.");
+            };
 
             _client.OnPlayerTurn += data =>
             {
                 _lastStateBoard = BoardToString(data.Board);
-                AddMessage("Server", $"{_lastStateBoard}\nТвой ход!");
+                AddMessage("Server", $"{_lastStateBoard}\nТвой ход({_lastYourSymbol})! /SendMove НомерКлетки");
             };
 
             _client.OnUpdateGameBoard += data =>
             {
                 _lastStateBoard = BoardToString(data.Board);
-                AddMessage("Server", $"{_lastStateBoard}\nХодит второй игрок!");
+                AddMessage("Server", $"{_lastStateBoard}\nХодит {data.TurnSymbol} игрок!");
             };
         }
 
@@ -86,6 +98,12 @@ namespace WPFTasks.Core.ViewModels.TicTacToe
                 throw new ArgumentException("Неверный формат /SendMove...");
             }
         }
+
+        private async Task HandleGiveUp(string _)
+            => await _client.SendGiveUp();
+
+        private async Task HandleSuggestTie(string _)
+            => await _client.SendTieRequest();
 
         private async Task HandleGetLastBoardState(string _)
             => AddMessage("Save", _lastStateBoard);
@@ -131,20 +149,13 @@ namespace WPFTasks.Core.ViewModels.TicTacToe
         {
             try
             {
-                // Разделитель между строками
-                string divider = "------------------\n";
+                string divider = "------------------";
 
-                // Формирование строк доски
                 string row1 = $"  {FormatCell(board[0, 0], 0)}  |  {FormatCell(board[0, 1], 1)}  |  {FormatCell(board[0, 2], 2)}  \n";
                 string row2 = $"  {FormatCell(board[1, 0], 3)}  |  {FormatCell(board[1, 1], 4)}  |  {FormatCell(board[1, 2], 5)}  \n";
                 string row3 = $"  {FormatCell(board[2, 0], 6)}  |  {FormatCell(board[2, 1], 7)}  |  {FormatCell(board[2, 2], 8)}  \n";
 
-                // Объединение всех строк в итоговую доску
-                string result = 
-                                divider +
-                                row1 + divider +
-                                row2 + divider +
-                                row3 + divider;
+                string result = $"{divider}\n{row1}{divider}\n{row2}{divider}\n{row3}{divider}";
 
                 return result;
             }
@@ -155,11 +166,12 @@ namespace WPFTasks.Core.ViewModels.TicTacToe
             }
         }
 
-        // Вспомогательный метод для форматирования содержимого клетки
         private string FormatCell(char cell, int cellIndex)
         {
-            // Если клетка пуста, отображаем её номер
-            return cell == ' ' ? $" {cellIndex} " : $" {cell} ";
+            if (cell == ' ' || cell == '\0')
+                return $" {cellIndex} ";
+
+            return $" {cell} ";
         }
     }
 }

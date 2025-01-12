@@ -7,7 +7,9 @@ namespace WPFTasks.Core.Models.TicTacToe.MessageBuilder
 {
     public class UpdateGameBoardData : IMsgSourceData
     {
+        public char TurnSymbol { get; set; }
         public char[,] Board { get; set; } = new char[3, 3];
+
         public string MessageType => MsgType;
         public static string MsgType => "UpdateGameBoard";
     }
@@ -25,11 +27,21 @@ namespace WPFTasks.Core.Models.TicTacToe.MessageBuilder
             return this;
         }
 
+        public UpdateGameBoardMsgBuilder SetTurnSymbol(char turnSymbol)
+        {
+            _data.TurnSymbol = turnSymbol;
+            return this;
+        }
+
         public Message BuildMsg()
         {
             return new()
             {
                 MessageType = _data.MessageType,
+                Headers =
+                {
+                    { nameof(UpdateGameBoardData.TurnSymbol), $"{_data.TurnSymbol}" }
+                },
                 Payload = ArrayToString(_data.Board)
             };
         }
@@ -41,7 +53,8 @@ namespace WPFTasks.Core.Models.TicTacToe.MessageBuilder
 
             return new()
             {
-                Board = StringToArray(msg.Payload)
+                Board = StringToArray(msg.Payload),
+                TurnSymbol = msg.Headers[nameof(UpdateGameBoardData.TurnSymbol)][0]
             };
         }
 

@@ -25,12 +25,13 @@ namespace WPFTasks.Core.Models.TicTacToe.Services.TicTacToeLogic.GameCores
             OnBoardUpdate += CCGameCore_OnBoardUpdate;
         }
 
-        private async void CCGameCore_OnBoardUpdate(char[,] board)
+        private async void CCGameCore_OnBoardUpdate(char[,] board, char turnSymbol)
         {
             try
             {
                 var notification = _msgService.BuildMessage<UpdateGameBoardMsgBuilder, UpdateGameBoardData>(builder => builder
                     .SetBoard(board)
+                    .SetTurnSymbol(turnSymbol)
                 );
 
                 await Initiator.SendMessageAsync(notification);
@@ -60,6 +61,7 @@ namespace WPFTasks.Core.Models.TicTacToe.Services.TicTacToeLogic.GameCores
             {
                 var response = _msgService.BuildMessage<GameEndedMsgBuilder, GameEndedData>(builder => builder
                     .SetGameStatus(status)
+                    .SetBoard(Board.GetState())
                 );
                 await Initiator.SendMessageAsync(response);
             }

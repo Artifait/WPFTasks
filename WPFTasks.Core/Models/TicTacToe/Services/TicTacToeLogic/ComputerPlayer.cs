@@ -6,7 +6,7 @@ namespace WPFTasks.Core.Models.TicTacToe.Services.TicTacToeLogic
     internal class ComputerPlayer : BasePlayer
     {
         private static readonly Random _random = new();
-        private bool _hasRespondedToTieRequest = false; // Флаг для обработки единственного запроса ничьей
+        private bool _hasRespondedToTieRequest = false; 
         private readonly LogString? _logger;
 
         public ComputerPlayer(char symbol, LogString? logger = null)
@@ -17,9 +17,8 @@ namespace WPFTasks.Core.Models.TicTacToe.Services.TicTacToeLogic
 
         public override async Task OnPlayerTurn(Board board)
         {
-            await Task.Delay(_random.Next(500, 1500)); // Симуляция "раздумий" компьютера
+            await Task.Delay(_random.Next(500, 1500));
 
-            // Выбор случайной доступной ячейки
             var availableCells = board.GetAvailableCells();
             if (availableCells.Any())
             {
@@ -30,7 +29,6 @@ namespace WPFTasks.Core.Models.TicTacToe.Services.TicTacToeLogic
 
         public override async Task OnResultTurn(Board board)
         {
-            // Логика обновления после хода (например, обновление доски в UI)
             await Task.CompletedTask;
         }
 
@@ -44,7 +42,6 @@ namespace WPFTasks.Core.Models.TicTacToe.Services.TicTacToeLogic
 
             _hasRespondedToTieRequest = true;
 
-            // 30% шанс согласиться на ничью
             bool acceptTie = _random.Next(0, 100) < 30;
 
             if (acceptTie)
@@ -68,7 +65,7 @@ namespace WPFTasks.Core.Models.TicTacToe.Services.TicTacToeLogic
             await Task.CompletedTask;
         }
 
-        public override async Task OnGameEnded(string status)
+        public override async Task OnGameEnded(string status, char[,] board)
         {
             _logger?.Invoke($"[ComputerPlayer]: Игра окончена. Статус: {status}");
             await Task.CompletedTask;

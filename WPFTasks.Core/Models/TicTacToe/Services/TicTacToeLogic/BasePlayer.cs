@@ -20,7 +20,14 @@ namespace WPFTasks.Core.Models.TicTacToe.Services.TicTacToeLogic
         public virtual async Task OnPlayerTurn(Board board) { }     // Когда настал ход игрока
         public virtual async Task OnResultTurn(Board board) { }     // Для отображение хода игрока
         public virtual async Task OnTieOffered() { }                // Когда второй игрок предложил ничью
-        public virtual async Task OnGameEnded(string status) { }   
+        public virtual async Task OnGameEnded(string status, char[,] board) { }   
         public virtual async Task OnGameStarted() { }
+
+        public void DisposeEvent()
+        {
+            OnGetPlayerMove = null;
+            OnTieRequest = null;
+            OnConcession = null;
+        }
     }
 }

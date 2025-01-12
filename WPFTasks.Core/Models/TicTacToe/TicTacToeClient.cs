@@ -14,6 +14,7 @@ namespace WPFTasks.Core.Models.TicTacToe
         public event Action<GameStartedData>? OnGameStarted;
         public event Action? OnTieOffered;
         public event Action<PlayerTurnData>? OnPlayerTurn;
+        public event Action<FindGameResponseData>? OnFindGameResponse;
 
         protected override void RegisterMessageBuilders()
         {
@@ -74,6 +75,12 @@ namespace WPFTasks.Core.Models.TicTacToe
                     try { OnPlayerTurn?.Invoke(PlayerTurnMsgBuilder.Parse(msg)); }
                     catch { InvokeOnErroreOnClient($"Error parsing response: {msg}"); }
                     return null;
+                })
+                .AddHandlerForMessageType(FindGameResponseData.MsgType, async msg =>
+                {
+                    try { OnFindGameResponse?.Invoke(FindGameResponseMsgBuilder.Parse(msg)); }
+                    catch { InvokeOnErroreOnClient($"Error parsing response: {msg}"); }
+                    return null;
                 });
         }
 
@@ -91,6 +98,10 @@ namespace WPFTasks.Core.Models.TicTacToe
             );
         }
 
+        public async Task SendGiveUp()
+        {
+            await SendMessageAsync<EndGameRequestMsgBuilder, EndGameRequestData>();
+        }
         public async Task SendEndGameRequest()
         {
             await SendMessageAsync<EndGameRequestMsgBuilder, EndGameRequestData>();

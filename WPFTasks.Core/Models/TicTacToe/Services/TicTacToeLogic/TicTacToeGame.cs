@@ -25,7 +25,7 @@ namespace WPFTasks.Core.Models.TicTacToe.Services.TicTacToeLogic
 
         public event Action<string>? OnGameEnded;
         public event Action? OnGameStarted;
-        public event Action<char[,]> OnBoardUpdate;
+        public event Action<char[,], char> OnBoardUpdate;
 
         public TicTacToeGame(BasePlayer playerX, BasePlayer playerO, LogString? logger = null)
         {
@@ -35,8 +35,10 @@ namespace WPFTasks.Core.Models.TicTacToe.Services.TicTacToeLogic
             Logger = logger;
             
             OnGameEnded += async status => {
-                try { await PlayerO.OnGameEnded(status); } catch { }
-                try { await PlayerX.OnGameEnded(status); } catch { } 
+                try { PlayerO.DisposeEvent(); } catch { }
+                try { PlayerX.DisposeEvent(); } catch { }
+                try { await PlayerO.OnGameEnded(status, Board.GetState()); } catch { }
+                try { await PlayerX.OnGameEnded(status, Board.GetState()); } catch { } 
             };
 
             OnGameStarted += async () => {
@@ -126,11 +128,9 @@ namespace WPFTasks.Core.Models.TicTacToe.Services.TicTacToeLogic
 
                         if (Board.MakeMove(x, y, currentPlayer.Symbol))
                         {
-                            OnBoardUpdate?.Invoke(Board.GetState());
-                            await currentPlayer.OnResultTurn(Board);
+                            OnBoardUpdate?.Invoke(Board.GetState(), currentPlayer == PlayerX ? 'O' : 'X');
                             Logger?.Invoke($"Player {currentPlayer.Symbol} made a move at ({x}, {y}).");
 
-                            // Проверяем на победу или ничью
                             var winner = Board.CheckWinner();
                             if (winner != Board.Empty)
                             {
@@ -146,7 +146,7 @@ namespace WPFTasks.Core.Models.TicTacToe.Services.TicTacToeLogic
                                 break;
                             }
 
-                            // Передача хода следующему игроку
+                            await currentPlayer.OnResultTurn(Board);
                             currentPlayer = currentPlayer == PlayerX ? PlayerO : PlayerX;
                         }
                         else

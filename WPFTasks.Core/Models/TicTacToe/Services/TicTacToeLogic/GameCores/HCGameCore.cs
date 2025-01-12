@@ -1,7 +1,6 @@
 ﻿
 using TopNetwork.Core;
 using TopNetwork.RequestResponse;
-using WPFTasks.Core.Models.Core;
 
 namespace WPFTasks.Core.Models.TicTacToe.Services.TicTacToeLogic.GameCores
 {

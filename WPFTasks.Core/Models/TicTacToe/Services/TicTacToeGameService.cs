@@ -12,7 +12,7 @@ namespace WPFTasks.Core.Models.TicTacToe.Services
     public class TicTacToeGameService
     {
         private readonly MessageBuilderService _msgService = new MessageBuilderService()
-            .Register(() => new ErroreMessageBuilder());
+            .Register(() => new FindGameResponseMsgBuilder());
 
         private readonly ConcurrentDictionary<TopClient, TicTacToeSession> _sessions = new();
         private readonly object _locker = new();
@@ -25,16 +25,24 @@ namespace WPFTasks.Core.Models.TicTacToe.Services
             {
                 if (_sessions.TryGetValue(client, out var session))
                 {
-                    var response = _msgService.BuildMessage<ErroreMessageBuilder, ErroreData>(builder => builder
-                        .SetPayload("Отказоно в запуске поиске игры, тк вы уже находитесь в игре...")
+                    var response = _msgService.BuildMessage<FindGameResponseMsgBuilder, FindGameResponseData>(builder => builder
+                        .SetSearchState("Отказано в запуске поиске игры, тк вы уже находитесь в игре...")
                     );
                     await client.SendMessageAsync(response);
                     return;
                 }
                 if (_finderGameUserAndUser == client)
                 {
-                    var response = _msgService.BuildMessage<ErroreMessageBuilder, ErroreData>(builder => builder
-                        .SetPayload("Отказоно в запуске поиске игры, тк вам уже ищется игра...")
+                    var response = _msgService.BuildMessage<FindGameResponseMsgBuilder, FindGameResponseData>(builder => builder
+                        .SetSearchState("Отказано в запуске поиске игры, тк вам уже ищется игра...")
+                    );
+                    await client.SendMessageAsync(response);
+                    return;
+                }
+                if((int)requestData.GameType < 0 || (int)requestData.GameType > 2)
+                {
+                    var response = _msgService.BuildMessage<FindGameResponseMsgBuilder, FindGameResponseData>(builder => builder
+                        .SetSearchState("Данный режим игры не найден...")
                     );
                     await client.SendMessageAsync(response);
                     return;
@@ -43,6 +51,19 @@ namespace WPFTasks.Core.Models.TicTacToe.Services
             catch (Exception ex)
             {
                 Logger?.Invoke($"[TicTacToeGameService]: Ошибка при отказе игроку - [{client.LastUseEndPoint}] в поиске игры. {ex.Message}");
+                return;
+            }
+
+            try
+            {
+                var response = _msgService.BuildMessage<FindGameResponseMsgBuilder, FindGameResponseData>(builder => builder
+                    .SetSearchState("Поиск игры начался!")
+                );
+                await client.SendMessageAsync(response);
+            }
+            catch (Exception ex)
+            {
+                Logger?.Invoke($"[TicTacToeGameService]: Ошибка при уведомлении игрока [{client.LastUseEndPoint}] что для него запущен поиск игры. {ex.Message}");
                 return;
             }
 
