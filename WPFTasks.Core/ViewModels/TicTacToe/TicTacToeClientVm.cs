@@ -30,6 +30,9 @@ namespace WPFTasks.Core.ViewModels.TicTacToe
             _client.OnGameStarted += data 
                 => AddMessage("Server", "Игра началась!");
 
+            _client.OnGameEnded += data
+                => AddMessage("Server", $"Игра закончилась!!!\n{data.GameStatus}");
+
             _client.OnPlayerTurn += data =>
             {
                 _lastStateBoard = BoardToString(data.Board);

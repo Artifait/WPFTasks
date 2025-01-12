@@ -126,6 +126,7 @@ namespace WPFTasks.Core.Models.TicTacToe.Services.TicTacToeLogic
 
                         if (Board.MakeMove(x, y, currentPlayer.Symbol))
                         {
+                            OnBoardUpdate?.Invoke(Board.GetState());
                             await currentPlayer.OnResultTurn(Board);
                             Logger?.Invoke($"Player {currentPlayer.Symbol} made a move at ({x}, {y}).");
 
@@ -140,8 +141,7 @@ namespace WPFTasks.Core.Models.TicTacToe.Services.TicTacToeLogic
 
                             if (Board.IsFull())
                             {
-                                IsEnded = true;
-                                OnGameEnded?.Invoke("It's a tie!");
+                                TryEndGame("Ничья!");
                                 Logger?.Invoke("Game ended in a tie!");
                                 break;
                             }
@@ -168,6 +168,8 @@ namespace WPFTasks.Core.Models.TicTacToe.Services.TicTacToeLogic
                     break;
                 }
             }
+
+            await Task.CompletedTask;
         }
 
         private void TryEndGame(string status)

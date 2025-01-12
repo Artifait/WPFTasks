@@ -83,7 +83,7 @@ namespace WPFTasks.Core.Models.TicTacToe.Services
             _sessions.TryAdd(playerO, session);
 
             session.SessionClosed += OnSessionClosed;
-            await session.StartGame(CancellationToken.None);
+            _ = session.StartGame(CancellationToken.None);
         }
 
         private async Task HandleHumanComputerGame(TopClient client)
@@ -91,7 +91,9 @@ namespace WPFTasks.Core.Models.TicTacToe.Services
             var session = new TicTacToeSession() { Logger = Logger };
             session.InitHCGame(client);
             _sessions.TryAdd(client, session);
-            await session.StartGame(CancellationToken.None);
+
+            session.SessionClosed += OnSessionClosed;
+            _ = session.StartGame(CancellationToken.None);
         }
 
         private async Task HandleComputerComputerGame(TopClient client)
@@ -99,7 +101,9 @@ namespace WPFTasks.Core.Models.TicTacToe.Services
             var session = new TicTacToeSession() { Logger = Logger };
             session.InitCCGame(client);
             _sessions.TryAdd(client, session);
-            await session.StartGame(CancellationToken.None);
+
+            session.SessionClosed += OnSessionClosed;
+            _ = session.StartGame(CancellationToken.None);
         }
 
         private async void OnSessionClosed(TicTacToeSession session)

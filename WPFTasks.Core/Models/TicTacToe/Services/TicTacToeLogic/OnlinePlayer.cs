@@ -36,7 +36,7 @@ namespace WPFTasks.Core.Models.TicTacToe.Services.TicTacToeLogic
                 try
                 {
                     var data = UserMoveMsgBuilder.Parse(msg);
-                    InvokeOnGetPlayerMove((data.CellNumber % 3, data.CellNumber / 3));
+                    InvokeOnGetPlayerMove((data.CellNumber / 3, data.CellNumber % 3));
                 }
                 catch (Exception ex)
                 {
