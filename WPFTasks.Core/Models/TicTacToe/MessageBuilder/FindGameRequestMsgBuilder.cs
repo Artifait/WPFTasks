@@ -1,7 +1,7 @@
 ﻿
 using TopNetwork.Core;
 using TopNetwork.Services.MessageBuilder;
-using WPFTasks.Core.Models.TicTacToe.Services;
+using WPFTasks.Core.Models.TicTacToe.Services.TicTacToeLogic;
 
 namespace WPFTasks.Core.Models.TicTacToe.MessageBuilder
 {

@@ -45,7 +45,7 @@ namespace WPFTasks.Core.Models.TicTacToe.MessageBuilder
             };
         }
 
-        private static string ArrayToString(char[,] array)
+        public static string ArrayToString(char[,] array)
         {
             if (array.GetLength(0) != 3 || array.GetLength(1) != 3)
                 throw new ArgumentException("Массив должен быть размером 3x3");
@@ -61,7 +61,7 @@ namespace WPFTasks.Core.Models.TicTacToe.MessageBuilder
             return result.ToString();
         }
 
-        private static char[,] StringToArray(string input)
+        public static char[,] StringToArray(string input)
         {
             if (input.Length != 9)
                 throw new ArgumentException("Строка должна содержать ровно 9 символов");
