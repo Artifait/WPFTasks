@@ -1,46 +1,77 @@
 ﻿
+using TopNetwork.RequestResponse;
+
 namespace WPFTasks.Core.Models.TicTacToe.Services.TicTacToeLogic
 {
     internal class ComputerPlayer : BasePlayer
     {
-        private static readonly Random random = new();
+        private static readonly Random _random = new();
+        private bool _hasRespondedToTieRequest = false; // Флаг для обработки единственного запроса ничьей
+        private readonly LogString? _logger;
 
-        public char Symbol { get; private set; }
-
-        public event Action<(int x, int y)?>? OnGetPlayerMove;
-        public event Action<Board>? OnPlayerTurn;
-        public event Action? OnTieRequest;
-        public event Action? OnConcession;
-        public event Action<string> OnGameEnded;
-
-        public ComputerPlayer(char symbol)
+        public ComputerPlayer(char symbol, LogString? logger = null)
         {
             Symbol = symbol;
-            OnPlayerTurn += (board) => OnGetPlayerMove?.Invoke(OnPlayerTurnHandler(board).Result);
+            _logger = logger;
         }
 
-        private static async Task<(int x, int y)?> OnPlayerTurnHandler(Board board)
+        public override async Task OnPlayerTurn(Board board)
         {
-            int x, y;
+            await Task.Delay(_random.Next(500, 1500)); // Симуляция "раздумий" компьютера
 
-            do
+            // Выбор случайной доступной ячейки
+            var availableCells = board.GetAvailableCells();
+            if (availableCells.Any())
             {
-                await Task.Delay(500);
-                x = random.Next(0, 3);
-                y = random.Next(0, 3);
-            } while (!board.IsCellEmpty(x, y));
-
-            return await Task.FromResult((x, y));
+                var chosenCell = availableCells[_random.Next(availableCells.Count)];
+                InvokeOnGetPlayerMove(chosenCell);
+            }
         }
 
-        public void InvokeOnPlayerTurn(Board board)
+        public override async Task OnResultTurn(Board board)
         {
-            OnPlayerTurn?.Invoke(board);
+            // Логика обновления после хода (например, обновление доски в UI)
+            await Task.CompletedTask;
         }
 
-        public void InvokeOnGameEnded(string status)
+        public override async Task OnTieOffered()
         {
-            OnGameEnded?.Invoke(status);
+            if (_hasRespondedToTieRequest)
+            {
+                _logger?.Invoke($"[ComputerPlayer]: Игнорирую повторное предложение ничьей.");
+                return;
+            }
+
+            _hasRespondedToTieRequest = true;
+
+            // 30% шанс согласиться на ничью
+            bool acceptTie = _random.Next(0, 100) < 30;
+
+            if (acceptTie)
+            {
+                _logger?.Invoke($"[ComputerPlayer]: Согласен на ничью.");
+                IsTieAccepted = true;
+                InvokeOnTieRequest();
+            }
+            else
+            {
+                _logger?.Invoke($"[ComputerPlayer]: Отказался от ничьей.");
+                IsTieAccepted = false;
+            }
+
+            await Task.CompletedTask;
+        }
+
+        public override async Task OnGameStarted()
+        {
+            _logger?.Invoke($"[ComputerPlayer]: Игра началась.");
+            await Task.CompletedTask;
+        }
+
+        public override async Task OnGameEnded(string status)
+        {
+            _logger?.Invoke($"[ComputerPlayer]: Игра окончена. Статус: {status}");
+            await Task.CompletedTask;
         }
     }
 }

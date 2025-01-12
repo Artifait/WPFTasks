@@ -1,15 +1,14 @@
 ﻿
 using System.Windows.Controls;
 using System.Windows.Input;
-using WPFTasks.Core.ViewModels.Chat;
 using WPFTasks.Core.ViewModels.Core;
-using WPFTasks.Core.ViewModels.PcStore;
+using WPFTasks.Core.ViewModels.TicTacToe;
 
 namespace WPFTasks.Pages
 {
     public partial class ClientPage : Page
     {
-        private static ChatClientViewModel Instance = new();
+        private static TicTacToeClientVm Instance = new();
         public ClientPage()
         {
             InitializeComponent();

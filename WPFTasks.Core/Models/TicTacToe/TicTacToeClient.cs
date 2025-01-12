@@ -8,20 +8,21 @@ namespace WPFTasks.Core.Models.TicTacToe
 {
     public class TicTacToeClient : BaseClient
     {
-        public event Action<EndSessionNotificationData>? OnEndSession;
-        public event Action<AuthenticationResponseData>? OnAuthenticationResponse;
+        public event Action<EndSessionNotificationData>? OnEndSession;              
         public event Action<UpdateGameBoardData>? OnUpdateGameBoard;
         public event Action<GameEndedData>? OnGameEnded;
         public event Action<GameStartedData>? OnGameStarted;
+        public event Action? OnTieOffered;
+        public event Action<PlayerTurnData>? OnPlayerTurn;
 
         protected override void RegisterMessageBuilders()
         {
             MessageBuilderService
-                .Register(() => new AuthenticationRequestMessageBuilder())
-                .Register(() => new CloseSessionRequestMessageBuilder())
                 .Register(() => new FindGameRequestMsgBuilder())    // Найти игру
                 .Register(() => new UserMoveMsgBuilder())           // Сделать ход
-                .Register(() => new EndGameRequestMsgBuilder());    // Признать поражение
+                .Register(() => new EndGameRequestMsgBuilder())     // Признать поражение
+                .Register(() => new TieGameRequestMsgBuilder());    // ПРедложить ничью
+
         }
 
         protected override void RegisterMessageHandlers()
@@ -31,12 +32,6 @@ namespace WPFTasks.Core.Models.TicTacToe
                 {
                     Disconnect();
                     try { OnEndSession?.Invoke(EndSessionNotificationMessageBuilder.Parse(msg)); }
-                    catch { InvokeOnErroreOnClient($"Error parsing response: {msg}");}
-                    return null;
-                })
-                .AddHandlerForMessageType(AuthenticationResponseData.MsgType, async msg =>
-                {
-                    try { OnAuthenticationResponse?.Invoke(AuthenticationResponseMessageBuilder.Parse(msg)); }
                     catch { InvokeOnErroreOnClient($"Error parsing response: {msg}"); }
                     return null;
                 })
@@ -68,6 +63,17 @@ namespace WPFTasks.Core.Models.TicTacToe
                     try { OnGameStarted?.Invoke(GameStartedMsgBuilder.Parse(msg)); }
                     catch { InvokeOnErroreOnClient($"Error parsing response: {msg}"); }
                     return null;
+                })
+                .AddHandlerForMessageType(TieGameRequestData.MsgType, async msg =>
+                {
+                    OnTieOffered?.Invoke();
+                    return null;
+                })
+                .AddHandlerForMessageType(PlayerTurnData.MsgType, async msg =>
+                {
+                    try { OnPlayerTurn?.Invoke(PlayerTurnMsgBuilder.Parse(msg)); }
+                    catch { InvokeOnErroreOnClient($"Error parsing response: {msg}"); }
+                    return null;
                 });
         }
 
@@ -90,16 +96,9 @@ namespace WPFTasks.Core.Models.TicTacToe
             await SendMessageAsync<EndGameRequestMsgBuilder, EndGameRequestData>();
         }
 
-        public async Task SendAuthRequest(string login, string password)
+        public async Task SendTieRequest()
         {
-            await SendMessageAsync<AuthenticationRequestMessageBuilder, AuthenticationRequestData>(
-                builder => builder.SetLogin(login).SetPassword(password)
-            );
-        }
-
-        public async Task SendCloseSessionRequest()
-        {
-            await SendMessageAsync<CloseSessionRequestMessageBuilder, CloseSessionRequestData>();
+            await SendMessageAsync<TieGameRequestMsgBuilder, TieGameRequestData>();
         }
     }
 }

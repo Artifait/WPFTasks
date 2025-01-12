@@ -1,9 +1,8 @@
 ﻿
 using System.Windows.Controls;
 using System.Windows.Input;
-using WPFTasks.Core.ViewModels.Chat;
 using WPFTasks.Core.ViewModels.Core;
-using WPFTasks.Core.ViewModels.PcStore;
+using WPFTasks.Core.ViewModels.TicTacToe;
 
 namespace WPFTasks.Pages
 {
@@ -12,7 +11,7 @@ namespace WPFTasks.Pages
     /// </summary>
     public partial class ServerPage : Page
     {
-        private static ChatServerViewModel Instance = new();
+        private static TicTacToeServerVm Instance = new();
 
         public ServerPage()
         {

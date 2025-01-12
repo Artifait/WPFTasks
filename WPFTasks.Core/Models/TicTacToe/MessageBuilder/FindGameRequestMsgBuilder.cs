@@ -27,7 +27,7 @@ namespace WPFTasks.Core.Models.TicTacToe.MessageBuilder
             return new()
             {
                 MessageType = _data.MessageType,
-                Payload = _data.GameType.ToString()
+                Payload = ((int)_data.GameType).ToString(),
             };
         }
 

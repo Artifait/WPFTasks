@@ -14,17 +14,10 @@ namespace WPFTasks.Core.Models.TicTacToe
     {
         // Регистрация всех фабрик для типов сообщений отправляемых сервером 
         private static readonly MessageBuilderService _msgService = new MessageBuilderService()
-                    .Register(() => new AuthenticationResponseMessageBuilder())
                     .Register(() => new ErroreMessageBuilder())
                     .Register(() => new EndSessionNotificationMessageBuilder())
-                    .Register(() => new ServerOverloadedNotificationMessageBuilder())
-                    .Register(() => new UpdateGameBoardMsgBuilder())
-                    .Register(() => new GameEndedMsgBuilder())
-                    .Register(() => new GameStartedMsgBuilder());
+                    .Register(() => new ServerOverloadedNotificationMessageBuilder());
 
-        private readonly AuthenticationService<TicTacToeUser> _authenticationService;
-        private readonly Repository<TicTacToeUser> _userRepository;
-        private readonly UserService<TicTacToeUser> _userService;
         private readonly TrackerUserActivityService _activityService;
         private readonly TicTacToeGameService _gameService;
         private readonly RrServerHandlerBase _handlers;
@@ -40,49 +33,27 @@ namespace WPFTasks.Core.Models.TicTacToe
         {
             _server.Logger = Logger.LogString;
 
-            _userRepository = new(userFilePath ?? "TicTacToeUsers.json");
-            _userService = new(_userRepository, new PasswordService(), data => new(data.login, data.hashPassword));
-            _authenticationService = new(_userService, _msgService) { Logger = Logger.LogString };
             _activityService = new(_msgService);
-            _gameService = new();
+            _gameService = new() { Logger = Logger.LogString };
 
             _server
                 .RegisterService(_msgService)
-                .RegisterService(_userRepository)
-                .RegisterService(_userService)
-                .RegisterService(_authenticationService)
                 .RegisterService(_activityService)
                 .RegisterService(_gameService);
 
 
             _handlers = new RrServerHandlerBase()
-                            .AddHandlerForMessageType(AuthenticationRequestData.MsgType, async (client, msg, context) =>
-                            {
-                                return await SafeWrapperForHandler(client, msg, context, async (client, msg, context) =>
-                                {
-                                    var requestData = AuthenticationRequestMessageBuilder.Parse(msg);
-                                    return await _authenticationService.AuthenticateClient(client, requestData);
-                                });
-                            })
-                            .AddHandlerForMessageType(CloseSessionRequestData.MsgType, async (client, msg, context) =>
-                            {
-                                return await SafeWrapperForHandler(client, msg, context, async (client, msg, context) =>
-                                {
-                                    _authenticationService.CloseSession(client);
-                                    return _msgService.BuildMessage<EndSessionNotificationMessageBuilder, EndSessionNotificationData>();
-                                });
-                            })
-                            .AddHandlerForMessageType(FindGameRequestData.MsgType, async (client, msg, context) =>
-                            {
-                                return await SafeWrapperForHandler(client, msg, context, async (client, msg, context) =>
-                                {
-                                    var requestData = FindGameRequestMsgBuilder.Parse(msg);
-                                    return await _gameService.FindGameToClient(client, requestData);
-                                });
-                            });
+                .AddHandlerForMessageType(FindGameRequestData.MsgType, async (client, msg, context) =>
+                {
+                    return await SafeWrapperForHandler(client, msg, context, async (client, msg, context) =>
+                    {
+                        var requestData = FindGameRequestMsgBuilder.Parse(msg);
+                        await _gameService.FindGameToClient(client, requestData);
+                        return null;
+                    });
+                });
 
             _server.SetSessionFactory(SessionFactory);
-            UpdateAuthSessionDuration(Timeout.InfiniteTimeSpan).Wait();
         }
 
 
@@ -97,7 +68,6 @@ namespace WPFTasks.Core.Models.TicTacToe
 
         private async Task<ClientSession?> SessionFactory(TopClient client, ServiceRegistry context, LogString? logger)
         {
-
             if (_server.CountOpenSessions >= MaxConnections)
             {
                 try
@@ -134,16 +104,7 @@ namespace WPFTasks.Core.Models.TicTacToe
             catch { }
         }
 
-        public void RegisterUser(string login, string password)
-            => _userService.RegisterUser(login, password);
-
         // Свойства Задаваемые юзером
-        public string UserFilePath => _userRepository.FilePath;
-
-        public TimeSpan MaxAuthSessionDuration => _authenticationService.MaxSessionDuration;
-        public async Task UpdateAuthSessionDuration(TimeSpan newDuration)
-            => await _authenticationService.UpdateSessionDuration(newDuration);
-
         public TimeSpan MaxDurationInactive => _activityService.MaxDurationInactive;
         public async Task UpdateMaxDurationInactive(TimeSpan newDuration)
             => await _activityService.UpdateMaxDurationInactive(newDuration);

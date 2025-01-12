@@ -21,13 +21,31 @@ namespace WPFTasks.Core.Models.TicTacToe.Services
 
         public async Task FindGameToClient(TopClient client, FindGameRequestData requestData)
         {
-            if(_sessions.TryGetValue(client, out var session))
+            try
             {
-                var response = _msgService.BuildMessage<ErroreMessageBuilder, ErroreData>(builder => builder
-                    .SetPayload("Отказоно в запуске поиске игры, тк вы уже находитесь в игре...")
-                );
-                await client.SendMessageAsync(response);
+                if (_sessions.TryGetValue(client, out var session))
+                {
+                    var response = _msgService.BuildMessage<ErroreMessageBuilder, ErroreData>(builder => builder
+                        .SetPayload("Отказоно в запуске поиске игры, тк вы уже находитесь в игре...")
+                    );
+                    await client.SendMessageAsync(response);
+                    return;
+                }
+                if (_finderGameUserAndUser == client)
+                {
+                    var response = _msgService.BuildMessage<ErroreMessageBuilder, ErroreData>(builder => builder
+                        .SetPayload("Отказоно в запуске поиске игры, тк вам уже ищется игра...")
+                    );
+                    await client.SendMessageAsync(response);
+                    return;
+                }
             }
+            catch (Exception ex)
+            {
+                Logger?.Invoke($"[TicTacToeGameService]: Ошибка при отказе игроку - [{client.LastUseEndPoint}] в поиске игры. {ex.Message}");
+                return;
+            }
+
             switch (requestData.GameType)
             {
                 case GameTypes.Human_Human:
@@ -70,7 +88,7 @@ namespace WPFTasks.Core.Models.TicTacToe.Services
 
         private async Task HandleHumanComputerGame(TopClient client)
         {
-            var session = new TicTacToeSession();
+            var session = new TicTacToeSession() { Logger = Logger };
             session.InitHCGame(client);
             _sessions.TryAdd(client, session);
             await session.StartGame(CancellationToken.None);
@@ -78,7 +96,8 @@ namespace WPFTasks.Core.Models.TicTacToe.Services
 
         private async Task HandleComputerComputerGame(TopClient client)
         {
-            var session = new TicTacToeSession();
+            var session = new TicTacToeSession() { Logger = Logger };
+            session.InitCCGame(client);
             _sessions.TryAdd(client, session);
             await session.StartGame(CancellationToken.None);
         }
@@ -109,22 +128,23 @@ namespace WPFTasks.Core.Models.TicTacToe.Services
         public event Action<TicTacToeSession>? SessionClosed;
         public GameTypes GameType { get; private set; }
         public TicTacToeGame GameCore { get; private set; }
+        public LogString? Logger { get; set; }
 
         public void InitHHGame(TopClient playerX, TopClient playerO)
         {
-            GameCore = new HHGameCore(playerX, playerO);
+            GameCore = new HHGameCore(playerX, playerO, Logger);
             GameType = GameTypes.Human_Human;
         }
 
         public void InitHCGame(TopClient playerX)
         {
-            GameCore = new HCGameCore(playerX);
+            GameCore = new HCGameCore(playerX, Logger);
             GameType = GameTypes.Human_Computer;
         }
 
         public void InitCCGame(TopClient initiator)
         {
-            GameCore = new CCGameCore(initiator);
+            GameCore = new CCGameCore(initiator, Logger);
             GameType = GameTypes.Computer_Computer;
         }
 

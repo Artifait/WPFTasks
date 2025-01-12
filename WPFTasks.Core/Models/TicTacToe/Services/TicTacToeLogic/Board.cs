@@ -21,7 +21,23 @@ namespace WPFTasks.Core.Models.TicTacToe.Services.TicTacToeLogic
             _board[x, y] = symbol;
             return true;
         }
+        public List<(int x, int y)> GetAvailableCells()
+        {
+            var availableCells = new List<(int x, int y)>();
 
+            for (int i = 0; i < 3; i++)
+            {
+                for (int j = 0; j < 3; j++)
+                {
+                    if (IsCellEmpty(i, j))
+                    {
+                        availableCells.Add((i, j));
+                    }
+                }
+            }
+
+            return availableCells;
+        }
         public char[,] GetState() => _board;
 
         public bool IsFull() => _board.Cast<char>().All(cell => cell != Empty);
