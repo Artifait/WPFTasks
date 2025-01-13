@@ -1,0 +1,86 @@
+﻿<Page x:Class="WPFTasks.Pages.Task3"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:local="clr-namespace:WPFTasks.Pages"
+      mc:Ignorable="d" 
+      d:DesignHeight="450" d:DesignWidth="800"
+      Title="Task3">
+
+    <Border CornerRadius="5" Background="{DynamicResource SecundaryBackgroundColor}"
+        BorderBrush="Gray" BorderThickness="2" Padding="10">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Поле для поиска -->
+            <Grid Margin="0 0 0 10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBox x:Name="SearchTextBox" Grid.Column="0" Margin="0 0 10 0"
+                         ToolTip="Введите текст для поиска" Style="{DynamicResource TextBoxStyle}"
+                         VerticalAlignment="Center" FontSize="14" Padding="5"/>
+                <Button x:Name="SearchButton" Grid.Column="1" Content="Найти" Width="100"
+                        Click="SearchButton_Click" Style="{DynamicResource DarkButtonStyle}"
+                        VerticalAlignment="Center" FontSize="14" Padding="5"/>
+            </Grid>
+
+            <!-- Индикатор статуса и таймер -->
+            <TextBlock x:Name="StatusTextBlock" Grid.Row="1" Text="Статус: Ожидание ввода"
+                       FontSize="14" Foreground="Gray" VerticalAlignment="Center"
+                       Margin="0 0 0 10" Style="{DynamicResource LabelTextStyle}"/>
+
+            <!-- Результаты поиска -->
+            <ListView x:Name="ResultsListView" Grid.Row="2" Margin="0 0 0 10" Background="{DynamicResource PrimaryBackgroundColor}">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Header="Название книги" Width="Auto">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Title}" Style="{StaticResource LabelTextStyle}" Foreground="DimGray" />
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+
+                        <GridViewColumn Header="Автор" Width="Auto">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Authors[0].name}" Style="{StaticResource LabelTextStyle}" Foreground="DimGray"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+
+                        <GridViewColumn Header="Язык" Width="Auto">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Languages[0]}" Style="{StaticResource LabelTextStyle}" Foreground="DimGray"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+
+                        <GridViewColumn Header="Скачивания" Width="Auto">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Download_count}" Style="{StaticResource LabelTextStyle}" Foreground="DimGray"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                    </GridView>
+                </ListView.View>
+            </ListView>
+
+
+            <!-- Время поиска -->
+            <TextBlock x:Name="TimerTextBlock" Grid.Row="3" Text="Время поиска: 0.00 сек"
+                       FontSize="14" HorizontalAlignment="Right" Foreground="Gray"/>
+        </Grid>
+    </Border>
+</Page>
