@@ -178,6 +178,8 @@ namespace WPFTasks.Core.Models.TicTacToe.Services
             if (GameCore == null)
                 throw new Exception("Plz Init core");
 
+            GameCore.OnGameEnded += _ => SessionClosed?.Invoke(this);
+
             try
             {
                 await GameCore.Start(token);
