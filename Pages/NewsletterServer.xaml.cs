@@ -1,5 +1,6 @@
 ﻿
 using Microsoft.Toolkit.Uwp.Notifications;
+using System.Net;
 using System.Windows;
 using System.Windows.Controls;
 using TopNetwork.Core;
@@ -123,6 +124,25 @@ namespace WPFTasks.Pages
             }
 
             Task.Run(() => _server?.SendMessageAsync(message));
+        }
+
+        private void DeleteUserButton_Click(object sender, RoutedEventArgs e)
+        {
+            if(string.IsNullOrWhiteSpace(DeleteUserTextBox.Text))
+            {
+                MessageBox.Show("Поле Пустое!", "Нельзя так", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            try
+            {
+                IPEndPoint result = IPEndPoint.Parse(DeleteUserTextBox.Text);
+                _server?.BlockUser(result);
+            }
+            catch(Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 }

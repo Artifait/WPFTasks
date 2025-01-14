@@ -12,6 +12,7 @@ namespace WPFTasks.Core.Models.ModuleFour
         private readonly UdpClient _udpServer;
         private readonly ConcurrentDictionary<string, HashSet<IPEndPoint>> _subscriptions = new();
         private readonly CancellationTokenSource _cts = new();
+        private readonly ConcurrentBag<IPEndPoint> _blockedPoints;
 
         public LogString? Logger { get; set; }
         public event Action<string> OnErrore;
@@ -119,9 +120,17 @@ namespace WPFTasks.Core.Models.ModuleFour
             _subscriptions.TryGetValue(messageType, out var clients);
             clients?.Remove(clientEndpoint);
         }
+
+        public void BlockUser(IPEndPoint clientEndpoint)
+        {
+            _blockedPoints.Add(clientEndpoint);
+            Logger?.Invoke($"Пользователь {clientEndpoint} удалён из всех подписок.");
+        }
+
         private async Task SendToClientAsync(IPEndPoint client, byte[] data)
         {
             try {
+                if (_blockedPoints.Contains(client)) return;
                 await _udpServer.SendAsync(data, data.Length, client);
             }
             catch (Exception ex) {
