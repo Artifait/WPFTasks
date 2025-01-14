@@ -4,6 +4,7 @@ using System.Net.Sockets;
 using System.Net;
 using TopNetwork.Core;
 using TopNetwork.RequestResponse;
+using System.Windows;
 
 namespace WPFTasks.Core.Models.ModuleFour
 {
@@ -12,7 +13,7 @@ namespace WPFTasks.Core.Models.ModuleFour
         private readonly UdpClient _udpServer;
         private readonly ConcurrentDictionary<string, HashSet<IPEndPoint>> _subscriptions = new();
         private readonly CancellationTokenSource _cts = new();
-        private readonly ConcurrentBag<IPEndPoint> _blockedPoints;
+        private readonly ConcurrentBag<IPEndPoint> _blockedPoints = [];
 
         public LogString? Logger { get; set; }
         public event Action<string> OnErrore;
@@ -123,8 +124,10 @@ namespace WPFTasks.Core.Models.ModuleFour
 
         public void BlockUser(IPEndPoint clientEndpoint)
         {
+            if (_blockedPoints.Contains(clientEndpoint)) return;
+
             _blockedPoints.Add(clientEndpoint);
-            Logger?.Invoke($"Пользователь {clientEndpoint} удалён из всех подписок.");
+            MessageBox.Show($"Пользователь: {clientEndpoint} заблокирован", "Blocker", MessageBoxButton.OK, MessageBoxImage.Information); 
         }
 
         private async Task SendToClientAsync(IPEndPoint client, byte[] data)
