@@ -32,9 +32,9 @@ namespace TopNetwork.RequestResponse
                 throw new ArgumentException("Данный тип уже иммет свой обрабтчик");
 
             HandlerOfMessageType[type] = handler;
+            
             return this;
         }
-
 
         public void Clear() => HandlerOfMessageType.Clear();
     }

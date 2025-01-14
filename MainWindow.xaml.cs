@@ -70,10 +70,10 @@ namespace WPFTasks
             => fContainer.Navigate(new System.Uri("Pages/Settings.xaml", UriKind.RelativeOrAbsolute));
 
         private void btnTask1_Click(object sender, RoutedEventArgs e)
-            => fContainer.Navigate(new System.Uri("Pages/ClientPage.xaml", UriKind.RelativeOrAbsolute));
+            => fContainer.Navigate(new System.Uri("Pages/NewsletterClient.xaml", UriKind.RelativeOrAbsolute));
 
         private void btnTask2_Click(object sender, RoutedEventArgs e)
-            => fContainer.Navigate(new System.Uri("Pages/ServerPage.xaml", UriKind.RelativeOrAbsolute));
+            => fContainer.Navigate(new System.Uri("Pages/NewsletterServer.xaml", UriKind.RelativeOrAbsolute));
 
         private void btnTask3_Click(object sender, RoutedEventArgs e)
             => fContainer.Navigate(new System.Uri("Pages/Task3.xaml", UriKind.RelativeOrAbsolute));
