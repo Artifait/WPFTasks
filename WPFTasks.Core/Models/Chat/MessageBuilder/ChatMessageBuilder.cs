@@ -7,6 +7,7 @@ namespace WPFTasks.Core.Models.Chat.MessageBuilder
     public class ChatMessageData : IMsgSourceData
     {
         public string Payload { get; set; } = string.Empty;
+        public Dictionary<string, string> Headers { get; set; } = [];
 
         public string MessageType => MsgType;
         public static string MsgType => "ChatMessage";
@@ -24,12 +25,22 @@ namespace WPFTasks.Core.Models.Chat.MessageBuilder
             return this;
         }
 
+        public ChatMessageBuilder AddHeader(string name, string payload)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
+            ArgumentException.ThrowIfNullOrWhiteSpace(payload);
+
+            _data.Headers.Add(name, payload);
+            return this;
+        }
+
         public Message BuildMsg()
         {
             return new()
             {
-                MessageType = _data.MessageType,
+                Headers = _data.Headers,
                 Payload = _data.Payload,
+                MessageType = _data.MessageType,
             };
         }
 
@@ -40,6 +51,7 @@ namespace WPFTasks.Core.Models.Chat.MessageBuilder
 
             return new()
             {
+                Headers = msg.Headers,
                 Payload = msg.Payload,
             };
         }

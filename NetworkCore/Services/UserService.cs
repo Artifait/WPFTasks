@@ -26,7 +26,7 @@ namespace TopNetwork.Services
     public interface IRepository<T> where T : class
     {
         void Add(T entity);
-        void Remove(Func<T, bool> predicate);
+        bool Remove(Func<T, bool> predicate);
         T? Get(Func<T, bool> predicate);
         List<T> GetAll();
     }
@@ -62,7 +62,7 @@ namespace TopNetwork.Services
             }
         }
 
-        public void Remove(Func<T, bool> predicate)
+        public bool Remove(Func<T, bool> predicate)
         {
             lock (_locker)
             {
@@ -72,7 +72,9 @@ namespace TopNetwork.Services
                 {
                     entities.Remove(entityToRemove);
                     SaveToFile(entities);
+                    return true;
                 }
+                return false;
             }
         }
 
