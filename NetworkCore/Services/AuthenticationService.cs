@@ -64,6 +64,27 @@ namespace TopNetwork.Services
             return BuildFailedAuthResponse("Неверный логин или пароль.");
         }
 
+        public async Task<Message?> RegisterClient(TopClient client, RegisterRequestData requestData)
+        {
+            if(_userService.GetUserByLogin(requestData.Login) != null)
+            {
+                Logger?.Invoke($"[AuthenticationService]: Клиент [{client.LastUseEndPoint}] пытается зарегаться под занятым логином...");
+                return _msgService.BuildMessage<RegisterResponseMsgBuilder, RegisterResponseData>(builder => builder.SetExplanatoryMsg("Данный логин занят..."));
+            }
+
+            try
+            {
+                _userService.RegisterUser(requestData.Login, requestData.Password);
+                Logger?.Invoke($"[AuthenticationService]: Клиент [{client.LastUseEndPoint}] успешно зарегал нового пользователя, под логином - {requestData.Login}.");
+                return _msgService.BuildMessage<RegisterResponseMsgBuilder, RegisterResponseData>(builder => builder.SetExplanatoryMsg($"Вы успешно зарегистрировали нового пользователя, под логином - {requestData.Login}."));
+            }
+            catch (Exception ex)
+            {
+                Logger?.Invoke($"[AuthenticationService]: Ошибка при регистрации Клиента - [{client.LastUseEndPoint}]; Errore: {ex.Message}");
+                return _msgService.BuildMessage<RegisterResponseMsgBuilder, RegisterResponseData>(builder => builder.SetExplanatoryMsg($"Ошибка регистрации: {ex.Message}"));
+            }
+
+        }
         public void CloseSession(TopClient client)
         {
             if (_authenticatedSessions.TryRemove(client, out var session))
