@@ -116,7 +116,7 @@ namespace TopNetwork.Services
         private Message BuildSuccessAuthResponse() =>
             _msgService.BuildMessage<AuthenticationResponseMessageBuilder, AuthenticationResponseData>(builder => builder
                 .SetAuthentication(true)
-                .SetExplanatoryMsg($"Вы успешно авторизовались!\nВаша сессия длится - {MaxSessionDuration.TotalMinutes} Мин."));
+                .SetExplanatoryMsg($"Вы успешно авторизовались!\nВаша сессия длится - " + (MaxSessionDuration == Timeout.InfiniteTimeSpan ? "ВЕЧНО" : $"{MaxSessionDuration.TotalMinutes} Мин.")));
 
         private Message BuildFailedAuthResponse(string reason) =>
             _msgService.BuildMessage<AuthenticationResponseMessageBuilder, AuthenticationResponseData>(builder => builder
