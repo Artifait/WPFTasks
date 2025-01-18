@@ -7,7 +7,7 @@ namespace WPFTasks.Core.Models.Chat.MessageBuilder
     public class ChatMessageData : IMsgSourceData
     {
         public string Payload { get; set; } = string.Empty;
-        public Dictionary<string, string> Headers { get; set; } = [];
+        public string ChatId { get; set; } = string.Empty;
 
         public string MessageType => MsgType;
         public static string MsgType => "ChatMessage";
@@ -25,12 +25,11 @@ namespace WPFTasks.Core.Models.Chat.MessageBuilder
             return this;
         }
 
-        public ChatMessageBuilder AddHeader(string name, string payload)
+        public ChatMessageBuilder SetChatId(string chatId)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(name);
-            ArgumentException.ThrowIfNullOrWhiteSpace(payload);
+            ArgumentException.ThrowIfNullOrWhiteSpace(chatId);
+            _data.ChatId = chatId;
 
-            _data.Headers.Add(name, payload);
             return this;
         }
 
@@ -38,8 +37,7 @@ namespace WPFTasks.Core.Models.Chat.MessageBuilder
         {
             return new()
             {
-                Headers = _data.Headers,
-                Payload = _data.Payload,
+                Payload = $"{_data.ChatId}:{_data.Payload}",
                 MessageType = _data.MessageType,
             };
         }
@@ -49,10 +47,12 @@ namespace WPFTasks.Core.Models.Chat.MessageBuilder
             if (msg.MessageType != ChatMessageData.MsgType)
                 throw new InvalidOperationException("Incorrect message type.");
 
+            var parts = msg.Payload.Split(':');
+
             return new()
             {
-                Headers = msg.Headers,
-                Payload = msg.Payload,
+                ChatId = parts[0],
+                Payload = parts[1],
             };
         }
     }

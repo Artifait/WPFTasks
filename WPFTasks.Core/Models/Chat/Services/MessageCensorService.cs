@@ -1,6 +1,7 @@
 ﻿
 using System.Text.RegularExpressions;
 using TopNetwork.Services;
+using WPFTasks.Core.Models.Chat.MessageBuilder;
 
 namespace WPFTasks.Core.Models.Chat.Services
 {
@@ -47,6 +48,12 @@ namespace WPFTasks.Core.Models.Chat.Services
             }
 
             return censoredMessage;
+        }
+
+        public bool ProcessMessage(ref ChatMessageData message)
+        {
+            message.Payload = HandleMessage(message.Payload, out bool result);
+            return result;
         }
     }
 }

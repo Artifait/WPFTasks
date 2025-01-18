@@ -1,4 +1,5 @@
 ﻿
+using TopNetwork.Core;
 using TopNetwork.Services.MessageBuilder;
 using WPFTasks.Core.Models.Chat.MessageBuilder;
 using WPFTasks.Core.Models.Core;
@@ -22,54 +23,27 @@ namespace WPFTasks.Core.Models.Chat
         protected override void RegisterMessageHandlers()
         {
             Handlers
-                .AddHandlerForMessageType(ChatMessageData.MsgType, async msg =>
-                {
-                    try
-                    {
-                        OnReceivedChatMessage?.Invoke(ChatMessageBuilder.Parse(msg));
-                    }
-                    catch
-                    {
-                        InvokeOnErroreOnClient($"Error parsing response: {msg}");
-                    }
-                    return null;
-                })
                 .AddHandlerForMessageType(EndSessionNotificationData.MsgType, async msg =>
                 {
                     Disconnect();
-                    try
-                    {
-                        OnEndSession?.Invoke(EndSessionNotificationMessageBuilder.Parse(msg));
-                    }
-                    catch
-                    {
-                        InvokeOnErroreOnClient($"Error parsing response: {msg}");
-                    }
-                    return null;
+
+                    return await SafeWrapperForHandler(msg, async msg
+                        => OnEndSession?.Invoke(EndSessionNotificationMessageBuilder.Parse(msg)));
+                })
+                .AddHandlerForMessageType(ChatMessageData.MsgType, async msg =>
+                {
+                    return await SafeWrapperForHandler(msg, async msg
+                        => OnReceivedChatMessage?.Invoke(ChatMessageBuilder.Parse(msg)));
                 })
                 .AddHandlerForMessageType(AuthenticationResponseData.MsgType, async msg =>
                 {
-                    try
-                    {
-                        OnAuthenticationResponse?.Invoke(AuthenticationResponseMessageBuilder.Parse(msg));
-                    }
-                    catch
-                    {
-                        InvokeOnErroreOnClient($"Error parsing response: {msg}");
-                    }
-                    return null;
+                    return await SafeWrapperForHandler(msg, async msg
+                        => OnAuthenticationResponse?.Invoke(AuthenticationResponseMessageBuilder.Parse(msg)));
                 })
                 .AddHandlerForMessageType(ErroreData.MsgType, async msg =>
                 {
-                    try
-                    {
-                        InvokeOnErroreFromServer(ErroreMessageBuilder.Parse(msg));
-                    }
-                    catch
-                    {
-                        InvokeOnErroreOnClient($"Error parsing response: {msg}");
-                    }
-                    return null;
+                    return await SafeWrapperForHandler(msg, async msg 
+                        => InvokeOnErroreFromServer(ErroreMessageBuilder.Parse(msg)));
                 })
                 .AddHandlerForMessageType(ServerOverloadedNotificationData.MsgType, async msg =>
                 {
@@ -95,6 +69,33 @@ namespace WPFTasks.Core.Models.Chat
         public async Task SendCloseSessionRequest()
         {
             await SendMessageAsync<CloseSessionRequestMessageBuilder, CloseSessionRequestData>();
+        }
+
+        private async Task<Message?> SafeWrapperForHandlerWithAnswer(Message msg, Func<Message, Task<Message?>> handler)
+        {
+            try
+            {
+                return await handler?.Invoke(msg);
+            }
+            catch (Exception ex)
+            {
+                InvokeOnErroreOnClient($"Error parsing response of type: {msg.MessageType} - {ex.Message}");
+                return null;
+            }
+        }
+
+        private async Task<Message?> SafeWrapperForHandler(Message msg, Func<Message, Task> handler)
+        {
+            try
+            {
+                await handler?.Invoke(msg);
+            }
+            catch (Exception ex)
+            {
+                InvokeOnErroreOnClient($"Error parsing response of type: {msg.MessageType} - {ex.Message}");
+            }
+
+            return null;
         }
     }
 }

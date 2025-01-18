@@ -5,6 +5,7 @@ using TopNetwork.RequestResponse;
 using TopNetwork.Services;
 using TopNetwork.Services.MessageBuilder;
 using WPFTasks.Core.Models.Chat.MessageBuilder;
+using WPFTasks.Core.Models.Chat.Services;
 using WPFTasks.Core.Models.Core;
 
 namespace WPFTasks.Core.Models.Chat
@@ -23,6 +24,7 @@ namespace WPFTasks.Core.Models.Chat
         private readonly Repository<ChatUser> _userRepository;
         private readonly UserService<ChatUser> _userService;
         private readonly TrackerUserActivityService _activityService;
+        private readonly MessageCensorService _censorService;
         private readonly RrServerHandlerBase _handlers;
         private RrServer _server = new();
 
@@ -42,6 +44,7 @@ namespace WPFTasks.Core.Models.Chat
             _userService = new(_userRepository, new PasswordService(), data => new(data.login, data.hashPassword));
             _authenticationService = new(_userService, _msgService) { Logger = Logger.LogString };
             _activityService = new(_msgService);
+            _censorService = new MessageCensorService();
 
             _server
                 .RegisterService(_msgService)
@@ -54,27 +57,31 @@ namespace WPFTasks.Core.Models.Chat
             _handlers = new RrServerHandlerBase()
                             .AddHandlerForMessageType(AuthenticationRequestData.MsgType, async (client, msg, context) =>
                             {
-                                try
+                                return await SafeWrapperForHandler(client, msg, context, async (client, msg, context) =>
                                 {
                                     var requestData = AuthenticationRequestMessageBuilder.Parse(msg);
                                     return await _authenticationService.AuthenticateClient(client, requestData);
-                                }
-                                catch (Exception ex)
+                                });
+                            })
+                            .AddHandlerForMessageType(RegisterRequestData.MsgType, async (client, msg, context) =>
+                            {
+                                return await SafeWrapperForHandler(client, msg, context, async (client, msg, context) =>
                                 {
-                                    Logger.LogString($"[Server]: Ошибка обработки {AuthenticationRequestData.MsgType} от [{client.RemoteEndPoint}].\n{ex.Message}");
-                                    return _msgService.BuildMessage<ErroreMessageBuilder, ErroreData>(builder => builder
-                                        .SetPayload($"Невозможно обработать {AuthenticationRequestData.MsgType}.\n{ex.Message}")
-                                    );
-                                }
+                                    var requestData = RegisterRequestMsgBuilder.Parse(msg);
+                                    return await _authenticationService.RegisterClient(client, requestData);
+                                });
                             })
                             .AddHandlerForMessageType(CloseSessionRequestData.MsgType, async (client, msg, context) =>
                             {
-                                _authenticationService.CloseSession(client);
-                                return _msgService.BuildMessage<EndSessionNotificationMessageBuilder, EndSessionNotificationData>();
+                                return await SafeWrapperForHandler(client, msg, context, async (client, msg, context) =>
+                                {
+                                    _authenticationService.CloseSession(client);
+                                    return _msgService.BuildMessage<EndSessionNotificationMessageBuilder, EndSessionNotificationData>();
+                                });
                             })
                             .AddHandlerForMessageType(ChatMessageData.MsgType, async (client, msg, context) =>
                             {
-                                try
+                                return await SafeWrapperForHandler(client, msg, context, async (client, msg, context) =>
                                 {
                                     if (!_authenticationService.IsAuthClient(client))
                                     {
@@ -83,20 +90,17 @@ namespace WPFTasks.Core.Models.Chat
                                         );
                                     }
 
-                                    var requestData = ChatMessageBuilder.Parse(msg);
+                                    var msgData = ChatMessageBuilder.Parse(msg);
+                                    bool badWords = _censorService.ProcessMessage(ref msgData);
                                     var user = _authenticationService.GetUserBy(client);
 
-                                    OnReceivedMessageFromUser?.Invoke(user!, requestData);
+                                    if(badWords)
+                                        Logger.LogString($"[ChatCensor]: пользователь под логином - [{user!.Login}], согрешил.");
+
+                                    OnReceivedMessageFromUser?.Invoke(user!, msgData);
 
                                     return null;
-                                }
-                                catch (Exception ex)
-                                {
-                                    Logger.LogString($"[Server]: Ошибка обработки {ChatMessageData.MsgType} от [{client.RemoteEndPoint}].\n{ex.Message}");
-                                    return _msgService.BuildMessage<ErroreMessageBuilder, ErroreData>(builder => builder
-                                        .SetPayload($"Невозможно обработать {ChatMessageData.MsgType}.\n{ex.Message}")
-                                    );
-                                }
+                                });
                             });
 
             _server.SetSessionFactory(SessionFactory);
@@ -139,7 +143,7 @@ namespace WPFTasks.Core.Models.Chat
             session.OnMessageHandled += Session_OnMessageHandled;
             _activityService.UpdateLastActive(client);
 
-            return session;
+            return await Task.FromResult(session);
         }
 
         private void Session_OnMessageHandled(ClientSession arg1, Message arg2)
@@ -177,6 +181,26 @@ namespace WPFTasks.Core.Models.Chat
         public async Task UpdateMaxDurationInactive(TimeSpan newDuration)
             => await _activityService.UpdateMaxDurationInactive(newDuration);
 
+        public void AddBadWord(string badWord)
+            => _censorService.AddWord(badWord);
+
         public int MaxConnections { get; set; } = 3;
+
+
+
+        private async Task<Message> SafeWrapperForHandler(TopClient client, Message msg, ServiceRegistry context, Func<TopClient, Message, ServiceRegistry, Task<Message?>> handler)
+        {
+            try
+            {
+                return await handler?.Invoke(client, msg, context);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogString($"[Server]: Ошибка обработки {msg.MessageType} от [{client.RemoteEndPoint}].\n{ex.Message}");
+                return _msgService.BuildMessage<ErroreMessageBuilder, ErroreData>(builder => builder
+                    .SetPayload($"Невозможно обработать {msg.MessageType}.\n{ex.Message}")
+                );
+            }
+        }
     }
 }
