@@ -8,7 +8,8 @@ namespace WPFTasks.Core.Models.Chat
 {
     public class ChatClient : BaseClient
     {
-        public event Action<ChatMessageData>? OnReceivedChatMessage;
+        public event Action<ChatUpdatedData>? OnChatUpdated;
+        public event Action<ChatHistoryResponseData>? OnGetChatHistory;
         public event Action<EndSessionNotificationData>? OnEndSession;
         public event Action<AuthenticationResponseData>? OnAuthenticationResponse;
 
@@ -30,11 +31,6 @@ namespace WPFTasks.Core.Models.Chat
                     return await SafeWrapperForHandler(msg, async msg
                         => OnEndSession?.Invoke(EndSessionNotificationMessageBuilder.Parse(msg)));
                 })
-                .AddHandlerForMessageType(ChatMessageData.MsgType, async msg =>
-                {
-                    return await SafeWrapperForHandler(msg, async msg
-                        => OnReceivedChatMessage?.Invoke(ChatMessageBuilder.Parse(msg)));
-                })
                 .AddHandlerForMessageType(AuthenticationResponseData.MsgType, async msg =>
                 {
                     return await SafeWrapperForHandler(msg, async msg
@@ -52,6 +48,13 @@ namespace WPFTasks.Core.Models.Chat
                 });
         }
 
+        public async Task SendChatHistoryRequest(string chatId)
+        {
+            await SendMessageAsync<ChatHistoryRequestMsgBuilder, ChatHistoryRequestData>(
+                builder => builder.SetChat(chatId)
+            );
+        }
+
         public async Task SendAuthRequest(string login, string password)
         {
             await SendMessageAsync<AuthenticationRequestMessageBuilder, AuthenticationRequestData>(
@@ -59,10 +62,11 @@ namespace WPFTasks.Core.Models.Chat
             );
         }
 
-        public async Task SendChatMessage(string message)
+        public async Task SendChatMessage(string message, string chatId)
         {
-            await SendMessageAsync<ChatMessageBuilder, ChatMessageData>(
-                builder => builder.SetPayload(message)
+            await SendMessageAsync<ChatMessageBuilder, ChatMessageData>(builder => builder
+                .SetPayload(message)
+                .SetChatId(chatId)
             );
         }
 

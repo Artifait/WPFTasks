@@ -4,7 +4,7 @@ using TopNetwork.Services.MessageBuilder;
 
 namespace WPFTasks.Core.Models.Chat.MessageBuilder
 {
-    public class UpdateChatData : IMsgSourceData
+    public class ChatUpdatedData : IMsgSourceData
     {
         public string Sender {  get; set; } = string.Empty;
         public string Content { get; set; } = string.Empty;
@@ -14,11 +14,11 @@ namespace WPFTasks.Core.Models.Chat.MessageBuilder
         public static string MsgType => "UpdateChat";
     }
 
-    public class UpdateChatMsgBuilder : IMessageBuilder<UpdateChatData>
+    public class ChatUpdatedMsgBuilder : IMessageBuilder<ChatUpdatedData>
     {
-        private UpdateChatData _data = new();
+        private ChatUpdatedData _data = new();
 
-        public UpdateChatMsgBuilder SetChatId(string chatId)
+        public ChatUpdatedMsgBuilder SetChatId(string chatId)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(chatId);
             _data.ChatId = chatId;
@@ -26,7 +26,7 @@ namespace WPFTasks.Core.Models.Chat.MessageBuilder
             return this;
         }
 
-        public UpdateChatMsgBuilder SetSender(string sender)
+        public ChatUpdatedMsgBuilder SetSender(string sender)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(sender);
             _data.Sender = sender;
@@ -34,7 +34,7 @@ namespace WPFTasks.Core.Models.Chat.MessageBuilder
             return this;
         }
 
-        public UpdateChatMsgBuilder SetContent(string content)
+        public ChatUpdatedMsgBuilder SetContent(string content)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(content);
             _data.Content = content;
@@ -51,9 +51,9 @@ namespace WPFTasks.Core.Models.Chat.MessageBuilder
             };
         }
 
-        public static UpdateChatData Parse(Message msg)
+        public static ChatUpdatedData Parse(Message msg)
         {
-            if (msg.MessageType != UpdateChatData.MsgType)
+            if (msg.MessageType != ChatUpdatedData.MsgType)
                 throw new InvalidOperationException("Incorrect message type.");
 
             var parts = msg.Payload.Split(':');
