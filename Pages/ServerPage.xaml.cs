@@ -2,7 +2,7 @@
 using System.Windows.Controls;
 using System.Windows.Input;
 using WPFTasks.Core.ViewModels.Core;
-using WPFTasks.Core.ViewModels.TicTacToe;
+using WPFTasks.Core.ViewModels.RockPaperScissors;
 
 namespace WPFTasks.Pages
 {
@@ -11,7 +11,7 @@ namespace WPFTasks.Pages
     /// </summary>
     public partial class ServerPage : Page
     {
-        private static TicTacToeServerVm Instance = new();
+        private static RockPaperScissorsServerVm Instance = new();
 
         public ServerPage()
         {

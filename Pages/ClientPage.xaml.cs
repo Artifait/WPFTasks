@@ -2,13 +2,13 @@
 using System.Windows.Controls;
 using System.Windows.Input;
 using WPFTasks.Core.ViewModels.Core;
-using WPFTasks.Core.ViewModels.TicTacToe;
+using WPFTasks.Core.ViewModels.RockPaperScissors;
 
 namespace WPFTasks.Pages
 {
     public partial class ClientPage : Page
     {
-        private static TicTacToeClientVm Instance = new();
+        private static RockPaperScissorsClientVm Instance = new();
         public ClientPage()
         {
             InitializeComponent();
