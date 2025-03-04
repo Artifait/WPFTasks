@@ -13,6 +13,7 @@ namespace WPFTasks.Core.Models.RockPaperScissors.Services.RockPaperScissorsLogic
         {
             Identifier = identifier;
             _logger = logger;
+            Name = identifier;
         }
 
         public string Identifier { get; private set; }

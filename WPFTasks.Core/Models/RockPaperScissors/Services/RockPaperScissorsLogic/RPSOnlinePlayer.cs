@@ -26,6 +26,7 @@ namespace WPFTasks.Core.Models.RockPaperScissors.Services.RockPaperScissorsLogic
             Client = client;
             Identifier = identifier;
             Logger = logger;
+            Name = identifier;
 
             Client.OnMessageReceived += Client_OnMessageReceived;
             Client.OnConnectionLost += InvokeOnConcession;
@@ -92,7 +93,7 @@ namespace WPFTasks.Core.Models.RockPaperScissors.Services.RockPaperScissorsLogic
             try
             {
                 var response = _msgService.BuildMessage<GameStartedMsgBuilder, GameStartedData>(builder => builder
-                    .SetInstructions("Выберите ход: R - Камень, P - Бумага, S - Ножницы")
+                    .SetInstructions("Выберите ход: R - Камень, P - Бумага, S - Ножницы,\n для отправки хода используёте /SendMove...")
                 );
                 await Client.SendMessageAsync(response);
             }
@@ -108,7 +109,7 @@ namespace WPFTasks.Core.Models.RockPaperScissors.Services.RockPaperScissorsLogic
             try
             {
                 var notification = _msgService.BuildMessage<PlayerTurnMsgBuilder, PlayerTurnData>(builder => builder
-                    .SetPrompt("Ваш ход. Введите R, P или S.")
+                    .SetPrompt("Ваш ход.")
                 );
 
                 await Client.SendMessageAsync(notification);
