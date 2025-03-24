@@ -24,7 +24,10 @@ namespace WPFTasks.Core.ViewModels.Chat
                 .AddCommand("/SetAuthSessionDuration", "/SetAuthSessionDuration <hh:mm:ss>", SetAuthSessionDurationHandler)
                 .AddCommand("/SetMaxDurationInactive", "/SetMaxDurationInactive <hh:mm:ss>", SetMaxDurationInactiveHandler)
                 .AddCommand("/SetCountMaxConnections", "/SetCountMaxConnections <count>", SetCountMaxConnectionsHandler)
-                .AddCommand("/SendMessage", "/ SendMessage <login> <message>", SendMessageHandler);
+                .AddCommand("/SendMessage", "/SendMessage <login> <message>", SendMessageHandler)
+                // Новые команды администратора:
+                .AddCommand("/DeleteUser", "/DeleteUser <Login>", DeleteUserHandler)
+                .AddCommand("/BanUser", "/BanUser <Login> <hh:mm:ss>", BanUserHandler);
         }
 
         protected override async Task StartServerImplementationAsync()
@@ -42,15 +45,16 @@ namespace WPFTasks.Core.ViewModels.Chat
         private void OnLogMessage(string message)
             => LogMessage(message);
 
-
         private async Task SendMessageHandler(string input)
         {
             var parts = input.Split(' ');
-            if (parts.Length == 3)
+            if (parts.Length >= 3)
             {
                 try
                 {
-                    if(await _server.SendMessageToUser(parts[1], parts[2].TrimEnd()))
+                    // Собираем сообщение, которое может содержать пробелы
+                    string message = input.Substring(input.IndexOf(parts[2]));
+                    if (await _server.SendMessageToUser(parts[1], message.TrimEnd()))
                     {
                         LogMessage($"[/SendMessage]: Сообщение успешно отправлено");
                     }
@@ -77,7 +81,6 @@ namespace WPFTasks.Core.ViewModels.Chat
                 LogMessage("[/OpenUserDataFile]: Файл не найден.");
                 return;
             }
-
             Process.Start("notepad.exe", _server.UserFilePath);
             await Task.CompletedTask;
         }
@@ -93,9 +96,7 @@ namespace WPFTasks.Core.ViewModels.Chat
                 .AppendLine($"    MaxAuthSessionDuration: {_server.MaxAuthSessionDuration.TotalMinutes} Мин.")
                 .AppendLine($"    MaxDurationInactive: {_server.MaxDurationInactive.TotalMinutes} Мин.")
                 .AppendLine($"    FilePathToUserData: {_server.UserFilePath}")
-                .AppendLine($"    FilePathToPcPartData: {_server.UserFilePath}")
                 .AppendLine("}");
-
             LogMessage(sb.ToString());
             await Task.CompletedTask;
         }
@@ -179,6 +180,53 @@ namespace WPFTasks.Core.ViewModels.Chat
             else
             {
                 LogMessage("[/RegisterUser]: Неверный формат вызова...");
+            }
+            await Task.CompletedTask;
+        }
+
+        // Новый обработчик для удаления пользователя
+        private async Task DeleteUserHandler(string input)
+        {
+            var parts = input.Split(' ');
+            if (parts.Length == 2)
+            {
+                try
+                {
+                    _server.DeleteUser(parts[1]);
+                    LogMessage($"[/DeleteUser]: Пользователь {parts[1]} успешно удалён.");
+                }
+                catch (Exception ex)
+                {
+                    LogMessage($"[/DeleteUser]: {ex.Message}");
+                }
+            }
+            else
+            {
+                LogMessage("[/DeleteUser]: Неверный формат вызова...");
+            }
+            await Task.CompletedTask;
+        }
+
+        // Новый обработчик для бана пользователя
+        private async Task BanUserHandler(string input)
+        {
+            var parts = input.Split(' ');
+            if (parts.Length == 3)
+            {
+                try
+                {
+                    TimeSpan duration = TimeSpan.Parse(parts[2]);
+                    _server.BanUser(parts[1], duration);
+                    LogMessage($"[/BanUser]: Пользователь {parts[1]} забанен на {duration}.");
+                }
+                catch (Exception ex)
+                {
+                    LogMessage($"[/BanUser]: {ex.Message}");
+                }
+            }
+            else
+            {
+                LogMessage("[/BanUser]: Неверный формат вызова...");
             }
             await Task.CompletedTask;
         }

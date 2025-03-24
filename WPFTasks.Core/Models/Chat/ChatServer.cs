@@ -12,7 +12,6 @@ namespace WPFTasks.Core.Models.Chat
 {
     public class ChatServer
     {
-        // Регистрация всех фабрик для типов сообщений отправляемых сервером 
         private static readonly MessageBuilderService _msgService = new MessageBuilderService()
                     .Register(() => new AuthenticationResponseMessageBuilder())
                     .Register(() => new ChatMessageBuilder())
@@ -28,13 +27,14 @@ namespace WPFTasks.Core.Models.Chat
         private readonly RrServerHandlerBase _handlers;
         private RrServer _server = new();
 
+        // Словарь для хранения информации о банах: логин -> время окончания бана
+        private readonly Dictionary<string, DateTime> _bannedUsers = new();
 
         public event Action<ChatUser, ChatMessageData>? OnReceivedMessageFromUser;
         public Logger Logger { get; private set; } = new();
         public EndPoint? EndPoint => _server.CurrentEndPoint;
         public bool IsRunning => _server.IsRunning;
         public int CountOpenSessions => _server.CountOpenSessions;
-
 
         public ChatServer(string? userFilePath = null)
         {
@@ -53,12 +53,19 @@ namespace WPFTasks.Core.Models.Chat
                 .RegisterService(_authenticationService)
                 .RegisterService(_activityService);
 
-
             _handlers = new RrServerHandlerBase()
                             .AddHandlerForMessageType(AuthenticationRequestData.MsgType, async (client, msg, context) =>
                             {
                                 return await SafeWrapperForHandler(client, msg, context, async (client, msg, context) =>
                                 {
+                                    // Проверяем, не находится ли клиент в бане (если логин известен)
+                                    var user = _authenticationService.GetUserBy(client);
+                                    if (user != null && !string.IsNullOrEmpty(user.Login) && IsUserBanned(user.Login))
+                                    {
+                                        return _msgService.BuildMessage<ErroreMessageBuilder, ErroreData>(builder => builder
+                                            .SetPayload("Вы заблокированы на сервере.")
+                                        );
+                                    }
                                     var requestData = AuthenticationRequestMessageBuilder.Parse(msg);
                                     return await _authenticationService.AuthenticateClient(client, requestData);
                                 });
@@ -68,6 +75,13 @@ namespace WPFTasks.Core.Models.Chat
                                 return await SafeWrapperForHandler(client, msg, context, async (client, msg, context) =>
                                 {
                                     var requestData = RegisterRequestMsgBuilder.Parse(msg);
+                                    // Проверяем, не находится ли пользователь уже в бане (по логину)
+                                    if (IsUserBanned(requestData.Login))
+                                    {
+                                        return _msgService.BuildMessage<ErroreMessageBuilder, ErroreData>(builder => builder
+                                            .SetPayload("Регистрация невозможна. Пользователь заблокирован.")
+                                        );
+                                    }
                                     return await _authenticationService.RegisterClient(client, requestData);
                                 });
                             })
@@ -94,7 +108,7 @@ namespace WPFTasks.Core.Models.Chat
                                     bool badWords = _censorService.ProcessMessage(ref msgData);
                                     var user = _authenticationService.GetUserBy(client);
 
-                                    if(badWords)
+                                    if (badWords)
                                         Logger.LogString($"[ChatCensor]: пользователь под логином - [{user!.Login}], согрешил.");
 
                                     OnReceivedMessageFromUser?.Invoke(user!, msgData);
@@ -107,7 +121,6 @@ namespace WPFTasks.Core.Models.Chat
             UpdateAuthSessionDuration(Timeout.InfiniteTimeSpan).Wait();
         }
 
-
         public void SetEndPoint(IPEndPoint endPoint)
             => _server.SetEndPoint(endPoint);
 
@@ -119,7 +132,7 @@ namespace WPFTasks.Core.Models.Chat
 
         private async Task<ClientSession?> SessionFactory(TopClient client, ServiceRegistry context, LogString? logger)
         {
-
+            // Если число активных сессий превышает лимит, отклоняем подключение
             if (_server.CountOpenSessions >= MaxConnections)
             {
                 try
@@ -133,6 +146,20 @@ namespace WPFTasks.Core.Models.Chat
                     logger?.Invoke($"[SessionFactory]: {ex.Message}.");
                     return null;
                 }
+            }
+
+            // Можно добавить дополнительную проверку: если клиент пытается подключиться под забаненным логином, отклоняем
+            ChatUser? user = _authenticationService.GetUserBy(client);
+            if (user != null && !string.IsNullOrEmpty(user.Login) && IsUserBanned(user.Login))
+            {
+                try
+                {
+                    client.SendMessageAsync(_msgService.BuildMessage<ErroreMessageBuilder, ErroreData>(builder => builder
+                        .SetPayload("Вы заблокированы на сервере.")
+                    )).Wait();
+                }
+                catch { }
+                return null;
             }
 
             ClientSession session = new(client, _handlers, context)
@@ -170,23 +197,44 @@ namespace WPFTasks.Core.Models.Chat
             return client != null;
         }
 
-        // Свойства Задаваемые юзером
-        public string UserFilePath => _userRepository.FilePath;
+        public void DeleteUser(string login)
+        {
+            _userService.RemoveUser(login); 
+        }
 
+        public void BanUser(string login, TimeSpan duration)
+        {
+            _bannedUsers[login] = DateTime.UtcNow.Add(duration);
+            var client = _authenticationService.GetTopClientBy(login);
+            if (client != null)
+            {
+                _authenticationService.CloseSession(client);
+            }
+        }
+
+        private bool IsUserBanned(string login)
+        {
+            if (_bannedUsers.TryGetValue(login, out DateTime banUntil))
+            {
+                if (DateTime.UtcNow < banUntil)
+                    return true;
+                else
+                {
+                    _bannedUsers.Remove(login);
+                    return false;
+                }
+            }
+            return false;
+        }
+
+        public string UserFilePath => _userRepository.FilePath;
         public TimeSpan MaxAuthSessionDuration => _authenticationService.MaxSessionDuration;
         public async Task UpdateAuthSessionDuration(TimeSpan newDuration)
             => await _authenticationService.UpdateSessionDuration(newDuration);
-
         public TimeSpan MaxDurationInactive => _activityService.MaxDurationInactive;
         public async Task UpdateMaxDurationInactive(TimeSpan newDuration)
             => await _activityService.UpdateMaxDurationInactive(newDuration);
-
-        public void AddBadWord(string badWord)
-            => _censorService.AddWord(badWord);
-
         public int MaxConnections { get; set; } = 3;
-
-
 
         private async Task<Message> SafeWrapperForHandler(TopClient client, Message msg, ServiceRegistry context, Func<TopClient, Message, ServiceRegistry, Task<Message?>> handler)
         {

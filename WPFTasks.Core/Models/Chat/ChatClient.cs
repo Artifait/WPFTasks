@@ -27,24 +27,32 @@ namespace WPFTasks.Core.Models.Chat
                 .AddHandlerForMessageType(EndSessionNotificationData.MsgType, async msg =>
                 {
                     Disconnect();
-
-                    return await SafeWrapperForHandler(msg, async msg
-                        => OnEndSession?.Invoke(EndSessionNotificationMessageBuilder.Parse(msg)));
+                    return await SafeWrapperForHandler(msg, async msg =>
+                        OnEndSession?.Invoke(EndSessionNotificationMessageBuilder.Parse(msg)));
                 })
                 .AddHandlerForMessageType(AuthenticationResponseData.MsgType, async msg =>
                 {
-                    return await SafeWrapperForHandler(msg, async msg
-                        => OnAuthenticationResponse?.Invoke(AuthenticationResponseMessageBuilder.Parse(msg)));
+                    return await SafeWrapperForHandler(msg, async msg =>
+                        OnAuthenticationResponse?.Invoke(AuthenticationResponseMessageBuilder.Parse(msg)));
                 })
                 .AddHandlerForMessageType(ErroreData.MsgType, async msg =>
                 {
-                    return await SafeWrapperForHandler(msg, async msg 
-                        => InvokeOnErroreFromServer(ErroreMessageBuilder.Parse(msg)));
+                    return await SafeWrapperForHandler(msg, async msg =>
+                        InvokeOnErroreFromServer(ErroreMessageBuilder.Parse(msg)));
                 })
                 .AddHandlerForMessageType(ServerOverloadedNotificationData.MsgType, async msg =>
                 {
                     InvokeOnServerOverloaded();
                     return null;
+                })
+                // Обработчик для сообщений чата
+                .AddHandlerForMessageType(ChatUpdatedData.MsgType, async msg =>
+                {
+                    return await SafeWrapperForHandler(msg, async msg =>
+                    {
+                        var chatData = ChatUpdatedMsgBuilder.Parse(msg);
+                        OnChatUpdated?.Invoke(chatData);
+                    });
                 });
         }
 
@@ -75,30 +83,16 @@ namespace WPFTasks.Core.Models.Chat
             await SendMessageAsync<CloseSessionRequestMessageBuilder, CloseSessionRequestData>();
         }
 
-        private async Task<Message?> SafeWrapperForHandlerWithAnswer(Message msg, Func<Message, Task<Message?>> handler)
-        {
-            try
-            {
-                return await handler?.Invoke(msg);
-            }
-            catch (Exception ex)
-            {
-                InvokeOnErroreOnClient($"Error parsing response of type: {msg.MessageType} - {ex.Message}");
-                return null;
-            }
-        }
-
         private async Task<Message?> SafeWrapperForHandler(Message msg, Func<Message, Task> handler)
         {
             try
             {
-                await handler?.Invoke(msg);
+                await handler.Invoke(msg);
             }
             catch (Exception ex)
             {
                 InvokeOnErroreOnClient($"Error parsing response of type: {msg.MessageType} - {ex.Message}");
             }
-
             return null;
         }
     }

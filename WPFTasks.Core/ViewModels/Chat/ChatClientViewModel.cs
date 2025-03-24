@@ -13,7 +13,7 @@ namespace WPFTasks.Core.ViewModels.Chat
         {
             _chatClient = (ChatClient)Client;
 
-            // Добавляем команды специфичные для ChatClient
+            // Регистрируем команды, специфичные для ChatClient
             _commandProcessor!
                 .AddCommand("/Authentication", "/Authentication <Login> <Password>", HandleAuthentication)
                 .AddCommand("/SignOut", "/SignOut", HandleSignOut)
@@ -21,18 +21,19 @@ namespace WPFTasks.Core.ViewModels.Chat
                 .AddCommand("/Clear", "/Clear", HandleClear)
                 .AddCommand("/Connect", "/Connect <Ip> <Port> or /Connect", HandleConnect)
                 .AddCommand("/Delay", "/Delay <milliseconds>", HandleDelay)
-                .AddCommand("/SendMessage", "/SendMessage <message>", HandleSendMessage);
+                // Теперь команда ожидает: /SendMessage <chatId> <Message>
+                .AddCommand("/SendMessage", "/SendMessage <chatId> <Message>", HandleSendMessage);
 
-            // Подписываемся на события специфичные для PcClient
-            _chatClient.OnEndSession += data
-                => AddMessage("Server", data.Payload);
+            // Подписываемся на события от ChatClient
+            _chatClient.OnEndSession += data =>
+                AddMessage("Server", data.Payload);
 
-            _chatClient.OnAuthenticationResponse += response
-                => AddMessage("ServerResponse", response.Payload);
+            _chatClient.OnAuthenticationResponse += response =>
+                AddMessage("ServerResponse", response.Payload);
 
-            _chatClient.OnReceivedChatMessage += response =>
+            _chatClient.OnChatUpdated += response =>
             {
-                AddMessage("Server", response.Payload);
+                AddMessage($"{response.Sender}:(Room: {response.ChatId})", response.Content);
             };
         }
 
@@ -50,14 +51,18 @@ namespace WPFTasks.Core.ViewModels.Chat
 
         private async Task HandleSendMessage(string input)
         {
+            // Формат: /SendMessage <chatId> <message>
             var parts = input.Split(' ');
-            if (parts.Length == 2)
+            if (parts.Length >= 3)
             {
-                await _chatClient.SendChatMessage(parts[1].TrimEnd());
+                // chatId - второй параметр, остальное – сообщение (может содержать пробелы)
+                string chatId = parts[1];
+                string message = input.Substring(input.IndexOf(parts[2]));
+                await _chatClient.SendChatMessage(message.TrimEnd(), chatId);
             }
             else
             {
-                ShowMessageBox("Команда /SendMessage должна быть в формате: { /SendMessage <Message> }");
+                ShowMessageBox("Команда /SendMessage должна быть в формате: { /SendMessage <chatId> <Message> }");
             }
         }
 
@@ -102,10 +107,10 @@ namespace WPFTasks.Core.ViewModels.Chat
 
         private async Task HandleDelay(string input)
         {
-            var parts = input.Split(" ");
-            if (parts.Length == 2)
+            var parts = input.Split(' ');
+            if (parts.Length == 2 && int.TryParse(parts[1], out int milliseconds))
             {
-                await Task.Delay(int.Parse(parts[1]));
+                await Task.Delay(milliseconds);
             }
             else
             {
